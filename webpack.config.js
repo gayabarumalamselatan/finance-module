@@ -60,6 +60,8 @@ module.exports = {
             exposes: {
                 './Coa': './src/components/Coa',
                 './PurchaseRequest': './src/components/PurchaseRequest',
+                './PurchaseOrder': './src/components/PurchaseOrder',
+                './PurchaseInvoice': './src/components/PurchaseInvoice',
             },
             shared: {
                 react: { 
