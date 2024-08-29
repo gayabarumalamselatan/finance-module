@@ -58,10 +58,20 @@ module.exports = {
             name: 'gritfinancemodule',
             filename: 'financeModule.js',
             exposes: {
+                './Coa': './src/components/Coa',
+                './PurchaseRequest': './src/components/PurchaseRequest',
             },
             shared: {
-                react: { singleton: true, requiredVersion: '17.0.2' },
-                'react-dom': { singleton: true, requiredVersion: '17.0.2' },
+                react: { 
+                    singleton: true, 
+                    eager: true,
+                    requiredVersion: '^18.2.0' // Ganti dengan versi React yang digunakan dalam aplikasi Anda
+                  },
+                  'react-dom': { 
+                    singleton: true, 
+                    eager: true,
+                    requiredVersion: '^18.2.0' // Ganti dengan versi yang sesuai
+                  },
             },
         }),
         new HtmlWebpackPlugin({
