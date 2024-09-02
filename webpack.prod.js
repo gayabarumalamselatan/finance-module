@@ -58,6 +58,8 @@ module.exports = {
             name: 'gritfinancemodule',
             filename: 'financeModule.js',
             exposes: {
+                './Coa': './src/components/Coa',
+                './PurchaseRequest': './src/components/PurchaseRequest',
             },
             shared: {
                 react: { singleton: true, requiredVersion: '17.0.2' },
