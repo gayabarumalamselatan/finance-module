@@ -1,29 +1,239 @@
-import React, { Fragment, useState } from 'react';
+import React, { Fragment, useEffect, useState } from 'react';
 import { Button, Col, Form, InputGroup, Row, Card } from 'react-bootstrap';
 import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd';
 import Swal from 'sweetalert2';
 import { messageAlertSwal } from "../config/Swal";
 import InsertDataService from '../service/InsertDataService';
 import { getBranch, getToken } from '../config/Constant';
+import { GENERATED_NUMBER } from '../config/ConfigUrl';
+import { generateUniqueId } from '../service/GeneratedId';
+import Select from 'react-select';
+import LookupParamService from '../service/LookupParamService';
+import CreatableSelect from 'react-select/creatable';
 
-const AddPurchaseRequest = ({ setIsAddingNewPurchaseRequest, handleRefresh }) => {
+const AddPurchaseRequest = ({ setIsAddingNewPurchaseRequest, handleRefresh, index, item }) => {
   const headers = getToken();
   const branchId = getBranch();
   const [pr_number, setPrNumber] = useState('');
   const [request_date, setRequestDate] = useState('');
-  const [title, setTitle] = useState('');
+  const [customer, setCustomer] = useState('');
   const [schedule_date, setScheduleDate] = useState('');
-  const [doc_no, setDocNo] = useState('');
+  const [doc_no, setDocNo] = useState('FRM.PTAP.PRC.21a-01');
+  const [doc_reff,setDocReff] = useState('');
   const [requestor, setRequestor] = useState('');
   const [departement, setDepartment] = useState('');
   const [company, setCompany] = useState('');
   const [project, setProject] = useState('');
+  const [status_request, setStatusRequest] = useState('Draft');
   const [items, setItems] = useState([]);
   const [description, setDescription] = useState('');
   const [selectedItems, setSelectedItems] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [requestorOptions, setRequestorOptions] = useState([]);
+  const [selectedRequestor, setSelectedRequestor] = useState(null);
+  const [currencyOptions, setCurrencyOptions] = useState([]);
+  const [selectedCurrency, setSelectedCurrency] = useState(null);
+  const [departementOptions, setDepartementOptions] = useState([]);
+  const [selectedDepartement, setSelectedDepartement] = useState(null);
+  const [companyOptions, setCompanyOptions] = useState([]);
+  const [selectedCompany, setSelectedCompany] = useState(null);
+  const [projectOptions, setProjectOptions] = useState([]);
+  const [selectedProject, setSelectedProject] = useState(null);
+  const [productOptions, setProductOptions] = useState([]);
+  const [selectedProduct, setSelectedProduct] = useState(null);
+  const [customerOptions, setCustomerOptions] = useState([]);
+  const [selectedCustomer, setSelectedCustomer] = useState(null);
 
   const authToken = headers;
+
+  useEffect(() => {
+    // Ambil data lookup untuk currency
+    LookupParamService.fetchLookupData("MSDT_FORMEMPL", authToken, branchId)
+      .then(data => {
+        console.log('Currency lookup data:', data);
+
+        // Transform keys to uppercase directly in the received data
+        const transformedData = data.data.map(item =>
+          Object.keys(item).reduce((acc, key) => {
+            acc[key.toUpperCase()] = item[key];
+            return acc;
+          }, {})
+        );
+        //console.log('Transformed data:', transformedData);
+
+        const options = transformedData.map(item => ({
+          value: item.NAME,
+          label: item.NAME
+        }));
+        setRequestorOptions(options);
+      })
+      .catch(error => {
+        console.error('Failed to fetch currency lookup:', error);
+      });
+
+    LookupParamService.fetchLookupData("MSDT_FORMCCY", authToken, branchId)
+      .then(data => {
+        console.log('Currency lookup data:', data);
+
+        // Transform keys to uppercase directly in the received data
+        const transformedData = data.data.map(item =>
+          Object.keys(item).reduce((acc, key) => {
+            acc[key.toUpperCase()] = item[key];
+            return acc;
+          }, {})
+        );
+        //console.log('Transformed data:', transformedData);
+
+        const options = transformedData.map(item => ({
+          value: item.CODE,
+          label: item.CODE
+        }));
+        setCurrencyOptions(options);
+      })
+      .catch(error => {
+        console.error('Failed to fetch currency lookup:', error);
+      });
+    LookupParamService.fetchLookupData("MSDT_FORMDPRT", authToken, branchId)
+      .then(data => {
+        console.log('Currency lookup data:', data);
+
+        // Transform keys to uppercase directly in the received data
+        const transformedData = data.data.map(item =>
+          Object.keys(item).reduce((acc, key) => {
+            acc[key.toUpperCase()] = item[key];
+            return acc;
+          }, {})
+        );
+        //console.log('Transformed data:', transformedData);
+
+        const options = transformedData.map(item => ({
+          value: item.NAME,
+          label: item.NAME
+        }));
+        setDepartementOptions(options);
+      })
+      .catch(error => {
+        console.error('Failed to fetch currency lookup:', error);
+      });
+
+    LookupParamService.fetchLookupData("MSDT_FORMVNDR", authToken, branchId)
+      .then(data => {
+        console.log('Currency lookup data:', data);
+
+        // Transform keys to uppercase directly in the received data
+        const transformedData = data.data.map(item =>
+          Object.keys(item).reduce((acc, key) => {
+            acc[key.toUpperCase()] = item[key];
+            return acc;
+          }, {})
+        );
+        //console.log('Transformed data:', transformedData);
+
+        const options = transformedData.map(item => ({
+          value: item.NAME,
+          label: item.NAME
+        }));
+        setCompanyOptions(options);
+      })
+      .catch(error => {
+        console.error('Failed to fetch currency lookup:', error);
+      });
+
+
+    LookupParamService.fetchLookupData("MSDT_FORMPRJT", authToken, branchId)
+      .then(data => {
+        console.log('Currency lookup data:', data);
+
+        // Transform keys to uppercase directly in the received data
+        const transformedData = data.data.map(item =>
+          Object.keys(item).reduce((acc, key) => {
+            acc[key.toUpperCase()] = item[key];
+            return acc;
+          }, {})
+        );
+        //console.log('Transformed data:', transformedData);
+
+        const options = transformedData.map(item => ({
+          value: item.NAME,
+          label: item.NAME
+        }));
+        setProjectOptions(options);
+      })
+      .catch(error => {
+        console.error('Failed to fetch currency lookup:', error);
+      });
+
+    LookupParamService.fetchLookupData("MSDT_FORMPRDT", authToken, branchId)
+      .then(data => {
+        console.log('Currency lookup data:', data);
+
+        // Transform keys to uppercase directly in the received data
+        const transformedData = data.data.map(item =>
+          Object.keys(item).reduce((acc, key) => {
+            acc[key.toUpperCase()] = item[key];
+            return acc;
+          }, {})
+        );
+        //console.log('Transformed data:', transformedData);
+
+        const options = transformedData.map(item => ({
+          value: item.NAME,
+          label: item.NAME
+        }));
+        setProductOptions(options);
+      })
+      .catch(error => {
+        console.error('Failed to fetch currency lookup:', error);
+      });
+
+      LookupParamService.fetchLookupData("MSDT_FORMCUST", authToken, branchId)
+      .then(data => {
+        console.log('Currency lookup data:', data);
+
+        // Transform keys to uppercase directly in the received data
+        const transformedData = data.data.map(item =>
+          Object.keys(item).reduce((acc, key) => {
+            acc[key.toUpperCase()] = item[key];
+            return acc;
+          }, {})
+        );
+        //console.log('Transformed data:', transformedData);
+
+        const options = transformedData.map(item => ({
+          value: item.NAME,
+          label: item.NAME
+        }));
+        setCustomerOptions(options);
+      })
+      .catch(error => {
+        console.error('Failed to fetch currency lookup:', error);
+      });
+  }, []);
+
+  const handleRequestorChange = (selectedOption) => {
+    setSelectedRequestor(selectedOption);
+    setRequestor(selectedOption ? selectedOption.value : '');
+  };
+
+  const handleDeppartementChange = (selectedOption) => {
+    setSelectedDepartement(selectedOption);
+    setDepartment(selectedOption ? selectedOption.value : '');
+  };
+
+  const handleCompanyChange = (selectedOption) => {
+    setSelectedCompany(selectedOption);
+    setCompany(selectedOption ? selectedOption.value : '');
+  };
+
+  const handleProjectChange = (selectedOption) => {
+    setSelectedProject(selectedOption);
+    setProject(selectedOption ? selectedOption.value : '');
+  };
+
+  const handleCustomerChange = (selectedOption) => {
+    setSelectedCustomer(selectedOption);
+    setCustomer(selectedOption ? selectedOption.value : '');
+  }
 
   const handleAddItem = () => {
     setItems([...items, { product: '', product_note: '', quantity: 0, currency: 'IDR', unit_price: 0, total_price: 0 }]);
@@ -32,6 +242,8 @@ const AddPurchaseRequest = ({ setIsAddingNewPurchaseRequest, handleRefresh }) =>
   const handleItemChange = (index, field, value) => {
     const newItems = [...items];
     newItems[index][field] = value;
+
+    console.log(index, field, value);
 
     if (field === 'quantity' || field === 'unit_price') {
       newItems[index].total_price = newItems[index].quantity * newItems[index].unit_price;
@@ -83,9 +295,10 @@ const AddPurchaseRequest = ({ setIsAddingNewPurchaseRequest, handleRefresh }) =>
   const resetForm = () => {
     setPrNumber('');
     setRequestDate('');
-    setTitle('');
+    setCustomer('');
     setScheduleDate('');
     setDocNo('');
+    setDocReff('');
     setRequestor('');
     setDepartment('');
     setCompany('');
@@ -93,7 +306,14 @@ const AddPurchaseRequest = ({ setIsAddingNewPurchaseRequest, handleRefresh }) =>
     setDescription('');
     setItems([]);
     setSelectedItems([]);
+    setSelectedRequestor(null);
+    setSelectedDepartement(null);
+    setSelectedCompany(null);
+    setSelectedProject(null);
+    setSelectedCurrency(null);
   };
+
+
 
   const handleSave = async (event) => {
     event.preventDefault();
@@ -114,18 +334,21 @@ const AddPurchaseRequest = ({ setIsAddingNewPurchaseRequest, handleRefresh }) =>
       try {
         const total_amount = calculateTotalAmount();
         // Save general information and description
+        const createBy = sessionStorage.getItem('userId');
         const generalInfo = {
           pr_number,
           request_date, // Converts to date format
-          title,
+          customer,
           schedule_date, // Converts to date format
           doc_no,
+          doc_reff,
           requestor,
           departement,
           company,
           project,
           description,
-          total_amount
+          total_amount,
+          create_by: createBy
         };
 
         console.log('Master', generalInfo);
@@ -160,6 +383,19 @@ const AddPurchaseRequest = ({ setIsAddingNewPurchaseRequest, handleRefresh }) =>
     }
   };
 
+  useEffect(() => {
+    const generatePrNumber = async () => {
+      try {
+        const uniquePrNumber = await generateUniqueId(`${GENERATED_NUMBER}?code=DRAFT_PR`, authToken);
+        setPrNumber(uniquePrNumber);
+      } catch (error) {
+        console.error('Failed to generate PR Number:', error);
+      }
+    };
+
+    generatePrNumber();
+  }, []);
+
   return (
     <Fragment>
 
@@ -191,19 +427,6 @@ const AddPurchaseRequest = ({ setIsAddingNewPurchaseRequest, handleRefresh }) =>
                 <Form>
                   <Row>
                     <Col md={6}>
-                      <Form.Group controlId="formTitle">
-                        <Form.Label>Title</Form.Label>
-                        <Form.Control
-                          type="text"
-                          placeholder="Enter Title"
-                          value={title}
-                          onChange={(e) => setTitle(e.target.value)}
-                          required
-                        />
-                      </Form.Group>
-                    </Col>
-
-                    <Col md={6}>
                       <Form.Group controlId="formPrNumber">
                         <Form.Label>PR. Number</Form.Label>
                         <Form.Control
@@ -211,11 +434,50 @@ const AddPurchaseRequest = ({ setIsAddingNewPurchaseRequest, handleRefresh }) =>
                           placeholder="Enter No Request"
                           value={pr_number}
                           onChange={(e) => setPrNumber(e.target.value)}
+                          disabled
                           required
                         />
                       </Form.Group>
                     </Col>
 
+                    <Col md={6}>
+                      <Form.Group controlId="formCustomer">
+                        <Form.Label>Customer</Form.Label>
+                        <Select
+                          id="customer"
+                          value={selectedCustomer}
+                          onChange={handleCustomerChange}
+                          options={customerOptions}
+                          isClearable
+                          placeholder="Select..."
+                          required
+                        />
+                      </Form.Group>
+                    </Col>
+                    <Col md={6}>
+                      <Form.Group controlId="formDocNo">
+                        <Form.Label>Doc. No</Form.Label>
+                        <Form.Control
+                          type="text"
+                          placeholder="Enter Document Number"
+                          value={doc_no}
+                          onChange={(e) => setDocNo(e.target.value)}
+                          disabled
+                        />
+                      </Form.Group>
+                    </Col>
+                    <Col md={6}>
+                      <Form.Group controlId="formDocReff">
+                        <Form.Label>Doc. Reference</Form.Label>
+                        <Form.Control
+                          type="text"
+                          placeholder="Enter Document Reference"
+                          value={doc_reff}
+                          onChange={(e) => setDocReff(e.target.value)}
+                          
+                        />
+                      </Form.Group>
+                    </Col>
                     <Col md={6}>
                       <Form.Group controlId="formScheduleDate">
                         <Form.Label>Schedule Date</Form.Label>
@@ -227,27 +489,22 @@ const AddPurchaseRequest = ({ setIsAddingNewPurchaseRequest, handleRefresh }) =>
                         />
                       </Form.Group>
                     </Col>
-
-                    <Col md={6}>
-                      <Form.Group controlId="formDocNo">
-                        <Form.Label>Doc No</Form.Label>
-                        <Form.Control
-                          type="text"
-                          placeholder="Enter Document Number"
-                          value={doc_no}
-                          onChange={(e) => setDocNo(e.target.value)}
-                        />
-                      </Form.Group>
-                    </Col>
-
                     <Col md={6}>
                       <Form.Group controlId="formRequestor">
                         <Form.Label>Requestor</Form.Label>
-                        <Form.Control
-                          type="text"
-                          placeholder="Enter Requestor"
-                          value={requestor}
-                          onChange={(e) => setRequestor(e.target.value)}
+                        <CreatableSelect
+                          id="requestor"
+                          value={selectedRequestor}
+                          onChange={handleRequestorChange}
+                          options={requestorOptions}
+                          isClearable
+                          placeholder="Select or type to create..."
+                          onCreateOption={(inputValue) => {
+                            const newOption = { value: inputValue, label: inputValue };
+                            setRequestorOptions((prevOptions) => [...prevOptions, newOption]);
+                            setSelectedRequestor(newOption);
+                          }}
+                          required
                         />
                       </Form.Group>
                     </Col>
@@ -255,11 +512,14 @@ const AddPurchaseRequest = ({ setIsAddingNewPurchaseRequest, handleRefresh }) =>
                     <Col md={6}>
                       <Form.Group controlId="formDepartment">
                         <Form.Label>Departement</Form.Label>
-                        <Form.Control
-                          type="text"
-                          placeholder="Enter Department"
-                          value={departement}
-                          onChange={(e) => setDepartment(e.target.value)}
+                        <Select
+                          id="departement"
+                          value={selectedDepartement}
+                          onChange={handleDeppartementChange}
+                          options={departementOptions}
+                          isClearable
+                          placeholder="Select..."
+                          required
                         />
                       </Form.Group>
                     </Col>
@@ -267,11 +527,14 @@ const AddPurchaseRequest = ({ setIsAddingNewPurchaseRequest, handleRefresh }) =>
                     <Col md={6}>
                       <Form.Group controlId="formCompany">
                         <Form.Label>Company</Form.Label>
-                        <Form.Control
-                          type="text"
-                          placeholder="Enter Company"
-                          value={company}
-                          onChange={(e) => setCompany(e.target.value)}
+                        <Select
+                          id="company"
+                          value={selectedCompany}
+                          onChange={handleCompanyChange}
+                          options={companyOptions}
+                          isClearable
+                          placeholder="Select..."
+                          required
                         />
                       </Form.Group>
                     </Col>
@@ -279,15 +542,17 @@ const AddPurchaseRequest = ({ setIsAddingNewPurchaseRequest, handleRefresh }) =>
                     <Col md={6}>
                       <Form.Group controlId="formProject">
                         <Form.Label>Project</Form.Label>
-                        <Form.Control
-                          type="text"
-                          placeholder="Enter Project"
-                          value={project}
-                          onChange={(e) => setProject(e.target.value)}
+                        <Select
+                          id="project"
+                          value={selectedProject}
+                          onChange={handleProjectChange}
+                          options={projectOptions}
+                          isClearable
+                          placeholder="Select..."
+                          required
                         />
                       </Form.Group>
                     </Col>
-
                     <Col md={6}>
                       <Form.Group controlId="formRequestDate">
                         <Form.Label>Request Date</Form.Label>
@@ -295,6 +560,18 @@ const AddPurchaseRequest = ({ setIsAddingNewPurchaseRequest, handleRefresh }) =>
                           type="date"
                           value={request_date}
                           onChange={(e) => setRequestDate(e.target.value)}
+                          required
+                        />
+                      </Form.Group>
+                    </Col>
+                    <Col md={6}>
+                      <Form.Group controlId="formStatusRequest">
+                        <Form.Label>Status Request</Form.Label>
+                        <Form.Control
+                          type="text"
+                          value={status_request}
+                          onChange={(e) => setStatusRequest(e.target.value)}
+                          disabled
                           required
                         />
                       </Form.Group>
@@ -377,10 +654,15 @@ const AddPurchaseRequest = ({ setIsAddingNewPurchaseRequest, handleRefresh }) =>
                                     />
                                   </td>
                                   <td>
-                                    <Form.Control
-                                      type="text"
-                                      value={item.product}
-                                      onChange={(e) => handleItemChange(index, 'product', e.target.value)}
+                                    <Select
+                                      value={selectedProduct}
+                                      onChange={(selectedOption) => {
+                                        setSelectedProduct(selectedOption);
+                                        handleItemChange(index, 'product', selectedOption ? selectedOption.value : null);
+                                      }}
+                                      options={productOptions}
+                                      isClearable
+                                      placeholder="Select Product..."
                                     />
                                   </td>
                                   <td>
@@ -398,15 +680,16 @@ const AddPurchaseRequest = ({ setIsAddingNewPurchaseRequest, handleRefresh }) =>
                                     />
                                   </td>
                                   <td>
-                                    <Form.Control
-                                      as="select"
-                                      value={item.currency}
-                                      onChange={(e) => handleItemChange(index, 'currency', e.target.value)}
-                                    >
-                                      <option>IDR</option>
-                                      <option>USD</option>
-                                      {/* Add more currencies if needed */}
-                                    </Form.Control>
+                                    <Select
+                                      value={selectedCurrency}
+                                      onChange={(selectedOption) => {
+                                        setSelectedCurrency(selectedOption);
+                                        handleItemChange(index, 'currency', selectedOption ? selectedOption.value : null);
+                                      }}
+                                      options={currencyOptions}
+                                      isClearable
+                                      placeholder="Select Currency"
+                                    />
                                   </td>
                                   <td>
                                     <Form.Control

@@ -17,9 +17,12 @@ const PurchaseRequestTable = ({
     isLoadingTable,
     handleFilterSearch,
     handleResetFilter,
-    addingNewPurchaseRequest
+    addingNewPurchaseRequest,
+    EditPurchaseRequest,
+    ViewPurchaseRequest,
+    selectedData
 }) => {
-    const [selectedRows, setSelectedRows] = useState([]);
+    const [selectedRows, setSelectedRows] = useState(new Set());
     const [isFilterOpen, setIsFilterOpen] = useState(false);
     const [filterColumn, setFilterColumn] = useState('');
     const [filterValue, setFilterValue] = useState('');
@@ -29,24 +32,26 @@ const PurchaseRequestTable = ({
 
     useEffect(() => {
         // Clear selected rows when data changes
-        setSelectedRows([]);
+        setSelectedRows(new Set());
     }, [dataTable]);
 
     const handleSelectAll = (e) => {
         if (e.target.checked) {
-            setSelectedRows(dataTable.map(item => item.PR_NUMBER)); // Assuming PR_NUMBER is unique
+            setSelectedRows(new Set(dataTable.map(item => item.ID))); // Assuming ID is unique
         } else {
-            setSelectedRows([]);
+            setSelectedRows(new Set());
         }
     };
 
-    const handleRowSelect = (item) => {
+    const handleRowSelect = (itemId) => {
         setSelectedRows(prevSelectedRows => {
-            if (prevSelectedRows.includes(item.PR_NUMBER)) {
-                return prevSelectedRows.filter(row => row !== item.PR_NUMBER);
+            const newSelectedRows = new Set(prevSelectedRows);
+            if (newSelectedRows.has(itemId)) {
+                newSelectedRows.delete(itemId);
             } else {
-                return [...prevSelectedRows, item.PR_NUMBER];
+                newSelectedRows.add(itemId);
             }
+            return newSelectedRows;
         });
     };
 
@@ -54,10 +59,18 @@ const PurchaseRequestTable = ({
         setIsFilterOpen(!isFilterOpen);
     };
 
-    const handleNewBond = () => {
+    const handleAddNewPurchaseRequest = () => {
         addingNewPurchaseRequest(true);
     };
 
+    const handleEditPurchaseRequest = (value) => {
+        EditPurchaseRequest(true);
+        const dataSelected = getSelectedRowsData();
+        selectedData(dataSelected);
+    }
+    const handleViewPurchaseRequest = (value) => {
+        ViewPurchaseRequest(true);
+    }
     const handleResetFilters = () => {
         setFilterColumn('');
         setFilterValue('');
@@ -77,19 +90,32 @@ const PurchaseRequestTable = ({
         }, 1000);
     };
 
+    const getSelectedRowsData = () => {
+        return dataTable.filter(item => selectedRows.has(item.ID));
+    };
+
+
     const handleEdit = () => {
-        // Add logic for editing selected rows
-        console.log("Edit selected rows:", selectedRows);
+        const selectedData = getSelectedRowsData();
+        if (selectedData.length > 0) {
+            // For simplicity, we'll log the data here
+            console.log("Edit selected rows data:", selectedData);
+
+            // Open a modal or navigate to an edit page with the selected data
+            // Example: openEditModal(selectedData); // Implement this function based on your modal logic
+        } else {
+            alert("No rows selected for editing.");
+        }
     };
 
     const handleDelete = () => {
         // Add logic for deleting selected rows
-        console.log("Delete selected rows:", selectedRows);
+        console.log("Delete selected rows:", Array.from(selectedRows));
     };
 
     const handleExport = () => {
         // Add logic for exporting selected rows
-        console.log("Export selected rows:", selectedRows);
+        console.log("Export selected rows:", Array.from(selectedRows));
     };
 
     return (
@@ -122,12 +148,12 @@ const PurchaseRequestTable = ({
                                 <button type="button" className="btn btn-default" onClick={handleRefresh}>
                                     <FaSyncAlt />
                                 </button>
-                                <button type="button" className="btn btn-default" onClick={handleNewBond}>
+                                <button type="button" className="btn btn-default" onClick={handleAddNewPurchaseRequest}>
                                     <FaAddressBook /> Add New
                                 </button>
-                                {selectedRows.length > 0 && (
+                                {selectedRows.size > 0 && (
                                     <>
-                                        <button type="button" className="btn btn-default" onClick={handleEdit}>
+                                        <button type="button" className="btn btn-default" onClick={handleEditPurchaseRequest}>
                                             <FaEdit /> Edit
                                         </button>
                                         <button type="button" className="btn btn-default" onClick={handleDelete}>
@@ -156,7 +182,6 @@ const PurchaseRequestTable = ({
                                         </>
                                     )}
                                 </button>
-
                             </div>
                         </div>
                     </div>
@@ -230,18 +255,19 @@ const PurchaseRequestTable = ({
                                         <input
                                             type="checkbox"
                                             onChange={handleSelectAll}
-                                            checked={selectedRows.length === dataTable.length && dataTable.length > 0}
+                                            checked={selectedRows.size === dataTable.length && dataTable.length > 0}
                                         />
                                     </th>
                                     <th>PR Number</th>
-                                    <th>Title</th>
                                     <th>Request Date</th>
                                     <th>Schedule Date</th>
                                     <th>Document Number</th>
+                                    <th>Document Reference</th>
                                     <th>Requestor</th>
                                     <th>Department</th>
                                     <th>Company</th>
                                     <th>Project</th>
+                                    <th>Customer</th>
                                     <th>Total Amount</th>
                                     <th>Description</th>
                                     <th>Created By</th>
@@ -254,41 +280,47 @@ const PurchaseRequestTable = ({
                             <tbody>
                                 {isLoadingTable ? (
                                     <tr>
-                                        <td colSpan="17" className="text-center">
-                                            Loading...
+                                        <td colSpan={19}>
+                                            <div className="text-center">
+                                                <div className="spinner-border text-primary" role="status">
+                                                    <span className="sr-only">Loading...</span>
+                                                </div>
+                                            </div>
                                         </td>
                                     </tr>
                                 ) : dataTable.length === 0 ? (
                                     <tr>
-                                        <td colSpan="17" className="text-center">
-                                            No data available
+                                        <td colSpan={19}>
+                                            <div className="text-center">No data available</div>
                                         </td>
                                     </tr>
                                 ) : (
+
                                     dataTable.map((item) => (
-                                        <tr key={item.PR_NUMBER}>
+                                        <tr key={item.ID}>
                                             <td>
                                                 <input
                                                     type="checkbox"
-                                                    checked={selectedRows.includes(item.PR_NUMBER)}
-                                                    onChange={() => handleRowSelect(item)}
+                                                    onChange={() => handleRowSelect(item.ID)}
+                                                    checked={selectedRows.has(item.ID)}
                                                 />
                                             </td>
                                             <td>{item.PR_NUMBER}</td>
-                                            <td>{item.TITLE}</td>
                                             <td>{item.REQUEST_DATE}</td>
                                             <td>{item.SCHEDULE_DATE}</td>
                                             <td>{item.DOC_NO}</td>
+                                            <td>{item.DOC_REFF}</td>
                                             <td>{item.REQUESTOR}</td>
                                             <td>{item.DEPARTEMENT}</td>
                                             <td>{item.COMPANY}</td>
                                             <td>{item.PROJECT}</td>
+                                            <td>{item.CUSTOMER}</td>
                                             <td>
                                                 <NumericFormat
                                                     value={item.TOTAL_AMOUNT}
                                                     displayType="text"
-                                                    thousandSeparator=","
-                                                    prefix="Rp "
+                                                    thousandSeparator={true}
+                                                    prefix="$"
                                                 />
                                             </td>
                                             <td>{item.DESCRIPTION}</td>
@@ -302,17 +334,17 @@ const PurchaseRequestTable = ({
                                 )}
                             </tbody>
                         </table>
+                    </div>
+                    <div className="pagination-container">
                         <FormPagination
-                            pageSize={pageSize}
-                            handlePageSizeChange={handlePageSizeChange}
                             currentPage={currentPage}
-                            handlePageChange={handlePageChange}
                             totalItems={totalItems}
+                            pageSize={pageSize}
+                            onPageChange={handlePageChange}
                         />
                     </div>
                 </div>
             </div>
-            {showAdditionalContent && <div>Additional content here...</div>}
         </div>
     );
 };
