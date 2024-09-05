@@ -19,7 +19,7 @@ const AddPurchaseRequest = ({ setIsAddingNewPurchaseRequest, handleRefresh, inde
   const [customer, setCustomer] = useState('');
   const [schedule_date, setScheduleDate] = useState('');
   const [doc_no, setDocNo] = useState('FRM.PTAP.PRC.21a-01');
-  const [doc_reff,setDocReff] = useState('');
+  const [doc_reff, setDocReff] = useState('');
   const [requestor, setRequestor] = useState('');
   const [departement, setDepartment] = useState('');
   const [company, setCompany] = useState('');
@@ -186,7 +186,7 @@ const AddPurchaseRequest = ({ setIsAddingNewPurchaseRequest, handleRefresh, inde
         console.error('Failed to fetch currency lookup:', error);
       });
 
-      LookupParamService.fetchLookupData("MSDT_FORMCUST", authToken, branchId)
+    LookupParamService.fetchLookupData("MSDT_FORMCUST", authToken, branchId)
       .then(data => {
         console.log('Currency lookup data:', data);
 
@@ -241,9 +241,11 @@ const AddPurchaseRequest = ({ setIsAddingNewPurchaseRequest, handleRefresh, inde
 
   const handleItemChange = (index, field, value) => {
     const newItems = [...items];
-    newItems[index][field] = value;
-
-    console.log(index, field, value);
+    if (field === 'product' || field === 'currency') {
+      newItems[index][field] = value ? value.value : null;
+    } else {
+      newItems[index][field] = value;
+    }
 
     if (field === 'quantity' || field === 'unit_price') {
       newItems[index].total_price = newItems[index].quantity * newItems[index].unit_price;
@@ -265,7 +267,6 @@ const AddPurchaseRequest = ({ setIsAddingNewPurchaseRequest, handleRefresh, inde
       setSelectedItems([...selectedItems, index]);
     }
   };
-
   const handleSelectAll = () => {
     if (selectedItems.length === items.length) {
       setSelectedItems([]);
@@ -348,7 +349,8 @@ const AddPurchaseRequest = ({ setIsAddingNewPurchaseRequest, handleRefresh, inde
           project,
           description,
           total_amount,
-          create_by: createBy
+          created_by: createBy,
+          status_request: 'DRAFT'
         };
 
         console.log('Master', generalInfo);
@@ -474,7 +476,7 @@ const AddPurchaseRequest = ({ setIsAddingNewPurchaseRequest, handleRefresh, inde
                           placeholder="Enter Document Reference"
                           value={doc_reff}
                           onChange={(e) => setDocReff(e.target.value)}
-                          
+
                         />
                       </Form.Group>
                     </Col>
@@ -655,14 +657,11 @@ const AddPurchaseRequest = ({ setIsAddingNewPurchaseRequest, handleRefresh, inde
                                   </td>
                                   <td>
                                     <Select
-                                      value={selectedProduct}
-                                      onChange={(selectedOption) => {
-                                        setSelectedProduct(selectedOption);
-                                        handleItemChange(index, 'product', selectedOption ? selectedOption.value : null);
-                                      }}
+                                      value={productOptions.find(option => option.value === item.product)}
+                                      onChange={(selectedOption) => handleItemChange(index, 'product', selectedOption)}
                                       options={productOptions}
                                       isClearable
-                                      placeholder="Select Product..."
+                                      placeholder="Select product"
                                     />
                                   </td>
                                   <td>
@@ -681,14 +680,11 @@ const AddPurchaseRequest = ({ setIsAddingNewPurchaseRequest, handleRefresh, inde
                                   </td>
                                   <td>
                                     <Select
-                                      value={selectedCurrency}
-                                      onChange={(selectedOption) => {
-                                        setSelectedCurrency(selectedOption);
-                                        handleItemChange(index, 'currency', selectedOption ? selectedOption.value : null);
-                                      }}
+                                      value={currencyOptions.find(option => option.value === item.currency)}
+                                      onChange={(selectedOption) => handleItemChange(index, 'currency', selectedOption)}
                                       options={currencyOptions}
                                       isClearable
-                                      placeholder="Select Currency"
+                                      placeholder="Select currency"
                                     />
                                   </td>
                                   <td>

@@ -1,8 +1,13 @@
 import React, { useState, useEffect } from "react";
 import FormPagination from "../utils/FormPagination";
 import { NumericFormat } from "react-number-format";
-import { FaAddressBook, FaFilter, FaSyncAlt } from "react-icons/fa";
+import { FaAddressBook, FaEye, FaFilter, FaSyncAlt } from "react-icons/fa";
 import { FaEdit, FaTrash, FaFileExport } from "react-icons/fa"; // Import icons for Edit, Delete, and Export
+import { Button, Modal, Table } from "react-bootstrap";
+import { getBranch, getToken } from "../config/Constant";
+import LookupService from "../service/LookupService";
+import { DisplayFormat } from "../utils/DisplayFormat";
+import Swal from "sweetalert2";
 
 const PurchaseRequestTable = ({
     formCode,
@@ -19,9 +24,10 @@ const PurchaseRequestTable = ({
     handleResetFilter,
     addingNewPurchaseRequest,
     EditPurchaseRequest,
-    ViewPurchaseRequest,
     selectedData
 }) => {
+    const headers = getToken();
+    const branchId = getBranch();
     const [selectedRows, setSelectedRows] = useState(new Set());
     const [isFilterOpen, setIsFilterOpen] = useState(false);
     const [filterColumn, setFilterColumn] = useState('');
@@ -29,30 +35,65 @@ const PurchaseRequestTable = ({
     const [filterOperation, setFilterOperation] = useState('');
     const [showAdditionalContent, setShowAdditionalContent] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
+    const [isModalOpen, setIsModalOpen] = useState(false); // For modal visibility
+    const [selectedRowData, setSelectedRowData] = useState(null);
+    const [selectedRowDataItem, setSelectedRowDataItem] = useState([]); // For storing selected row data
+
+    const authToken = headers;
 
     useEffect(() => {
-        // Clear selected rows when data changes
         setSelectedRows(new Set());
     }, [dataTable]);
 
+    // Handle checkbox click separately
+    const handleCheckboxSelect = (e, itemId) => {
+        e.stopPropagation(); // Prevent triggering row click when checkbox is clicked
+        const newSelectedRows = new Set(selectedRows);
+        if (newSelectedRows.has(itemId)) {
+            newSelectedRows.delete(itemId);
+        } else {
+            newSelectedRows.add(itemId);
+        }
+        setSelectedRows(newSelectedRows);
+    };
+
+    // Handle row click for modal view
+    const handleRowSelect = (itemId) => {
+        const rowData = dataTable.find(item => item.ID === itemId); // Find the selected row data
+        setSelectedRowData(rowData); // Set the row data
+
+        const PR_NUMBER = rowData.PR_NUMBER;
+        console.log('Fetching data for PR_NUMBER:', PR_NUMBER);
+
+        LookupService.fetchLookupData(`PURC_FORMPUREQD&filterBy=PR_NUMBER&filterValue=${PR_NUMBER}&operation=EQUAL`, authToken, branchId)
+            .then(response => {
+                const fetchedItems = response.data || [];
+                console.log('Items fetched from API:', fetchedItems);
+
+                // Set fetched items to state
+                setSelectedRowDataItem(fetchedItems);
+            })
+            .catch(error => {
+                console.error('Failed to fetch product lookup:', error);
+            });
+
+        setIsModalOpen(true); // Open the modal
+    };
+
+    useEffect(() => {
+        console.log('selectedRowDataItem:', selectedRowDataItem);
+    }, [selectedRowDataItem]);
+
+    const handleModalClose = () => {
+        setIsModalOpen(false); // Close the modal
+    };
+
     const handleSelectAll = (e) => {
         if (e.target.checked) {
-            setSelectedRows(new Set(dataTable.map(item => item.ID))); // Assuming ID is unique
+            setSelectedRows(new Set(dataTable.map(item => item.ID)));
         } else {
             setSelectedRows(new Set());
         }
-    };
-
-    const handleRowSelect = (itemId) => {
-        setSelectedRows(prevSelectedRows => {
-            const newSelectedRows = new Set(prevSelectedRows);
-            if (newSelectedRows.has(itemId)) {
-                newSelectedRows.delete(itemId);
-            } else {
-                newSelectedRows.add(itemId);
-            }
-            return newSelectedRows;
-        });
     };
 
     const handleFilterToggle = () => {
@@ -64,8 +105,17 @@ const PurchaseRequestTable = ({
     };
 
     const handleEditPurchaseRequest = (value) => {
-        EditPurchaseRequest(true);
         const dataSelected = getSelectedRowsData();
+        if (dataSelected.length > 1) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Multiple Rows Selected',
+                text: 'Please select only one row to edit.',
+                confirmButtonText: 'OK',
+            });
+            return; // Exit the function if multiple rows are selected
+        }
+        EditPurchaseRequest(true);
         selectedData(dataSelected);
     }
     const handleViewPurchaseRequest = (value) => {
@@ -108,9 +158,38 @@ const PurchaseRequestTable = ({
         }
     };
 
-    const handleDelete = () => {
-        // Add logic for deleting selected rows
-        console.log("Delete selected rows:", Array.from(selectedRows));
+    const handleView = () => {
+        // Add logic for viewing selected rows
+        const selectedData = getSelectedRowsData();
+        if (selectedData.length > 1) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Multiple Rows Selected',
+                text: 'Please select only one row to view details.',
+                confirmButtonText: 'OK',
+            });
+            return; // Exit the function if multiple rows are selected
+        }
+
+        setSelectedRowData(selectedData[0]);
+
+        console.log("View selected rows data:", selectedData);
+        const PR_NUMBER = selectedData[0].PR_NUMBER;
+        console.log('Fetching data for PR_NUMBER:', PR_NUMBER);
+
+        LookupService.fetchLookupData(`PURC_FORMPUREQD&filterBy=PR_NUMBER&filterValue=${PR_NUMBER}&operation=EQUAL`, authToken, branchId)
+            .then(response => {
+                const fetchedItems = response.data || [];
+                console.log('Items fetched from API:', fetchedItems);
+
+                // Set fetched items to state
+                setSelectedRowDataItem(fetchedItems);
+            })
+            .catch(error => {
+                console.error('Failed to fetch product lookup:', error);
+            });
+
+        setIsModalOpen(true); // Open the modal
     };
 
     const handleExport = () => {
@@ -156,8 +235,8 @@ const PurchaseRequestTable = ({
                                         <button type="button" className="btn btn-default" onClick={handleEditPurchaseRequest}>
                                             <FaEdit /> Edit
                                         </button>
-                                        <button type="button" className="btn btn-default" onClick={handleDelete}>
-                                            <FaTrash /> Delete
+                                        <button type="button" className="btn btn-default" onClick={handleView}>
+                                            <FaEye /> View
                                         </button>
                                         <button type="button" className="btn btn-default" onClick={handleExport}>
                                             <FaFileExport /> Export
@@ -297,12 +376,12 @@ const PurchaseRequestTable = ({
                                 ) : (
 
                                     dataTable.map((item) => (
-                                        <tr key={item.ID}>
-                                            <td>
+                                        <tr key={item.ID} onClick={() => handleRowSelect(item.ID)} style={{ cursor: "pointer" }}>
+                                            <td onClick={(e) => handleCheckboxSelect(e, item.ID)}>
                                                 <input
                                                     type="checkbox"
-                                                    onChange={() => handleRowSelect(item.ID)}
                                                     checked={selectedRows.has(item.ID)}
+                                                    onChange={(e) => handleCheckboxSelect(e, item.ID)}
                                                 />
                                             </td>
                                             <td>{item.PR_NUMBER}</td>
@@ -315,13 +394,7 @@ const PurchaseRequestTable = ({
                                             <td>{item.COMPANY}</td>
                                             <td>{item.PROJECT}</td>
                                             <td>{item.CUSTOMER}</td>
-                                            <td>
-                                                <NumericFormat
-                                                    value={item.TOTAL_AMOUNT}
-                                                    displayType="text"
-                                                    thousandSeparator={true}
-                                                    prefix="$"
-                                                />
+                                            <td style={{ textAlign: "right" }}>{DisplayFormat(item.TOTAL_AMOUNT)}
                                             </td>
                                             <td>{item.DESCRIPTION}</td>
                                             <td>{item.CREATED_BY}</td>
@@ -344,6 +417,119 @@ const PurchaseRequestTable = ({
                         />
                     </div>
                 </div>
+                <Modal show={isModalOpen} onHide={handleModalClose} size="lg">
+                    <Modal.Header closeButton>
+                        <Modal.Title>View Purchase Request</Modal.Title>
+                    </Modal.Header>
+                    <Modal.Body>
+                        {selectedRowData ? (
+                            <div>
+                                <div className="container">
+                                    <div className="row mb-3">
+                                        <div className="col-md-4 font-weight-bold">PR Number:</div>
+                                        <div className="col-md-8">{selectedRowData.PR_NUMBER}</div>
+                                    </div>
+                                    <div className="row mb-3">
+                                        <div className="col-md-4 font-weight-bold">Requestor:</div>
+                                        <div className="col-md-8">{selectedRowData.REQUESTOR}</div>
+                                    </div>
+                                    <div className="row mb-3">
+                                        <div className="col-md-4 font-weight-bold">Departement:</div>
+                                        <div className="col-md-8">{selectedRowData.DEPARTEMENT}</div>
+                                    </div>
+                                    <div className="row mb-3">
+                                        <div className="col-md-4 font-weight-bold">Company:</div>
+                                        <div className="col-md-8">{selectedRowData.COMPANY}</div>
+                                    </div>
+                                    <div className="row mb-3">
+                                        <div className="col-md-4 font-weight-bold">Project:</div>
+                                        <div className="col-md-8">{selectedRowData.PROJECT}</div>
+                                    </div>
+                                    <div className="row mb-3">
+                                        <div className="col-md-4 font-weight-bold">Customer:</div>
+                                        <div className="col-md-8">{selectedRowData.CUSTOMER}</div>
+                                    </div>
+                                    <div className="row mb-3">
+                                        <div className="col-md-4 font-weight-bold">Request Date:</div>
+                                        <div className="col-md-8">{selectedRowData.REQUEST_DATE}</div>
+                                    </div>
+                                    <div className="row mb-3">
+                                        <div className="col-md-4 font-weight-bold">Schedule Date:</div>
+                                        <div className="col-md-8">{selectedRowData.SCHEDULE_DATE}</div>
+                                    </div>
+                                    <div className="row mb-3">
+                                        <div className="col-md-4 font-weight-bold">Document Number:</div>
+                                        <div className="col-md-8">{selectedRowData.DOC_NO}</div>
+                                    </div>
+                                    <div className="row mb-3">
+                                        <div className="col-md-4 font-weight-bold">Document Reference:</div>
+                                        <div className="col-md-8">{selectedRowData.DOC_REFF}</div>
+                                    </div>
+                                    <div className="row mb-3">
+                                        <div className="col-md-4 font-weight-bold">Description:</div>
+                                        <div className="col-md-8">{selectedRowData.DESCRIPTION}</div>
+                                    </div>
+                                    <div className="row mb-3">
+                                        <div className="col-md-4 font-weight-bold">Created By:</div>
+                                        <div className="col-md-8">{selectedRowData.CREATED_BY}</div>
+                                    </div>
+                                    <div className="row mb-3">
+                                        <div className="col-md-4 font-weight-bold">Checked By 1:</div>
+                                        <div className="col-md-8">{selectedRowData.CHECKED_BY_1}</div>
+                                    </div>
+                                    <div className="row mb-3">
+                                        <div className="col-md-4 font-weight-bold">Checked By 2:</div>
+                                        <div className="col-md-8">{selectedRowData.CHECKED_BY_2}</div>
+                                    </div>
+                                    <div className="row mb-3">
+                                        <div className="col-md-4 font-weight-bold">Approved By:</div>
+                                        <div className="col-md-8">{selectedRowData.APPROVED_BY}</div>
+                                    </div>
+                                    <div className="row mb-3">
+                                        <div className="col-md-4 font-weight-bold">Total Amount:</div>
+                                        <div className="col-md-8">{DisplayFormat(selectedRowData.TOTAL_AMOUNT)}</div>
+                                    </div>
+                                    <div className="row mb-3">
+                                        <div className="col-md-4 font-weight-bold">Status Request:</div>
+                                        <div className="col-md-8">{selectedRowData.STATUS_REQUEST}</div>
+                                    </div>
+                                </div>
+                                {/* Add more fields as needed */}
+
+                                <Table striped bordered hover>
+                                    <thead>
+                                        <tr>
+                                            <th>Product</th>
+                                            <th>Product Note</th>
+                                            <th>Currency</th>
+                                            <th>Quantity</th>
+                                            <th>Unit Price</th>
+                                            <th>Total Price</th>
+
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {selectedRowDataItem.map((detail) => (
+                                            <tr key={detail.ID}>
+                                                <td>{detail.product}</td>
+                                                <td>{detail.product_note}</td>
+                                                <td>{detail.currency}</td>
+                                                <td>{detail.quantity}</td>
+                                                <td textAlign="right">{DisplayFormat(detail.unit_price)}</td>
+                                                <td textAlign="right">{DisplayFormat(detail.total_price)}</td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </Table>
+                            </div>
+                        ) : (
+                            <p>No data selected.</p>
+                        )}
+                    </Modal.Body>
+                    <Modal.Footer>
+                        <Button variant="secondary" onClick={handleModalClose}>Close</Button>
+                    </Modal.Footer>
+                </Modal>
             </div>
         </div>
     );

@@ -8,7 +8,6 @@ import FormService from "../service/FormService";
 import PurchaseRequestTable from "../table/PurchaseRequestTable";
 import AddPurchaseRequest from "./AddPurchaseRequest";
 import EditPurchaseRequest from "./EditPurchaseRequest";
-import ViewPurchaseRequest from "../view/ViewPurchaseRequest";
 
 const PurchaseRequest = () => {
     const headers = getToken();
@@ -188,12 +187,6 @@ const PurchaseRequest = () => {
                             handleRefresh={handleRefresh}
                         />
                     </div>
-                ) : isViewingPurchaseRequest ? (
-                    <ViewPurchaseRequest
-                        setIsViewingPurchaseRequest={setIsViewingPurchaseRequest}
-                        handleRefresh={handleRefresh}
-                        selectedData={handleSelectData}
-                    />
                 ) : isEditingPurchaseRequest ? (
                     <EditPurchaseRequest
                         setIsEditingPurchaseRequest={setIsEditingPurchaseRequest}
@@ -218,7 +211,6 @@ const PurchaseRequest = () => {
                         authToken={authToken}
                         addingNewPurchaseRequest={handleAddNewPurchaseRequest}
                         EditPurchaseRequest={handleEditPurchaseRequest}
-                        ViewPurchaseRequest={handleViewPurchaseRequest}
                         selectedData={handleSelectData}
                     />
                 )}

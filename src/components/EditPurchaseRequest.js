@@ -11,6 +11,8 @@ import Select from 'react-select';
 import LookupParamService from '../service/LookupParamService';
 import CreatableSelect from 'react-select/creatable';
 import LookupService from '../service/LookupService';
+import UpdateDataService from '../service/UpdateDataService';
+import DeleteDataService from '../service/DeleteDataService';
 
 const EditPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, index, item, selectedData }) => {
     console.log('selectedData', selectedData);
@@ -75,13 +77,98 @@ const EditPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, index
                 });
 
             // Panggil API untuk mendapatkan item berdasarkan pr_number
+            // LookupService.fetchLookupData(`PURC_FORMPUREQD&filterBy=PR_NUMBER&filterValue=${PR_NUMBER}&operation=EQUAL`, authToken, branchId)
+            //     .then(response => {
+            //         const fetchedItems = response.data || [];
+            //         console.log('Items fetch:', fetchedItems);
+            //         setItems(fetchedItems);
+            //     })
+            //     .catch(error => {
+            //         console.error('Failed to load items:', error);
+            //     });
+
+            // Fetch items based on PR_NUMBER and set them to state
             LookupService.fetchLookupData(`PURC_FORMPUREQD&filterBy=PR_NUMBER&filterValue=${PR_NUMBER}&operation=EQUAL`, authToken, branchId)
                 .then(response => {
-                    setItems(response.data || []);
+                    const fetchedItems = response.data || [];
+                    console.log('Items fetched:', fetchedItems);
+
+                    // Set fetched items to state
+                    setItems(fetchedItems);
+
+                    // Fetch product lookup data
+                    LookupParamService.fetchLookupData("MSDT_FORMPRDT", authToken, branchId)
+                        .then(productData => {
+                            console.log('Product lookup data:', productData);
+
+                            // Transform and map product data to options
+                            const transformedProductData = productData.data.map(item =>
+                                Object.keys(item).reduce((acc, key) => {
+                                    acc[key.toUpperCase()] = item[key];
+                                    return acc;
+                                }, {})
+                            );
+
+                            const productOptions = transformedProductData.map(item => ({
+                                value: item.NAME,
+                                label: item.NAME
+                            }));
+
+                            setProductOptions(productOptions); // Set product options to state
+
+                            // Fetch currency lookup data
+                            LookupParamService.fetchLookupData("MSDT_FORMCCY", authToken, branchId)
+                                .then(currencyData => {
+                                    console.log('Currency lookup data:', currencyData);
+
+                                    // Transform and map currency data to options
+                                    const transformedCurrencyData = currencyData.data.map(item =>
+                                        Object.keys(item).reduce((acc, key) => {
+                                            acc[key.toUpperCase()] = item[key];
+                                            return acc;
+                                        }, {})
+                                    );
+
+                                    const currencyOptions = transformedCurrencyData.map(item => ({
+                                        value: item.CODE,
+                                        label: item.CODE
+                                    }));
+
+                                    setCurrencyOptions(currencyOptions); // Set currency options to state
+
+                                    // Update fetched items with selected options
+                                    const updatedItems = fetchedItems.map(item => {
+                                        const selectedProductOption = productOptions.find(option =>
+                                            option.value === item.product
+                                        );
+
+                                        console.log('Selected product option:', selectedProductOption);
+
+                                        const selectedCurrencyOption = currencyOptions.find(option =>
+                                            option.value === item.currency
+                                        );
+
+                                        console.log('Selected currency option:', selectedCurrencyOption);
+                                        setSelectedCurrency(selectedCurrencyOption);
+                                        setSelectedProduct(selectedProductOption);
+                                    });
+
+                                    // Set the updated items with selected product and currency options to state
+                                    setItems(fetchedItems);
+                                })
+                                .catch(error => {
+                                    console.error('Failed to fetch currency lookup:', error);
+                                });
+                        })
+                        .catch(error => {
+                            console.error('Failed to fetch product lookup:', error);
+                        });
                 })
                 .catch(error => {
                     console.error('Failed to load items:', error);
                 });
+
+
 
             // Ambil data lookup untuk currency
             LookupParamService.fetchLookupData("MSDT_FORMEMPL", authToken, branchId)
@@ -228,6 +315,7 @@ const EditPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, index
                         label: item.NAME
                     }));
                     setProductOptions(options);
+                    console.log('Product :', options);
                     const selectedProductOption = options.find(option => option.value === selectedData[0].PRODUCT);
                     setSelectedProduct(selectedProductOption || null);
                 })
@@ -295,9 +383,11 @@ const EditPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, index
 
     const handleItemChange = (index, field, value) => {
         const newItems = [...items];
-        newItems[index][field] = value;
-
-        console.log(index, field, value);
+        if (field === 'product' || field === 'currency') {
+            newItems[index][field] = value ? value.value : null;
+        } else {
+            newItems[index][field] = value;
+        }
 
         if (field === 'quantity' || field === 'unit_price') {
             newItems[index].total_price = newItems[index].quantity * newItems[index].unit_price;
@@ -306,11 +396,34 @@ const EditPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, index
         setItems(newItems);
     };
 
-    const handleDeleteItem = (index) => {
-        const newItems = items.filter((item, i) => i !== index);
-        setItems(newItems);
-        setSelectedItems(selectedItems.filter((i) => i !== index));
+    const handleDeleteItem = async (index) => {
+        // Get the item to be deleted based on the index
+        const itemToDelete = items[index];
+
+        if (itemToDelete && itemToDelete.ID) {
+            try {
+                // Call the Delete API for the item using the ID
+                const itemId = itemToDelete.ID;
+                const deleteResponse = await DeleteDataService.postData(`column=id&value=${itemId}`, "PUREQD", authToken, branchId);
+                console.log('Item deleted from API successfully:', deleteResponse);
+
+                // Proceed to update local state only if API call was successful
+                const newItems = items.filter((item, i) => i !== index);
+                setItems(newItems);
+                setSelectedItems(selectedItems.filter((i) => i !== index));
+            } catch (error) {
+                console.error('Error deleting item from API:', error);
+                // Optionally, you can display an error message to the user here
+            }
+        } else {
+            // If the item doesn't have an ID, simply remove it from local state
+            const newItems = items.filter((item, i) => i !== index);
+            setItems(newItems);
+            setSelectedItems(selectedItems.filter((i) => i !== index));
+            console.log('Item removed locally, no ID found.');
+        }
     };
+
 
     const handleSelectItem = (index) => {
         if (selectedItems.includes(index)) {
@@ -369,6 +482,16 @@ const EditPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, index
 
 
 
+    const generatePrNumber = async () => {
+        try {
+            const uniquePrNumber = await generateUniqueId(`${GENERATED_NUMBER}?code=PR`, authToken);
+            return uniquePrNumber;
+        } catch (error) {
+            console.error('Failed to generate PR Number:', error);
+            throw error; // Rethrow the error to be caught in handleSave
+        }
+    };
+
     const handleSave = async (event) => {
         event.preventDefault();
 
@@ -386,9 +509,14 @@ const EditPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, index
         if (result.isConfirmed) {
             setIsLoading(true);
             try {
+                // Generate PR number
+                const pr_number = await generatePrNumber();
+
                 const total_amount = calculateTotalAmount();
                 // Save general information and description
                 const createBy = sessionStorage.getItem('userId');
+                const id = selectedData[0].ID; // Assuming you use selectedData to get the ID for updating
+
                 const generalInfo = {
                     pr_number,
                     request_date, // Converts to date format
@@ -402,53 +530,71 @@ const EditPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, index
                     project,
                     description,
                     total_amount,
-                    create_by: createBy
+                    created_by: createBy,
+                    status_request: "IN_PROCESS"
                 };
 
                 console.log('Master', generalInfo);
+                console.log('Items', items);
 
-                const response = await InsertDataService.postData(generalInfo, "PUREQ", authToken, branchId);
-                console.log('Data posted successfully:', response);
+                //Update general information
+                const response = await UpdateDataService.postData(generalInfo, `PUREQ&column=id&value=${id}`, authToken, branchId);
+                console.log('General data posted successfully:', response);
 
-                if (response.message === "insert Data Successfully") {
-                    // Iterate over items array and post each item individually
+                if (response.message === "Update Data Successfully") {
+                    // Iterate over items array and attempt to delete each item
                     for (const item of items) {
+                        if (item.ID) {
+                            const itemId = item.ID;
+                            try {
+                                const itemResponse = await DeleteDataService.postData(`column=id&value=${itemId}`, "PUREQD", authToken, branchId);
+                                console.log('Item deleted successfully:', itemResponse);
+                            } catch (error) {
+                                console.error('Error deleting item:', itemId, error);
+                            }
+                        } else {
+                            console.log('No ID found, skipping delete for this item:', item);
+                        }
+                    }
+
+                    // After deletion, insert updated items
+                    for (const item of items) {
+                        // Exclude rwnum, ID, status, and id_trx fields
+                        const { rwnum, ID, status, id_trx, ...rest } = item;
+
                         const updatedItem = {
-                            ...item,
+                            ...rest,
                             pr_number
                         };
 
-                        const itemResponse = await InsertDataService.postData(updatedItem, "PUREQD", authToken, branchId);
-                        console.log('Item posted successfully:', itemResponse);
+                        try {
+                            const itemResponse = await InsertDataService.postData(updatedItem, "PUREQD", authToken, branchId);
+                            console.log('Item inserted successfully:', itemResponse);
+                        } catch (error) {
+                            console.error('Error inserting item:', updatedItem, error);
+                        }
                     }
 
+                    // Show success message and reset form
                     messageAlertSwal('Success', response.message, 'success');
                     resetForm();
                 }
+
             } catch (err) {
                 console.error(err);
                 setIsLoading(false);
                 messageAlertSwal('Error', err.message, 'error');
             } finally {
-                setIsLoading(false); // Set loading state back to false after completion
+                setIsLoading(false);
+                setIsEditingPurchaseRequest(false);
+                handleRefresh(); // Set loading state back to false after completion
             }
         } else {
             console.log('Form submission was canceled.');
         }
     };
 
-    // useEffect(() => {
-    //     const generatePrNumber = async () => {
-    //         try {
-    //             const uniquePrNumber = await generateUniqueId(`${GENERATED_NUMBER}?code=DRAFT_PR`, authToken);
-    //             setPrNumber(uniquePrNumber);
-    //         } catch (error) {
-    //             console.error('Failed to generate PR Number:', error);
-    //         }
-    //     };
 
-    //     generatePrNumber();
-    // }, []);
 
     return (
         <Fragment>
@@ -472,7 +618,7 @@ const EditPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, index
                                         <i className="fas fa-times"></i> Cancel
                                     </Button>
                                     <Button variant="primary" onClick={handleSave}>
-                                        <i className="fas fa-save"></i> Save
+                                        <i className="fas fa-save"></i> Submit
                                     </Button>
                                 </div>
                             </Card.Header>
@@ -710,14 +856,11 @@ const EditPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, index
                                                                     </td>
                                                                     <td>
                                                                         <Select
-                                                                            value={selectedProduct}
-                                                                            onChange={(selectedOption) => {
-                                                                                setSelectedProduct(selectedOption);
-                                                                                handleItemChange(index, 'product', selectedOption ? selectedOption.value : null);
-                                                                            }}
+                                                                            value={productOptions.find(option => option.value === item.product)}
+                                                                            onChange={(selectedOption) => handleItemChange(index, 'product', selectedOption)}
                                                                             options={productOptions}
                                                                             isClearable
-                                                                            placeholder="Select Product..."
+                                                                            placeholder="Select product"
                                                                         />
                                                                     </td>
                                                                     <td>
@@ -736,14 +879,11 @@ const EditPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, index
                                                                     </td>
                                                                     <td>
                                                                         <Select
-                                                                            value={selectedCurrency}
-                                                                            onChange={(selectedOption) => {
-                                                                                setSelectedCurrency(selectedOption);
-                                                                                handleItemChange(index, 'currency', selectedOption ? selectedOption.value : null);
-                                                                            }}
+                                                                            value={currencyOptions.find(option => option.value === item.currency)}
+                                                                            onChange={(selectedOption) => handleItemChange(index, 'currency', selectedOption)}
                                                                             options={currencyOptions}
                                                                             isClearable
-                                                                            placeholder="Select Currency"
+                                                                            placeholder="Select currency"
                                                                         />
                                                                     </td>
                                                                     <td>
@@ -819,7 +959,7 @@ const EditPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, index
                             <i className="fas fa-times"></i> Cancel
                         </Button>
                         <Button variant="primary" onClick={handleSave}>
-                            <i className="fas fa-save"></i> Save
+                            <i className="fas fa-save"></i> Submit
                         </Button>
                     </Col>
                 </Row>
