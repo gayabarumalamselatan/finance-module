@@ -1,339 +1,201 @@
-import React, { Fragment, useState } from 'react';
-import { Button, Col, Form, Row, Card } from 'react-bootstrap';
+import React, { Fragment, useEffect, useState } from "react";
+import { getBranch, getToken } from "../config/Constant";
+import LookupParamService from "../service/LookupParamService";
+import axios from "axios";
+import { FORM_SERVICE_INSERT_DATA, FORM_SERVICE_LOAD_FIELD, FORM_SERVICE_REPORT_DATA_EXCEL, MM_SERVICE_LIST_FILE_TRADE, MM_SERVICE_LIST_JOURNAL } from "../config/ConfigUrl";
+import { HandleToUppercase } from "../utils/HandleToUpercase";
+import FormService from "../service/FormService";
+import PurchaseRequestTable from "../table/PurchaseRequestTable";
+import AddPurchaseRequest from "./AddPurchaseRequest";
 
-function PurchaseRequest() {
-  const [supplier, setSupplier] = useState('');
-  const [date, setDate] = useState('');
-  const [title, setTitle] = useState('');
-  const [scheduleDate, setScheduleDate] = useState('');
-  const [docNo, setDocNo] = useState('');
-  const [requestor, setRequestor] = useState('');
-  const [department, setDepartment] = useState('');
-  const [company, setCompany] = useState('');
-  const [project, setProject] = useState('');
-  const [items, setItems] = useState([]);
-  const [selectedItems, setSelectedItems] = useState([]);
+const PurchaseRequest = () => {
+    const headers = getToken();
+    const branchId = getBranch();
+    const [formCode, setFormCode] = useState([]);
+    const [formData, setFormData] = useState([]);
+    const [isLoading, setIsLoading] = useState(false);
+    const [isFilterSet, setIsFilterSet] = useState(false); 
 
-  const handleAddItem = () => {
-    setItems([...items, { product: '', product_note: '', quantity: 0, currency: 'IDR', unit_price: 0, total_price: 0 }]);
-  };
+    // Inquiry table variable
+    const [dataTable, setDataTable] = useState([]);
+    const [currentPage, setCurrentPage] = useState(1);
+    const [pageSize, setPageSize] = useState(10);
+    const [totalItems, setTotalItems] = useState(0);
+    const [refreshTable, setRefreshTable] = useState(true);
+    const [isLoadingTable, setIsLoadingTable] = useState(true);
+    const [filterColumn, setfilterColumn] = useState('');
+    const [filterValue, setFilterValue] = useState('');
+    const [filterOperation, setFilterOperation] = useState('');
 
-  const handleItemChange = (index, field, value) => {
-    const newItems = [...items];
-    newItems[index][field] = value;
+    const [isAddingNewPurchaseRequest, setIsAddingNewPurchaseRequest] = useState(false);
+   
+    const handleAddNewPurchaseRequest = (value) => {
+        setIsAddingNewPurchaseRequest(value);
+    };
 
-    if (field === 'quantity' || field === 'unit_price') {
-      newItems[index].total_price = newItems[index].quantity * newItems[index].unit_price;
+    const authToken = headers;
+    const tokenAccess = { Authorization: `Bearer ${headers}` };
+    const idForm = sessionStorage.getItem('idForm');
+
+    const fetchFormCode = async () => {
+        if (idForm) {
+            try {
+                const response = await axios.get(`${FORM_SERVICE_LOAD_FIELD}?formId=${idForm}`, { headers: tokenAccess });
+
+                if (response.data && response.data.coreFields) {
+                    const codes = response.data.coreFields.map(field => field.formCode);
+                    setFormCode(codes);
+                    console.log('Get Form code', codes);
+                } else {
+                    console.error('Invalid response structure:', response.data);
+                }
+            } catch (error) {
+                console.error('Error fetching form fields:', error);
+            }
+        } else {
+            console.error('idForm not found in sessionStorage');
+        }
+    };
+
+    useEffect(() => {
+        if (idForm) {
+            fetchFormCode();
+        }
+    }, [idForm]);
+
+    useEffect(() => {
+        if (formCode.length > 0) {
+            let formMmtData = [];
+    
+            let filterColumnParam = filterColumn;
+            let filterOperationParam = filterOperation;
+            let filterValueParam = filterValue;
+    
+            // Check if URL parameter `status` is set
+            const statusParam = new URLSearchParams(window.location.search).get('status');
+            if (statusParam) {
+                filterColumnParam = 'STATUS';
+                filterOperationParam = 'EQUAL';
+                filterValueParam = statusParam;
+            }
+    
+            const fetchFormMmtData = FormService.fetchData(
+                "",
+                filterColumnParam,
+                filterOperationParam,
+                filterValueParam,
+                currentPage,
+                pageSize,
+                `PURC_FORM${formCode[0]}`, 
+                branchId,
+                authToken,
+                true
+            )
+            .then((response) => {
+                console.log("Form Purchase Request lookup data:", response);
+                formMmtData = HandleToUppercase(response.data);
+                setTotalItems(response.totalAllData);
+            })
+            .catch((error) => {
+                console.error("Failed to fetch form Purchase Request lookup:", error);
+            });
+    
+            fetchFormMmtData.then(() => {
+                console.log('MMT DATA', formMmtData);
+                setDataTable(formMmtData);
+                setIsLoadingTable(false);
+            });
+        }
+    }, [formCode, pageSize, currentPage, refreshTable, isFilterSet]);
+
+    const handlePageSizeChange = (event) => {
+        setPageSize(parseInt(event.target.value, 10));
+        setCurrentPage(1); 
+    };
+
+    const handlePageChange = (newPage) => {
+        setCurrentPage(newPage);
+    };
+
+    const handleRefresh = () => {
+        setRefreshTable(!refreshTable);
+        setIsLoadingTable(true);
+        setFormData([]);
+    };
+
+    const handleFilterSearch = ({ filterColumn, filterOperation, filterValue }) => {
+        console.log('filter Purchase Request list:', filterColumn, filterOperation, filterValue);
+        setFilterOperation(filterOperation);
+        setfilterColumn(filterColumn);
+        setFilterValue(filterValue);
+        setIsFilterSet(!isFilterSet);
+        setIsLoadingTable(true);
     }
 
-    setItems(newItems);
-  };
+    const handleResetFilters = () => {
+        setfilterColumn('');
+        setFilterValue('');
+        setFilterOperation('');
+        setIsFilterSet(!isFilterSet);
+        setIsLoadingTable(true);
+    };
 
-  const handleDeleteItem = (index) => {
-    const newItems = items.filter((item, i) => i !== index);
-    setItems(newItems);
-    setSelectedItems(selectedItems.filter((i) => i !== index));
-  };
-
-  const handleSelectItem = (index) => {
-    if (selectedItems.includes(index)) {
-      setSelectedItems(selectedItems.filter((i) => i !== index));
-    } else {
-      setSelectedItems([...selectedItems, index]);
-    }
-  };
-
-  const handleSelectAll = () => {
-    if (selectedItems.length === items.length) {
-      setSelectedItems([]);
-    } else {
-      setSelectedItems(items.map((_, index) => index));
-    }
-  };
-
-  const handleDeleteSelected = () => {
-    const newItems = items.filter((_, index) => !selectedItems.includes(index));
-    setItems(newItems);
-    setSelectedItems([]);
-  };
-
-  const calculateTotalAmount = () => {
-    return items.reduce((total, item) => total + item.total_price, 0);
-  };
-
-  return (
-    <Fragment>
-      <section className="content-header">
-        <div className="container-fluid">
-          <div className="row mb-2">
-            <div className="col-sm-6">
-              <h1>Purchase Request</h1>
-            </div>
-            <div className="col-sm-6">
-              <ol className="breadcrumb float-sm-right">
-                <li className="breadcrumb-item">
-                  <a href="/">Home</a>
-                </li>
-                <li className="breadcrumb-item active">Purchase Request</li>
-              </ol>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section className="content">
-        <Row>
-          <Col md={12}>
-            <Card>
-              <Card.Header>
-                <Card.Title>General Information</Card.Title>
-              </Card.Header>
-              <Card.Body>
-                <Form>
-                  <Row>
-                    <Col md={6}>
-                      <Form.Group controlId="formTitle">
-                        <Form.Label>Title</Form.Label>
-                        <Form.Control
-                          type="text"
-                          placeholder="Enter Title"
-                          value={title}
-                          onChange={(e) => setTitle(e.target.value)}
-                          required
-                        />
-                      </Form.Group>
-                    </Col>
-
-                    <Col md={6}>
-                      <Form.Group controlId="formSupplier">
-                        <Form.Label>No Request</Form.Label>
-                        <Form.Control
-                          type="text"
-                          placeholder="Enter No Request"
-                          value={supplier}
-                          onChange={(e) => setSupplier(e.target.value)}
-                          required
-                        />
-                      </Form.Group>
-                    </Col>
-
-                    <Col md={6}>
-                      <Form.Group controlId="formScheduleDate">
-                        <Form.Label>Schedule Date</Form.Label>
-                        <Form.Control
-                          type="date"
-                          value={scheduleDate}
-                          onChange={(e) => setScheduleDate(e.target.value)}
-                          required
-                        />
-                      </Form.Group>
-                    </Col>
-
-                    <Col md={6}>
-                      <Form.Group controlId="formDocNo">
-                        <Form.Label>Doc No</Form.Label>
-                        <Form.Control
-                          type="text"
-                          placeholder="Enter Document Number"
-                          value={docNo}
-                          onChange={(e) => setDocNo(e.target.value)}
-                        />
-                      </Form.Group>
-                    </Col>
-
-                    <Col md={6}>
-                      <Form.Group controlId="formRequestor">
-                        <Form.Label>Requestor</Form.Label>
-                        <Form.Control
-                          type="text"
-                          placeholder="Enter Requestor"
-                          value={requestor}
-                          onChange={(e) => setRequestor(e.target.value)}
-                        />
-                      </Form.Group>
-                    </Col>
-
-                    <Col md={6}>
-                      <Form.Group controlId="formDepartment">
-                        <Form.Label>Department</Form.Label>
-                        <Form.Control
-                          type="text"
-                          placeholder="Enter Department"
-                          value={department}
-                          onChange={(e) => setDepartment(e.target.value)}
-                        />
-                      </Form.Group>
-                    </Col>
-
-                    <Col md={6}>
-                      <Form.Group controlId="formCompany">
-                        <Form.Label>Company</Form.Label>
-                        <Form.Control
-                          type="text"
-                          placeholder="Enter Company"
-                          value={company}
-                          onChange={(e) => setCompany(e.target.value)}
-                        />
-                      </Form.Group>
-                    </Col>
-
-                    <Col md={6}>
-                      <Form.Group controlId="formProject">
-                        <Form.Label>Project</Form.Label>
-                        <Form.Control
-                          type="text"
-                          placeholder="Enter Project"
-                          value={project}
-                          onChange={(e) => setProject(e.target.value)}
-                        />
-                      </Form.Group>
-                    </Col>
-
-                    <Col md={6}>
-                      <Form.Group controlId="formRequestDate">
-                        <Form.Label>Request Date</Form.Label>
-                        <Form.Control
-                          type="date"
-                          value={date}
-                          onChange={(e) => setDate(e.target.value)}
-                          required
-                        />
-                      </Form.Group>
-                    </Col>
-                  </Row>
-                </Form>
-              </Card.Body>
-            </Card>
-          </Col>
-        </Row>
-
-        <Row className="mt-4">
-          <Col md={12}>
-            <Card>
-              <Card.Header>
-                <div className="d-flex justify-content-between align-items-center">
-                  <Card.Title>Item List</Card.Title>
-                  <div>
-                    <Button
-                      variant="success"
-                      size="sm"
-                      onClick={handleAddItem}
-                    >
-                      <i className="fas fa-plus"></i> New Item
-                    </Button>
-                    <Button
-                      variant="danger"
-                      size="sm"
-                      className="ml-2"
-                      onClick={handleDeleteSelected}
-                      disabled={selectedItems.length === 0}
-                    >
-                      <i className="fas fa-trash"></i> Delete Selected
-                    </Button>
-                  </div>
+    return (
+        <Fragment>
+            <section className="content-header">
+                <div className="container-fluid">
+                    <div className="row mb-2">
+                        <div className="col-sm-6">
+                            <h1>Purchase Request</h1>
+                        </div>
+                        <div className="col-sm-6">
+                            <ol className="breadcrumb float-sm-right">
+                                <li className="breadcrumb-item">
+                                    <a href="/">Home</a>
+                                </li>
+                                <li className="breadcrumb-item active">
+                                    Purchase Request
+                                </li>
+                            </ol>
+                        </div>
+                    </div>
                 </div>
-              </Card.Header>
-              <Card.Body>
-                <div className="table-responsive">
-                  <table className="table table-bordered">
-                    <thead>
-                      <tr>
-                        <th>
-                          <input
-                            type="checkbox"
-                            onChange={handleSelectAll}
-                            checked={selectedItems.length === items.length && items.length > 0}
-                          />
-                        </th>
-                        <th>Product</th>
-                        <th>Notes</th>
-                        <th>Quantity</th>
-                        <th>Currency</th>
-                        <th>Unit Price</th>
-                        <th>Total Price</th>
-                        <th>Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {items.length === 0 ? (
-                        <tr>
-                          <td colSpan="8" className="text-center">No data available</td>
-                        </tr>
-                      ) : (
-                        items.map((item, index) => (
-                          <tr key={index} className={selectedItems.includes(index) ? 'table-active' : ''}>
-                            <td>
-                              <input
-                                type="checkbox"
-                                checked={selectedItems.includes(index)}
-                                onChange={() => handleSelectItem(index)}
-                              />
-                            </td>
-                            <td>
-                              <Form.Control
-                                type="text"
-                                value={item.product}
-                                onChange={(e) => handleItemChange(index, 'product', e.target.value)}
-                              />
-                            </td>
-                            <td>
-                              <Form.Control
-                                type="text"
-                                value={item.product_note}
-                                onChange={(e) => handleItemChange(index, 'product_note', e.target.value)}
-                              />
-                            </td>
-                            <td>
-                              <Form.Control
-                                type="number"
-                                value={item.quantity}
-                                onChange={(e) => handleItemChange(index, 'quantity', parseFloat(e.target.value))}
-                              />
-                            </td>
-                            <td>
-                              <Form.Control
-                                type="text"
-                                value={item.currency}
-                                onChange={(e) => handleItemChange(index, 'currency', e.target.value)}
-                              />
-                            </td>
-                            <td>
-                              <Form.Control
-                                type="number"
-                                value={item.unit_price}
-                                onChange={(e) => handleItemChange(index, 'unit_price', parseFloat(e.target.value))}
-                              />
-                            </td>
-                            <td>{item.total_price.toFixed(2)}</td>
-                            <td>
-                              <Button
-                                variant="danger"
-                                size="sm"
-                                onClick={() => handleDeleteItem(index)}
-                              >
-                                <i className="fas fa-trash"></i>
-                              </Button>
-                            </td>
-                          </tr>
-                        ))
-                      )}
-                    </tbody>
-                    <tfoot>
-                      <tr>
-                        <td colSpan="6" className="text-right">Total Amount:</td>
-                        <td>{calculateTotalAmount().toFixed(2)}</td>
-                        <td></td>
-                      </tr>
-                    </tfoot>
-                  </table>
-                </div>
-              </Card.Body>
-            </Card>
-          </Col>
-        </Row>
-      </section>
-    </Fragment>
-  );
-}
+            </section>
+            <section className="content">
+                {isAddingNewPurchaseRequest ? (
+                    <div>
+                        <AddPurchaseRequest 
+                        setIsAddingNewPurchaseRequest={setIsAddingNewPurchaseRequest} 
+                        handleRefresh={handleRefresh}
+                        />
+                    </div>
+                ) : (
+                    <PurchaseRequestTable
+                        formCode={formCode}
+                        dataTable={dataTable}
+                        totalItems={totalItems}
+                        currentPage={currentPage}
+                        pageSize={pageSize}
+                        handlePageSizeChange={handlePageSizeChange}
+                        handlePageChange={handlePageChange}
+                        handleRefresh={handleRefresh}
+                        isLoadingTable={isLoadingTable}
+                        handleFilterSearch={handleFilterSearch}
+                        handleResetFilter={handleResetFilters}
+                        branchId={branchId}
+                        authToken={authToken}
+                        addingNewPurchaseRequest={handleAddNewPurchaseRequest}
+                    />
+                )}
+
+                {isLoading && (
+                    <div className="full-screen-overlay">
+                        <i className="fa-solid fa-spinner fa-spin full-screen-spinner"></i>
+                    </div>
+                )}
+            </section>
+        </Fragment>
+    );
+};
 
 export default PurchaseRequest;
