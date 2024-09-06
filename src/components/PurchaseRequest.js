@@ -1,3 +1,4 @@
+
 import React, { Fragment, useEffect, useState } from "react";
 import { getBranch, getToken } from "../config/Constant";
 import LookupParamService from "../service/LookupParamService";
@@ -7,6 +8,7 @@ import { HandleToUppercase } from "../utils/HandleToUpercase";
 import FormService from "../service/FormService";
 import PurchaseRequestTable from "../table/PurchaseRequestTable";
 import AddPurchaseRequest from "./AddPurchaseRequest";
+import EditPurchaseRequest from "./EditPurchaseRequest";
 
 const PurchaseRequest = () => {
     const headers = getToken();
@@ -14,7 +16,7 @@ const PurchaseRequest = () => {
     const [formCode, setFormCode] = useState([]);
     const [formData, setFormData] = useState([]);
     const [isLoading, setIsLoading] = useState(false);
-    const [isFilterSet, setIsFilterSet] = useState(false); 
+    const [isFilterSet, setIsFilterSet] = useState(false);
 
     // Inquiry table variable
     const [dataTable, setDataTable] = useState([]);
@@ -28,9 +30,24 @@ const PurchaseRequest = () => {
     const [filterOperation, setFilterOperation] = useState('');
 
     const [isAddingNewPurchaseRequest, setIsAddingNewPurchaseRequest] = useState(false);
-   
+    const [isViewingPurchaseRequest, setIsViewingPurchaseRequest] = useState(false);
+    const [isEditingPurchaseRequest, setIsEditingPurchaseRequest] = useState(false);
+    const [selectedData, setSelectedData] = useState([]);
+
     const handleAddNewPurchaseRequest = (value) => {
         setIsAddingNewPurchaseRequest(value);
+    };
+
+    const handleEditPurchaseRequest = (value) => {
+        setIsEditingPurchaseRequest(value);
+    };
+
+    const handleViewPurchaseRequest = (value) => {
+        setIsViewingPurchaseRequest(value);
+    };
+
+    const handleSelectData = (value) => {
+        setSelectedData(value);
     };
 
     const authToken = headers;
@@ -66,11 +83,11 @@ const PurchaseRequest = () => {
     useEffect(() => {
         if (formCode.length > 0) {
             let formMmtData = [];
-    
+
             let filterColumnParam = filterColumn;
             let filterOperationParam = filterOperation;
             let filterValueParam = filterValue;
-    
+
             // Check if URL parameter `status` is set
             const statusParam = new URLSearchParams(window.location.search).get('status');
             if (statusParam) {
@@ -78,7 +95,7 @@ const PurchaseRequest = () => {
                 filterOperationParam = 'EQUAL';
                 filterValueParam = statusParam;
             }
-    
+
             const fetchFormMmtData = FormService.fetchData(
                 "",
                 filterColumnParam,
@@ -86,20 +103,20 @@ const PurchaseRequest = () => {
                 filterValueParam,
                 currentPage,
                 pageSize,
-                `PURC_FORM${formCode[0]}`, 
+                `PURC_FORM${formCode[0]}`,
                 branchId,
                 authToken,
                 true
             )
-            .then((response) => {
-                console.log("Form Purchase Request lookup data:", response);
-                formMmtData = HandleToUppercase(response.data);
-                setTotalItems(response.totalAllData);
-            })
-            .catch((error) => {
-                console.error("Failed to fetch form Purchase Request lookup:", error);
-            });
-    
+                .then((response) => {
+                    console.log("Form Purchase Request lookup data:", response);
+                    formMmtData = HandleToUppercase(response.data);
+                    setTotalItems(response.totalAllData);
+                })
+                .catch((error) => {
+                    console.error("Failed to fetch form Purchase Request lookup:", error);
+                });
+
             fetchFormMmtData.then(() => {
                 console.log('MMT DATA', formMmtData);
                 setDataTable(formMmtData);
@@ -110,7 +127,7 @@ const PurchaseRequest = () => {
 
     const handlePageSizeChange = (event) => {
         setPageSize(parseInt(event.target.value, 10));
-        setCurrentPage(1); 
+        setCurrentPage(1);
     };
 
     const handlePageChange = (newPage) => {
@@ -140,6 +157,8 @@ const PurchaseRequest = () => {
         setIsLoadingTable(true);
     };
 
+
+
     return (
         <Fragment>
             <section className="content-header">
@@ -164,11 +183,18 @@ const PurchaseRequest = () => {
             <section className="content">
                 {isAddingNewPurchaseRequest ? (
                     <div>
-                        <AddPurchaseRequest 
-                        setIsAddingNewPurchaseRequest={setIsAddingNewPurchaseRequest} 
-                        handleRefresh={handleRefresh}
+                        <AddPurchaseRequest
+                            setIsAddingNewPurchaseRequest={setIsAddingNewPurchaseRequest}
+                            handleRefresh={handleRefresh}
                         />
                     </div>
+                ) : isEditingPurchaseRequest ? (
+                    <EditPurchaseRequest
+                        setIsEditingPurchaseRequest={setIsEditingPurchaseRequest}
+                        handleRefresh={handleRefresh}
+                        selectedData={selectedData}
+
+                    />
                 ) : (
                     <PurchaseRequestTable
                         formCode={formCode}
@@ -185,6 +211,8 @@ const PurchaseRequest = () => {
                         branchId={branchId}
                         authToken={authToken}
                         addingNewPurchaseRequest={handleAddNewPurchaseRequest}
+                        EditPurchaseRequest={handleEditPurchaseRequest}
+                        selectedData={handleSelectData}
                     />
                 )}
 

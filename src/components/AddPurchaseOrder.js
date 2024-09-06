@@ -9,6 +9,7 @@ import { GENERATED_NUMBER } from '../config/ConfigUrl';
 import { generateUniqueId } from '../service/GeneratedId';
 import Select from 'react-select';
 import LookupParamService from '../service/LookupParamService';
+import LookupService from '../service/LookupService';
 import CreatableSelect from 'react-select/creatable';
 
 const AddPurchaseOrder = ({ setIsAddingNewPurchaseRequest, handleRefresh,index, item  }) => {
@@ -35,7 +36,7 @@ const AddPurchaseOrder = ({ setIsAddingNewPurchaseRequest, handleRefresh,index, 
   const [request_date, setRequestDate] = useState('');
   const [company, setCompany] = useState('');
   const [prNumber, setPrNumber] = useState('');
-  const [orderDate, setOrderDate] = useState(new Date().toISOString().slice(0, 10));
+  const [order_date, setOrderDate] = useState(new Date().toISOString().slice(0, 10));
   const [createdBy, setCreatedBy] = useState(userId);
   const [approveBy, setApproveBy] = useState('');
   const [shipTo, setShipTo] = useState('');
@@ -64,7 +65,7 @@ const AddPurchaseOrder = ({ setIsAddingNewPurchaseRequest, handleRefresh,index, 
   const [selectedPaymentTerm, setSelectedPaymentTerm] = useState(null);
   const [productOptions, setProductOptions] = useState([]);
   const [selectedProduct, setSelectedProduct] = useState(null);
-  const [PR, setPR] = useState('');
+  const [pr_number, setPR] = useState('');
   const [PROptions, setPROptions] = useState([]);
   const [selectedPR, setSelectedPR] = useState(null);
   const [PPNRate, setPPNRate] = useState('');
@@ -93,13 +94,44 @@ const AddPurchaseOrder = ({ setIsAddingNewPurchaseRequest, handleRefresh,index, 
       const options = transformedData.map(item => ({
         value: item.PR_NUMBER,
         label: item.PR_NUMBER,
-        REQUESTOR: item.REQUESTOR
+        REQUESTOR: item.REQUESTOR,
+        DEPARTEMENT: item.DEPARTEMENT,
+        COMPANY: item.COMPANY,
+        PROJECT: item.PROJECT,
+        CUSTOMER: item.CUSTOMER,
+        REQUESTDATE: item.REQUEST_DATE
       }));
       setPROptions(options);
     })
     .catch(error => {
       console.error('Failed to fetch currency lookup:', error);
     });
+
+    
+
+    // Lookup Department
+    LookupParamService.fetchLookupData("MSDT_FORMDPRT", authToken, branchId)
+      .then(data => {
+        console.log('Currency lookup data:', data);
+
+        // Transform keys to uppercase directly in the received data
+        const transformedData = data.data.map(item =>
+          Object.keys(item).reduce((acc, key) => {
+            acc[key.toUpperCase()] = item[key];
+            return acc;
+          }, {})
+        );
+        //console.log('Transformed data:', transformedData);
+
+        const options = transformedData.map(item => ({
+          value: item.NAME,
+          label: item.NAME
+        }));
+        setDepartementOptions(options);
+      })
+      .catch(error => {
+        console.error('Failed to fetch currency lookup:', error);
+      });
 
 
     
@@ -312,8 +344,113 @@ const AddPurchaseOrder = ({ setIsAddingNewPurchaseRequest, handleRefresh,index, 
   const handlePRChange = (selectedOption) => {
     setSelectedPR(selectedOption);
     setPR(selectedOption ? selectedOption.value : '');
-    if(selectedOption) {
-      setSelectedRequestor(selectedOption.REQUESTOR);
+
+
+    // Lookup Purchase Request Item List
+    LookupService.fetchLookupData(`PURC_FORMPUREQD&filterBy=PR_NUMBER&filterValue=${pr_number}&operation=EQUAL`, authToken, branchId)
+    .then(response => {
+        const fetchedItems = response.data || [];
+        console.log('Items fetched:', fetchedItems);
+
+        // Set fetched items to state
+        setItems(fetchedItems);
+
+        // Fetch product lookup data
+        LookupParamService.fetchLookupData("MSDT_FORMPRDT", authToken, branchId)
+            .then(productData => {
+                console.log('Product lookup data:', productData);
+
+                // Transform and map product data to options
+                const transformedProductData = productData.data.map(item =>
+                    Object.keys(item).reduce((acc, key) => {
+                        acc[key.toUpperCase()] = item[key];
+                        return acc;
+                    }, {})
+                );
+
+                const productOptions = transformedProductData.map(item => ({
+                    value: item.NAME,
+                    label: item.NAME
+                }));
+
+                setProductOptions(productOptions); // Set product options to state
+
+                // Fetch currency lookup data
+                LookupParamService.fetchLookupData("MSDT_FORMCCY", authToken, branchId)
+                    .then(currencyData => {
+                        console.log('Currency lookup data:', currencyData);
+
+                        // Transform and map currency data to options
+                        const transformedCurrencyData = currencyData.data.map(item =>
+                            Object.keys(item).reduce((acc, key) => {
+                                acc[key.toUpperCase()] = item[key];
+                                return acc;
+                            }, {})
+                        );
+
+                        const currencyOptions = transformedCurrencyData.map(item => ({
+                            value: item.CODE,
+                            label: item.CODE
+                        }));
+
+                        setCurrencyOptions(currencyOptions); // Set currency options to state
+
+                        // Update fetched items with selected options
+                        const updatedItems = fetchedItems.map(item => {
+                            const selectedProductOption = productOptions.find(option =>
+                                option.value === item.product
+                            );
+
+                            console.log('Selected product option:', selectedProductOption);
+
+                            const selectedCurrencyOption = currencyOptions.find(option =>
+                                option.value === item.currency
+                            );
+
+                            console.log('Selected currency option:', selectedCurrencyOption);
+                            setSelectedCurrency(selectedCurrencyOption);
+                            setSelectedProduct(selectedProductOption);
+                        });
+
+                        // Set the updated items with selected product and currency options to state
+                        setItems(fetchedItems);
+                    })
+                    .catch(error => {
+                        console.error('Failed to fetch currency lookup:', error);
+                    });
+            })
+            .catch(error => {
+                console.error('Failed to fetch product lookup:', error);
+            });
+    })
+    .catch(error => {
+        console.error('Failed to load items:', error);
+    });
+
+
+
+    if (selectedOption) {
+      const requestorOption = requestorOptions.find((option) => option.value === selectedOption.REQUESTOR);
+      const departementOption = departementOptions.find((option) => option.value === selectedOption.DEPARTEMENT);
+      const projectOption = projectOptions.find((option) => option.value === selectedOption.PROJECT);
+      const customerOption = customerOptions.find((option) => option.value === selectedOption.CUSTOMER);
+      setSelectedRequestor(requestorOption ? requestorOption : null);
+      setRequestor(selectedOption.REQUESTOR);
+      setSelectedDepartement(departementOption ? departementOption : null);
+      setDepartement(selectedOption.DEPARTEMENT);
+      setSelectedProject(projectOption ? projectOption : null);
+      setProject(selectedOption.PROJECT);
+      setSelectedCustomer(customerOption ? customerOption : null);
+      setCustomer(selectedOption.CUSTOMER);
+      setCompany(selectedOption.COMPANY ? selectedOption.COMPANY : '');
+      setRequestDate(selectedOption.REQUESTDATE);
+    } else {
+      setRequestDate('');
+      setCompany('');
+      setSelectedRequestor(null);
+      setSelectedDepartement(null);
+      setSelectedProject(null);
+      setSelectedCustomer(null);
     }
   }
 
@@ -468,21 +605,23 @@ const AddPurchaseOrder = ({ setIsAddingNewPurchaseRequest, handleRefresh,index, 
         const total_amount = calculateTotalAmount();
         // Save general information and description
         const generalInfo = {
-          prNumber,
-          request_date, // Converts to date format
-          title,
-          schedule_date, // Converts to date format
-          requestor,
-          departement,  
-          vendor,
+          po_number,
+          pr_number,
           project,
+          vendor,
+          title,
+          order_date, // Converts to date format
+          payment_term: paymentTerm,
+          created_by: createdBy,
+          
           description,
-          total_amount
+          total_amount,
+          approved_by: approveBy
         };
 
         console.log('Master', generalInfo);
 
-        const response = await InsertDataService.postData(generalInfo, "PUREQ", authToken, branchId);
+        const response = await InsertDataService.postData(generalInfo, "PUOR", authToken, branchId);
         console.log('Data posted successfully:', response);
 
         if (response.message === "insert Data Successfully") {
@@ -544,7 +683,7 @@ const AddPurchaseOrder = ({ setIsAddingNewPurchaseRequest, handleRefresh,index, 
                       setIsAddingNewPurchaseRequest(false);
                     }}
                   >
-                    <i className="fas fa-times"></i> Cancel
+                    <i className="fas fa-arrow-left"></i> Back
                   </Button>
                   <Button variant="primary" onClick={handleSave}>
                     <i className="fas fa-save"></i> Save
@@ -584,9 +723,8 @@ const AddPurchaseOrder = ({ setIsAddingNewPurchaseRequest, handleRefresh,index, 
 
                     <Col md={6}>
                       <Form.Group controlId="formDocRef">
-                        <Form.Label>Document Reference</Form.Label>
-                        <Form.Control
-                          as="select"
+                        <Form.Label>Doc. Reference</Form.Label>
+                        <Form.Select
                           placeholder="Enter Document Number"
                           value={docRef}
                           onChange={(e) => setDocRef(e.target.value)}
@@ -597,7 +735,7 @@ const AddPurchaseOrder = ({ setIsAddingNewPurchaseRequest, handleRefresh,index, 
                           <option value="internalMemo">Internal Memo</option>
                           <option value="customerContract">Customer Contract</option>
                           {/* Add more options if needed */}
-                        </Form.Control>
+                        </Form.Select>
                       </Form.Group>
                     </Col>
 
@@ -607,12 +745,12 @@ const AddPurchaseOrder = ({ setIsAddingNewPurchaseRequest, handleRefresh,index, 
                       docRef === "purchaseRequest" ? 
                       <Col md={6}>
                         <Form.Group>
-                          <Form.Label>purchase Request Number</Form.Label>
+                          <Form.Label>Purchase Request Number</Form.Label>
                           <Select 
                           value={selectedPR}
                           options={PROptions}
                           onChange={handlePRChange}
-                          placeholder='PR...'
+                          placeholder='Purhcase Request...'
                           isClearable
                           required
                         />
@@ -757,7 +895,7 @@ const AddPurchaseOrder = ({ setIsAddingNewPurchaseRequest, handleRefresh,index, 
                         <Form.Label>Order Date</Form.Label>
                         <Form.Control
                           type="date"
-                          value={orderDate}
+                          value={order_date}
                           onChange={(e) => setOrderDate(e.target.value)}
                           required
                         />
@@ -919,7 +1057,6 @@ const AddPurchaseOrder = ({ setIsAddingNewPurchaseRequest, handleRefresh,index, 
                               <th>Tax PPN Rate</th>
                               <th>Tax PPN Amount</th>
                               <th>Tax Base</th>
-                              <th>Discount</th>
                               <th>Total Price</th>
                               <th>Actions</th>
                             </tr>
@@ -941,13 +1078,9 @@ const AddPurchaseOrder = ({ setIsAddingNewPurchaseRequest, handleRefresh,index, 
                                     />
                                   </td>
                                   <td>
-                                    {docRef === "purchaseRequest"? 
-                                      <Form.Control
-                                        type='text'
-                                      />
-                                    : 
+                                   
                                     <Select
-                                        value={selectedProduct}
+                                        value={productOptions.find(option => option.value === item.product)}
                                         onChange={(selectedOption) => {
                                           setSelectedProduct(selectedOption);
                                           handleItemChange(index, 'product', selectedOption ? selectedOption.value : null);
@@ -956,7 +1089,7 @@ const AddPurchaseOrder = ({ setIsAddingNewPurchaseRequest, handleRefresh,index, 
                                         isClearable
                                         placeholder="Select Product..."
                                       />
-                                    }
+                                    
                                   </td>
                                   <td>
                                     <Form.Control
@@ -974,13 +1107,12 @@ const AddPurchaseOrder = ({ setIsAddingNewPurchaseRequest, handleRefresh,index, 
                                   </td>
                                   <td>
                                     <Select
-                                      value={selectedCurrency}
+                                      value={currencyOptions.find(option => option.value === item.currency)}
                                       onChange={(selectedOption) => {
                                         setSelectedCurrency(selectedOption);
-                                        handleItemChange(index, 'currency', selectedOption ? selectedOption.value : '');
+                                        handleItemChange(index, 'currency', selectedOption ? selectedOption.value : 'IDR');
                                       }}
                                       options={currencyOptions}
-                                      isClearable
                                       placeholder="Select Currency"
                                     />
                                   </td>
@@ -1042,13 +1174,6 @@ const AddPurchaseOrder = ({ setIsAddingNewPurchaseRequest, handleRefresh,index, 
                                       onChange={(e) => handleItemChange(index, 'tax_base', parseFloat(e.target.value) || 0)}
                                     />
                                   </td>
-                                  <td>
-                                    <Form.Control
-                                      type='number'
-                                      value={item.discount}
-                                      onChange={(e) => handleItemChange(index,'discount', parseFloat(e.target.value) || 0)}
-                                    />
-                                  </td>
                                   <td>{item.total_price.toLocaleString('en-US', { style: 'currency', currency: item.currency })}</td>
                                   <td>
                                     <Button
@@ -1065,7 +1190,7 @@ const AddPurchaseOrder = ({ setIsAddingNewPurchaseRequest, handleRefresh,index, 
                           </tbody>
                           <tfoot>
                             <tr>
-                              <th colSpan="12" className='text-right'>Discount:</th>
+                              <th colSpan="11" className='text-right'>Discount:</th>
                               <th colSpan="1" className='text-right'>
                                 <Form.Control
                                   type='number'
@@ -1073,7 +1198,7 @@ const AddPurchaseOrder = ({ setIsAddingNewPurchaseRequest, handleRefresh,index, 
                               </th>
                             </tr>
                             <tr>
-                              <td colSpan="12" className="text-right">Total Amount:</td>
+                              <td colSpan="11" className="text-right">Total Amount:</td>
                               <td><strong>{calculateTotalAmount().toLocaleString('en-US', { style: 'currency', currency: 'IDR' })} </strong></td>
                             </tr>
                           </tfoot>
@@ -1119,7 +1244,7 @@ const AddPurchaseOrder = ({ setIsAddingNewPurchaseRequest, handleRefresh,index, 
                 setIsAddingNewPurchaseRequest(false);
               }}
             >
-              <i className="fas fa-times"></i> Cancel
+              <i className="fas fa-arrow-left"></i> Back
             </Button>
             <Button variant="primary" onClick={handleSave}>
               <i className="fas fa-save"></i> Save

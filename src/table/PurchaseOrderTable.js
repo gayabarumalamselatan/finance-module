@@ -233,22 +233,18 @@ const PurchaseOrderTable = ({
                                             checked={selectedRows.length === dataTable.length && dataTable.length > 0}
                                         />
                                     </th>
+                                    <th>PO Number</th>
                                     <th>PR Number</th>
                                     <th>Title</th>
-                                    <th>Request Date</th>
-                                    <th>Schedule Date</th>
-                                    <th>Document Number</th>
-                                    <th>Requestor</th>
-                                    <th>Department</th>
-                                    <th>Company</th>
                                     <th>Project</th>
+                                    <th>Vendor</th>
+                                    <th>Order Date</th>
+                                    <th>Payment Term</th>
+                                    <th>Status Po</th>
                                     <th>Total Amount</th>
                                     <th>Description</th>
                                     <th>Created By</th>
-                                    <th>Checked By 1</th>
-                                    <th>Checked By 2</th>
                                     <th>Approved By</th>
-                                    <th>Status Request</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -274,15 +270,14 @@ const PurchaseOrderTable = ({
                                                     onChange={() => handleRowSelect(item)}
                                                 />
                                             </td>
+                                            <td>{item.PO_NUMBER}</td>
                                             <td>{item.PR_NUMBER}</td>
                                             <td>{item.TITLE}</td>
-                                            <td>{item.REQUEST_DATE}</td>
-                                            <td>{item.SCHEDULE_DATE}</td>
-                                            <td>{item.DOC_NO}</td>
-                                            <td>{item.REQUESTOR}</td>
-                                            <td>{item.DEPARTEMENT}</td>
-                                            <td>{item.COMPANY}</td>
                                             <td>{item.PROJECT}</td>
+                                            <td>{item.VENDOR}</td>
+                                            <td>{item.ORDER_DATE}</td>
+                                            <td>{item.PAYMENT_TERM}</td>
+                                            <td>{item.STATUS_PO}</td>
                                             <td>
                                                 <NumericFormat
                                                     value={item.TOTAL_AMOUNT}
@@ -293,10 +288,7 @@ const PurchaseOrderTable = ({
                                             </td>
                                             <td>{item.DESCRIPTION}</td>
                                             <td>{item.CREATED_BY}</td>
-                                            <td>{item.CHECKED_BY_1}</td>
-                                            <td>{item.CHECKED_BY_2}</td>
                                             <td>{item.APPROVED_BY}</td>
-                                            <td>{item.STATUS_REQUEST}</td>
                                         </tr>
                                     ))
                                 )}

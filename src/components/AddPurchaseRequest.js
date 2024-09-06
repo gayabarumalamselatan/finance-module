@@ -11,18 +11,20 @@ import Select from 'react-select';
 import LookupParamService from '../service/LookupParamService';
 import CreatableSelect from 'react-select/creatable';
 
-const AddPurchaseRequest = ({ setIsAddingNewPurchaseRequest, handleRefresh,index, item  }) => {
+const AddPurchaseRequest = ({ setIsAddingNewPurchaseRequest, handleRefresh, index, item }) => {
   const headers = getToken();
   const branchId = getBranch();
   const [pr_number, setPrNumber] = useState('');
   const [request_date, setRequestDate] = useState('');
-  const [title, setTitle] = useState('');
+  const [customer, setCustomer] = useState('');
   const [schedule_date, setScheduleDate] = useState('');
   const [doc_no, setDocNo] = useState('FRM.PTAP.PRC.21a-01');
+  const [doc_reff, setDocReff] = useState('');
   const [requestor, setRequestor] = useState('');
   const [departement, setDepartment] = useState('');
   const [company, setCompany] = useState('');
   const [project, setProject] = useState('');
+  const [status_request, setStatusRequest] = useState('Draft');
   const [items, setItems] = useState([]);
   const [description, setDescription] = useState('');
   const [selectedItems, setSelectedItems] = useState([]);
@@ -39,7 +41,8 @@ const AddPurchaseRequest = ({ setIsAddingNewPurchaseRequest, handleRefresh,index
   const [selectedProject, setSelectedProject] = useState(null);
   const [productOptions, setProductOptions] = useState([]);
   const [selectedProduct, setSelectedProduct] = useState(null);
-
+  const [customerOptions, setCustomerOptions] = useState([]);
+  const [selectedCustomer, setSelectedCustomer] = useState(null);
 
   const authToken = headers;
 
@@ -90,7 +93,7 @@ const AddPurchaseRequest = ({ setIsAddingNewPurchaseRequest, handleRefresh,index
       .catch(error => {
         console.error('Failed to fetch currency lookup:', error);
       });
-      LookupParamService.fetchLookupData("MSDT_FORMDPRT", authToken, branchId)
+    LookupParamService.fetchLookupData("MSDT_FORMDPRT", authToken, branchId)
       .then(data => {
         console.log('Currency lookup data:', data);
 
@@ -113,7 +116,7 @@ const AddPurchaseRequest = ({ setIsAddingNewPurchaseRequest, handleRefresh,index
         console.error('Failed to fetch currency lookup:', error);
       });
 
-      LookupParamService.fetchLookupData("MSDT_FORMVNDR", authToken, branchId)
+    LookupParamService.fetchLookupData("MSDT_FORMVNDR", authToken, branchId)
       .then(data => {
         console.log('Currency lookup data:', data);
 
@@ -137,7 +140,7 @@ const AddPurchaseRequest = ({ setIsAddingNewPurchaseRequest, handleRefresh,index
       });
 
 
-      LookupParamService.fetchLookupData("MSDT_FORMPRJT", authToken, branchId)
+    LookupParamService.fetchLookupData("MSDT_FORMPRJT", authToken, branchId)
       .then(data => {
         console.log('Currency lookup data:', data);
 
@@ -160,7 +163,7 @@ const AddPurchaseRequest = ({ setIsAddingNewPurchaseRequest, handleRefresh,index
         console.error('Failed to fetch currency lookup:', error);
       });
 
-      LookupParamService.fetchLookupData("MSDT_FORMPRDT", authToken, branchId)
+    LookupParamService.fetchLookupData("MSDT_FORMPRDT", authToken, branchId)
       .then(data => {
         console.log('Currency lookup data:', data);
 
@@ -178,6 +181,29 @@ const AddPurchaseRequest = ({ setIsAddingNewPurchaseRequest, handleRefresh,index
           label: item.NAME
         }));
         setProductOptions(options);
+      })
+      .catch(error => {
+        console.error('Failed to fetch currency lookup:', error);
+      });
+
+    LookupParamService.fetchLookupData("MSDT_FORMCUST", authToken, branchId)
+      .then(data => {
+        console.log('Currency lookup data:', data);
+
+        // Transform keys to uppercase directly in the received data
+        const transformedData = data.data.map(item =>
+          Object.keys(item).reduce((acc, key) => {
+            acc[key.toUpperCase()] = item[key];
+            return acc;
+          }, {})
+        );
+        //console.log('Transformed data:', transformedData);
+
+        const options = transformedData.map(item => ({
+          value: item.NAME,
+          label: item.NAME
+        }));
+        setCustomerOptions(options);
       })
       .catch(error => {
         console.error('Failed to fetch currency lookup:', error);
@@ -204,15 +230,22 @@ const AddPurchaseRequest = ({ setIsAddingNewPurchaseRequest, handleRefresh,index
     setProject(selectedOption ? selectedOption.value : '');
   };
 
+  const handleCustomerChange = (selectedOption) => {
+    setSelectedCustomer(selectedOption);
+    setCustomer(selectedOption ? selectedOption.value : '');
+  }
+
   const handleAddItem = () => {
     setItems([...items, { product: '', product_note: '', quantity: 0, currency: 'IDR', unit_price: 0, total_price: 0 }]);
   };
 
   const handleItemChange = (index, field, value) => {
     const newItems = [...items];
-    newItems[index][field] = value;
-
-    console.log(index, field, value);
+    if (field === 'product' || field === 'currency') {
+      newItems[index][field] = value ? value.value : null;
+    } else {
+      newItems[index][field] = value;
+    }
 
     if (field === 'quantity' || field === 'unit_price') {
       newItems[index].total_price = newItems[index].quantity * newItems[index].unit_price;
@@ -234,7 +267,6 @@ const AddPurchaseRequest = ({ setIsAddingNewPurchaseRequest, handleRefresh,index
       setSelectedItems([...selectedItems, index]);
     }
   };
-
   const handleSelectAll = () => {
     if (selectedItems.length === items.length) {
       setSelectedItems([]);
@@ -264,9 +296,10 @@ const AddPurchaseRequest = ({ setIsAddingNewPurchaseRequest, handleRefresh,index
   const resetForm = () => {
     setPrNumber('');
     setRequestDate('');
-    setTitle('');
+    setCustomer('');
     setScheduleDate('');
     setDocNo('');
+    setDocReff('');
     setRequestor('');
     setDepartment('');
     setCompany('');
@@ -302,18 +335,22 @@ const AddPurchaseRequest = ({ setIsAddingNewPurchaseRequest, handleRefresh,index
       try {
         const total_amount = calculateTotalAmount();
         // Save general information and description
+        const createBy = sessionStorage.getItem('userId');
         const generalInfo = {
           pr_number,
           request_date, // Converts to date format
-          title,
+          customer,
           schedule_date, // Converts to date format
           doc_no,
+          doc_reff,
           requestor,
           departement,
           company,
           project,
           description,
-          total_amount
+          total_amount,
+          created_by: createBy,
+          status_request: 'DRAFT'
         };
 
         console.log('Master', generalInfo);
@@ -351,7 +388,7 @@ const AddPurchaseRequest = ({ setIsAddingNewPurchaseRequest, handleRefresh,index
   useEffect(() => {
     const generatePrNumber = async () => {
       try {
-        const uniquePrNumber = await generateUniqueId(`${GENERATED_NUMBER}?code=PR`, authToken);
+        const uniquePrNumber = await generateUniqueId(`${GENERATED_NUMBER}?code=DRAFT_PR`, authToken);
         setPrNumber(uniquePrNumber);
       } catch (error) {
         console.error('Failed to generate PR Number:', error);
@@ -404,9 +441,24 @@ const AddPurchaseRequest = ({ setIsAddingNewPurchaseRequest, handleRefresh,index
                         />
                       </Form.Group>
                     </Col>
+
+                    <Col md={6}>
+                      <Form.Group controlId="formCustomer">
+                        <Form.Label>Customer</Form.Label>
+                        <Select
+                          id="customer"
+                          value={selectedCustomer}
+                          onChange={handleCustomerChange}
+                          options={customerOptions}
+                          isClearable
+                          placeholder="Select..."
+                          required
+                        />
+                      </Form.Group>
+                    </Col>
                     <Col md={6}>
                       <Form.Group controlId="formDocNo">
-                        <Form.Label>Doc No</Form.Label>
+                        <Form.Label>Doc. No</Form.Label>
                         <Form.Control
                           type="text"
                           placeholder="Enter Document Number"
@@ -417,20 +469,17 @@ const AddPurchaseRequest = ({ setIsAddingNewPurchaseRequest, handleRefresh,index
                       </Form.Group>
                     </Col>
                     <Col md={6}>
-                      <Form.Group controlId="formTitle">
-                        <Form.Label>Title</Form.Label>
+                      <Form.Group controlId="formDocReff">
+                        <Form.Label>Doc. Reference</Form.Label>
                         <Form.Control
                           type="text"
-                          placeholder="Enter Title"
-                          value={title}
-                          onChange={(e) => setTitle(e.target.value)}
-                          required
+                          placeholder="Enter Document Reference"
+                          value={doc_reff}
+                          onChange={(e) => setDocReff(e.target.value)}
+
                         />
                       </Form.Group>
                     </Col>
-
-
-
                     <Col md={6}>
                       <Form.Group controlId="formScheduleDate">
                         <Form.Label>Schedule Date</Form.Label>
@@ -506,7 +555,6 @@ const AddPurchaseRequest = ({ setIsAddingNewPurchaseRequest, handleRefresh,index
                         />
                       </Form.Group>
                     </Col>
-
                     <Col md={6}>
                       <Form.Group controlId="formRequestDate">
                         <Form.Label>Request Date</Form.Label>
@@ -514,6 +562,18 @@ const AddPurchaseRequest = ({ setIsAddingNewPurchaseRequest, handleRefresh,index
                           type="date"
                           value={request_date}
                           onChange={(e) => setRequestDate(e.target.value)}
+                          required
+                        />
+                      </Form.Group>
+                    </Col>
+                    <Col md={6}>
+                      <Form.Group controlId="formStatusRequest">
+                        <Form.Label>Status Request</Form.Label>
+                        <Form.Control
+                          type="text"
+                          value={status_request}
+                          onChange={(e) => setStatusRequest(e.target.value)}
+                          disabled
                           required
                         />
                       </Form.Group>
@@ -596,15 +656,12 @@ const AddPurchaseRequest = ({ setIsAddingNewPurchaseRequest, handleRefresh,index
                                     />
                                   </td>
                                   <td>
-                                  <Select
-                                      value={selectedProduct}
-                                      onChange={(selectedOption) => {
-                                        setSelectedProduct(selectedOption);
-                                        handleItemChange(index, 'product', selectedOption ? selectedOption.value : null);
-                                      }}
+                                    <Select
+                                      value={productOptions.find(option => option.value === item.product)}
+                                      onChange={(selectedOption) => handleItemChange(index, 'product', selectedOption)}
                                       options={productOptions}
                                       isClearable
-                                      placeholder="Select Product..."
+                                      placeholder="Select product"
                                     />
                                   </td>
                                   <td>
@@ -623,14 +680,11 @@ const AddPurchaseRequest = ({ setIsAddingNewPurchaseRequest, handleRefresh,index
                                   </td>
                                   <td>
                                     <Select
-                                      value={selectedCurrency}
-                                      onChange={(selectedOption) => {
-                                        setSelectedCurrency(selectedOption);
-                                        handleItemChange(index, 'currency', selectedOption ? selectedOption.value : null);
-                                      }}
+                                      value={currencyOptions.find(option => option.value === item.currency)}
+                                      onChange={(selectedOption) => handleItemChange(index, 'currency', selectedOption)}
                                       options={currencyOptions}
                                       isClearable
-                                      placeholder="Select Currency"
+                                      placeholder="Select currency"
                                     />
                                   </td>
                                   <td>
