@@ -2,7 +2,9 @@ import React, { useState, useEffect } from "react";
 import FormPagination from "../utils/FormPagination";
 import { NumericFormat } from "react-number-format";
 import { FaAddressBook, FaFilter, FaSyncAlt } from "react-icons/fa";
-import { FaEdit, FaTrash, FaFileExport } from "react-icons/fa"; // Import icons for Edit, Delete, and Export
+import { FaEdit, FaTrash, FaFileExport } from "react-icons/fa";
+import DeleteDataService from "../service/DeleteDataService"; // Import icons for Edit, Delete, and Export
+import { getToken, getBranch } from "../config/Constant";
 
 const PurchaseOrderTable = ({
     formCode,
@@ -27,6 +29,9 @@ const PurchaseOrderTable = ({
     const [showAdditionalContent, setShowAdditionalContent] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
 
+    const authToken = getToken();
+    const branchId = getBranch();
+
     useEffect(() => {
         // Clear selected rows when data changes
         setSelectedRows([]);
@@ -34,7 +39,7 @@ const PurchaseOrderTable = ({
 
     const handleSelectAll = (e) => {
         if (e.target.checked) {
-            setSelectedRows(dataTable.map(item => item.PR_NUMBER)); // Assuming PR_NUMBER is unique
+            setSelectedRows(dataTable.map(item => item.PO_NUMBER)); // Assuming PR_NUMBER is unique
         } else {
             setSelectedRows([]);
         }
@@ -42,10 +47,10 @@ const PurchaseOrderTable = ({
 
     const handleRowSelect = (item) => {
         setSelectedRows(prevSelectedRows => {
-            if (prevSelectedRows.includes(item.PR_NUMBER)) {
-                return prevSelectedRows.filter(row => row !== item.PR_NUMBER);
+            if (prevSelectedRows.includes(item.PO_NUMBER)) {
+                return prevSelectedRows.filter(row => row !== item.PO_NUMBER);
             } else {
-                return [...prevSelectedRows, item.PR_NUMBER];
+                return [...prevSelectedRows, item.PO_NUMBER];
             }
         });
     };
@@ -82,9 +87,24 @@ const PurchaseOrderTable = ({
         console.log("Edit selected rows:", selectedRows);
     };
 
+    // const handleDelete = () => {
+    //     // Add logic for deleting selected rows
+    //     console.log("Delete selected rows:", selectedRows);
+    // };
+
     const handleDelete = () => {
-        // Add logic for deleting selected rows
-        console.log("Delete selected rows:", selectedRows);
+        if (selectedRows.length > 0) {
+            const ParamDel = `t=PURCFORMPUOR&${selectedRows.map((row) => `PO_NUMBER=${row}`).join('&')}`;
+            DeleteDataService.postData(ParamDel, formCode, authToken, branchId)
+            .then((response) => {
+                console.log('Deleted successfully:', response);
+                // Refresh the table data
+                handleRefresh();
+            })
+            .catch((error) => {
+                console.error('Error deleting data:', error);
+            });
+        }
     };
 
     const handleExport = () => {
@@ -262,11 +282,11 @@ const PurchaseOrderTable = ({
                                     </tr>
                                 ) : (
                                     dataTable.map((item) => (
-                                        <tr key={item.PR_NUMBER}>
+                                        <tr key={item.PO_NUMBER}>
                                             <td>
                                                 <input
                                                     type="checkbox"
-                                                    checked={selectedRows.includes(item.PR_NUMBER)}
+                                                    checked={selectedRows.includes(item.PO_NUMBER)}
                                                     onChange={() => handleRowSelect(item)}
                                                 />
                                             </td>

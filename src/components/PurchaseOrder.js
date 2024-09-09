@@ -27,10 +27,10 @@ const PurchaseOrder = () => {
     const [filterValue, setFilterValue] = useState('');
     const [filterOperation, setFilterOperation] = useState('');
 
-    const [isAddingNewPurchaseRequest, setIsAddingNewPurchaseRequest] = useState(false);
+    const [isAddingNewPurchaseOrder, setIsAddingNewPurchaseOrder] = useState(false);
    
-    const handleAddNewPurchaseRequest = (value) => {
-        setIsAddingNewPurchaseRequest(value);
+    const handleAddNewPurchaseOrder = (value) => {
+        setIsAddingNewPurchaseOrder(value);
     };
 
     const authToken = headers;
@@ -162,10 +162,10 @@ const PurchaseOrder = () => {
                 </div>
             </section>
             <section className="content">
-                {isAddingNewPurchaseRequest ? (
+                {isAddingNewPurchaseOrder ? (
                     <div>
                         <AddPurchaseOrder
-                        setIsAddingNewPurchaseRequest={setIsAddingNewPurchaseRequest} 
+                        setIsAddingNewPurchaseRequest={setIsAddingNewPurchaseOrder} 
                         handleRefresh={handleRefresh}
                         />
                     </div>
@@ -184,7 +184,7 @@ const PurchaseOrder = () => {
                         handleResetFilter={handleResetFilters}
                         branchId={branchId}
                         authToken={authToken}
-                        addingNewPurchaseRequest={handleAddNewPurchaseRequest}
+                        addingNewPurchaseRequest={handleAddNewPurchaseOrder}
                     />
                 )}
 
