@@ -12,7 +12,7 @@
   import LookupService from '../service/LookupService';
   import CreatableSelect from 'react-select/creatable';
 
-  const AddPurchaseOrder = ({ setIsAddingNewPurchaseRequest, handleRefresh,index, item  }) => {
+  const AddPurchaseOrder = ({ setIsAddingNewPurchaseOrder, handleRefresh,index, item  }) => {
     const headers = getToken();
     const branchId = getBranch();
     const userId = userLoggin();
@@ -474,36 +474,39 @@
 
       console.log(index, field, value);
 
+      let vatIncluded = false; 
+
+      if (field === 'vat_type') {
+        if (value === 'include') {
+          newItems[index].originalUnitPrice = newItems[index].unit_price;
+          newItems[index].unit_price = newItems[index].originalUnitPrice + (newItems[index].originalUnitPrice * 0.1); 
+          vatIncluded = true;
+        } else if (value === 'exclude') {
+          if (vatIncluded === true) {
+            newItems[index].unit_price = newItems[index].originalUnitPrice;
+            vatIncluded = false;
+          }
+          // otherwise, don't change the original unit price
+        }
+        newItems[index].total_price = newItems[index].quantity * newItems[index].unit_price;
+      }
+      
+
       if (field === 'quantity' || field === 'unit_price') {
         newItems[index].total_price = newItems[index].quantity * newItems[index].unit_price;
       }
 
-      if (field === 'tax_type') {
-        const selectedTaxType = taxTypeOptions.find(option => option.value === value);
-        setPPNRate(selectedTaxType ? selectedTaxType.RATE : '');
-      }    
+      if (field === 'total_price' || field === 'tax_ppn_type') {
+        newItems[index].tax_ppn_amount = newItems[index].total_price * newItems[index].tax_ppn_rate;
+      }
 
-      if(field === 'vat_type') {
-        let originalUnitPrice = newItems[index].unit_price;
-        if (value === 'include') {
-          newItems[index].unit_price = newItems[index].unit_price + (newItems[index].unit_price * 0.1)
-          newItems[index].originalUnitPrice = originalUnitPrice;
-          newItems[index].total_price = newItems[index].quantity * newItems[index].unit_price;
-          newItems[index].tax_base = newItems[index].total_amount - newItems[index].tax_ppn_amount;
-        } else if (value === 'exclude') {
-          newItems[index].unit_price = newItems[index].originalUnitPrice;
-          newItems[index].total_price = newItems[index].quantity * newItems[index].unit_price;
-          newItems[index].tax_base = newItems[index].total_amount + newItems[index].tax_ppn_amount;
-        }
-      }
+      // if (field === 'tax_type') {
+      //   const selectedTaxType = taxTypeOptions.find(option => option.value === value);
+      //   setPPNRate(selectedTaxType ? selectedTaxType.RATE : '');
+      // }    
+
+     
       
-      // Total Amount
-      if (PPNRate || field === 'total_price' || field === 'ppn_type') {
-        newItems[index].tax_ppn_amount = newItems[index].total_price * PPNRate;
-        console.log(newItems[index].tax_ppn_amount)
-      } else {
-        newItems[index].tax_ppn_amount = 0;
-      }
       
       setItems(newItems);
     };
@@ -673,7 +676,7 @@
                       className="mr-2"
                       onClick={() => {
                         handleRefresh();
-                        setIsAddingNewPurchaseRequest(false);
+                        setIsAddingNewPurchaseOrder(false);
                       }}
                     >
                       <i className="fas fa-arrow-left"></i> Back
@@ -1035,12 +1038,13 @@
                                 <th>Quantity</th>
                                 <th>Currency</th>
                                 <th>Unit Price</th>
+                                <th>Total Price</th>
                                 <th>Type of VAT</th>
                                 <th>Tax PPN Type</th>
                                 <th>Tax PPN Rate</th>
                                 <th>Tax PPN Amount</th>
                                 <th>Tax Base</th>
-                                <th>Total Price</th>
+                                
                                 <th>Actions</th>
                               </tr>
                             </thead>
@@ -1106,6 +1110,7 @@
                                         onChange={(e) => handleItemChange(index, 'unit_price', Math.max(0, parseFloat(e.target.value) || 0))}
                                       />
                                     </td>
+                                    <td>{item.total_price.toLocaleString('en-US', { style: 'currency', currency: item.currency })}</td>
                                     <td>
                                       <Form.Select
                                         onChange={(selectedOption) => {
@@ -1129,7 +1134,7 @@
                                           handleItemChange(index, 'tax_ppn_type', selectedOption ? selectedOption.value : '');
                                           if (selectedOption) {
                                             // setPPNRate(selectedOption.RATE); 
-                                            handleItemChange(index, 'ppn_rate', selectedOption.RATE);
+                                            handleItemChange(index, 'tax_ppn_rate', selectedOption.RATE);
                                           } else {
                                             // setPPNRate(''); 
                                             handleItemChange(index, 'tax_ppn_rate', 0);
@@ -1158,7 +1163,7 @@
                                         onChange={(e) => handleItemChange(index, 'tax_base', parseFloat(e.target.value) || 0)}
                                       />
                                     </td>
-                                    <td>{item.total_price.toLocaleString('en-US', { style: 'currency', currency: item.currency })}</td>
+                                    
                                     <td>
                                       <Button
                                         variant="danger"
@@ -1225,7 +1230,7 @@
               <Button variant="secondary" className="mr-2"
                 onClick={() => {
                   handleRefresh();
-                  setIsAddingNewPurchaseRequest(false);
+                  setIsAddingNewPurchaseOrder(false);
                 }}
               >
                 <i className="fas fa-arrow-left"></i> Back

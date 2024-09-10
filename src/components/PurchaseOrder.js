@@ -1,20 +1,23 @@
 import React, { Fragment, useEffect, useState } from "react";
-import { getBranch, getToken } from "../config/Constant";
+import { getBranch, getToken, userLoggin } from "../config/Constant";
 import LookupParamService from "../service/LookupParamService";
 import axios from "axios";
 import { FORM_SERVICE_INSERT_DATA, FORM_SERVICE_LOAD_FIELD, FORM_SERVICE_REPORT_DATA_EXCEL, MM_SERVICE_LIST_FILE_TRADE, MM_SERVICE_LIST_JOURNAL } from "../config/ConfigUrl";
 import { HandleToUppercase } from "../utils/HandleToUpercase";
 import FormService from "../service/FormService";
-import PurchaseOrderTable from "../table/PurchaseOrderTable";
+import PurchaseOrderTable from "../table/PurchaseOrderTable"
+import AddPurchaseRequest from "./AddPurchaseRequest";
+import EditPurchaseOrder from "./EditPurchaseOrder";
 import AddPurchaseOrder from "./AddPurchaseOrder";
 
 const PurchaseOrder = () => {
     const headers = getToken();
     const branchId = getBranch();
+    const userId = userLoggin();
     const [formCode, setFormCode] = useState([]);
     const [formData, setFormData] = useState([]);
     const [isLoading, setIsLoading] = useState(false);
-    const [isFilterSet, setIsFilterSet] = useState(false); 
+    const [isFilterSet, setIsFilterSet] = useState(false);
 
     // Inquiry table variable
     const [dataTable, setDataTable] = useState([]);
@@ -28,9 +31,32 @@ const PurchaseOrder = () => {
     const [filterOperation, setFilterOperation] = useState('');
 
     const [isAddingNewPurchaseOrder, setIsAddingNewPurchaseOrder] = useState(false);
-   
+    const [isViewingPurchaseOrder, setIsViewingPurchaseOrder] = useState(false);
+    const [isEditingPurchaseOrder, setIsEditingPurchaseOrder] = useState(false);
+    const [selectedData, setSelectedData] = useState([]);
+
+
+    const permissionsString = sessionStorage.getItem('permisions');
+
+    // Parse the JSON string into a JavaScript object
+    const permissions = JSON.parse(permissionsString);
+
+
+
     const handleAddNewPurchaseOrder = (value) => {
         setIsAddingNewPurchaseOrder(value);
+    };
+
+    const handleEditPurchaseOrder = (value) => {
+        setIsEditingPurchaseOrder(value);
+    };
+
+    const handleViewPurchaseOrder = (value) => {
+        setIsViewingPurchaseOrder(value);
+    };
+
+    const handleSelectData = (value) => {
+        setSelectedData(value);
     };
 
     const authToken = headers;
@@ -66,11 +92,11 @@ const PurchaseOrder = () => {
     useEffect(() => {
         if (formCode.length > 0) {
             let formMmtData = [];
-    
+
             let filterColumnParam = filterColumn;
             let filterOperationParam = filterOperation;
             let filterValueParam = filterValue;
-    
+
             // Check if URL parameter `status` is set
             const statusParam = new URLSearchParams(window.location.search).get('status');
             if (statusParam) {
@@ -78,7 +104,19 @@ const PurchaseOrder = () => {
                 filterOperationParam = 'EQUAL';
                 filterValueParam = statusParam;
             }
-    
+
+            console.log("permissions", permissions.Purchase?.["Purchase Order"].verify);
+            const checker = permissions.Purchase?.["Purchase Order"].verify;
+            if (checker) {
+                // Do not apply any filter if checker is true
+                console.log("Checker is true, no filter will be applied.");
+            } else if (userId) {
+                // Apply filter if checker is false and userId is present
+                filterColumnParam = 'CREATED_BY';
+                filterOperationParam = 'EQUAL';
+                filterValueParam = userId;
+            }
+
             const fetchFormMmtData = FormService.fetchData(
                 "",
                 filterColumnParam,
@@ -86,20 +124,20 @@ const PurchaseOrder = () => {
                 filterValueParam,
                 currentPage,
                 pageSize,
-                `PURC_FORM${formCode[0]}`, 
+                `PURC_FORM${formCode[0]}`,
                 branchId,
                 authToken,
                 true
             )
-            .then((response) => {
-                console.log("Form Purchase Request lookup data:", response);
-                formMmtData = HandleToUppercase(response.data);
-                setTotalItems(response.totalAllData);
-            })
-            .catch((error) => {
-                console.error("Failed to fetch form Purchase Request lookup:", error);
-            });
-    
+                .then((response) => {
+                    console.log("Form Purchase Order lookup data:", response);
+                    formMmtData = HandleToUppercase(response.data);
+                    setTotalItems(response.totalAllData);
+                })
+                .catch((error) => {
+                    console.error("Failed to fetch form Purchase Order lookup:", error);
+                });
+
             fetchFormMmtData.then(() => {
                 console.log('MMT DATA', formMmtData);
                 setDataTable(formMmtData);
@@ -110,7 +148,7 @@ const PurchaseOrder = () => {
 
     const handlePageSizeChange = (event) => {
         setPageSize(parseInt(event.target.value, 10));
-        setCurrentPage(1); 
+        setCurrentPage(1);
     };
 
     const handlePageChange = (newPage) => {
@@ -124,7 +162,7 @@ const PurchaseOrder = () => {
     };
 
     const handleFilterSearch = ({ filterColumn, filterOperation, filterValue }) => {
-        console.log('filter Purchase Request list:', filterColumn, filterOperation, filterValue);
+        console.log('filter Purchase Order list:', filterColumn, filterOperation, filterValue);
         setFilterOperation(filterOperation);
         setfilterColumn(filterColumn);
         setFilterValue(filterValue);
@@ -139,6 +177,8 @@ const PurchaseOrder = () => {
         setIsFilterSet(!isFilterSet);
         setIsLoadingTable(true);
     };
+
+
 
     return (
         <Fragment>
@@ -165,10 +205,17 @@ const PurchaseOrder = () => {
                 {isAddingNewPurchaseOrder ? (
                     <div>
                         <AddPurchaseOrder
-                        setIsAddingNewPurchaseRequest={setIsAddingNewPurchaseOrder} 
-                        handleRefresh={handleRefresh}
+                            setIsAddingNewPurchaseOrder={setIsAddingNewPurchaseOrder}
+                            handleRefresh={handleRefresh}
                         />
                     </div>
+                ) : isEditingPurchaseOrder ? (
+                    <EditPurchaseOrder
+                        setIsEditingPurchaseOrder={setIsEditingPurchaseOrder}
+                        handleRefresh={handleRefresh}
+                        selectedData={selectedData}
+
+                    />
                 ) : (
                     <PurchaseOrderTable
                         formCode={formCode}
@@ -184,7 +231,10 @@ const PurchaseOrder = () => {
                         handleResetFilter={handleResetFilters}
                         branchId={branchId}
                         authToken={authToken}
-                        addingNewPurchaseRequest={handleAddNewPurchaseOrder}
+                        addingNewPurchaseOrder={handleAddNewPurchaseOrder}
+                        handleEditPurchaseOrder={handleEditPurchaseOrder}
+                        handleSelectData={handleSelectData}
+                        checker={permissions.Purchase?.["Purchase Order"].verify}
                     />
                 )}
 

@@ -19,7 +19,9 @@ const PurchaseOrderTable = ({
     isLoadingTable,
     handleFilterSearch,
     handleResetFilter,
-    addingNewPurchaseRequest
+    addingNewPurchaseOrder,
+    handleEditPurchaseOrder,
+    handleSelectData
 }) => {
     const [selectedRows, setSelectedRows] = useState([]);
     const [isFilterOpen, setIsFilterOpen] = useState(false);
@@ -60,7 +62,7 @@ const PurchaseOrderTable = ({
     };
 
     const handleNewBond = () => {
-        addingNewPurchaseRequest(true);
+        addingNewPurchaseOrder(true);
     };
 
     const handleResetFilters = () => {
@@ -85,6 +87,10 @@ const PurchaseOrderTable = ({
     const handleEdit = () => {
         // Add logic for editing selected rows
         console.log("Edit selected rows:", selectedRows);
+        if (selectedRows.length > 0) {
+            handleEditPurchaseOrder(true);
+            handleSelectData(selectedRows);
+        }
     };
 
     // const handleDelete = () => {
@@ -94,7 +100,7 @@ const PurchaseOrderTable = ({
 
     const handleDelete = () => {
         if (selectedRows.length > 0) {
-            const ParamDel = `t=PURCFORMPUOR&${selectedRows.map((row) => `PO_NUMBER=${row}`).join('&')}`;
+            const ParamDel = selectedRows.map((row) => `PO_NUMBER=${row}`).join('&');
             DeleteDataService.postData(ParamDel, formCode, authToken, branchId)
             .then((response) => {
                 console.log('Deleted successfully:', response);
@@ -318,7 +324,7 @@ const PurchaseOrderTable = ({
                             pageSize={pageSize}
                             handlePageSizeChange={handlePageSizeChange}
                             currentPage={currentPage}
-                            handlePageChange={handlePageChange}
+                            onPageChange={handlePageChange}
                             totalItems={totalItems}
                         />
                     </div>
