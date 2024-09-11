@@ -9,6 +9,7 @@ import { messageAlertSwal } from "../config/Swal";
 import EditCoaModal from "../modal/EditCoaModal";
 import * as XLSX from 'xlsx';
 import getDateTime from "../utils/DateTime";
+import { DisplayFormat } from "../utils/DisplayFormat";
 
 const CoaTable = ({
     formCode,
@@ -104,7 +105,7 @@ const CoaTable = ({
                     </td>
                     <td style={{ paddingLeft: `${level * 20}px`, paddingBottom: isLastChild ? '20px' : '0' }}>{item.NAME}</td>
                     <td style={{ paddingBottom: isLastChild ? '20px' : '0' }}>{item.TYPE}</td>
-                    <td style={{ paddingBottom: isLastChild ? '20px' : '0' }}>{item.CURRENCY}</td>
+                    <td style={{ paddingBottom: isLastChild ? '20px' : '0' }}>{DisplayFormat(item.NORMAL_BALANCE_POSITION || item.normal_balance_position)}</td>
                     <td style={{ paddingBottom: isLastChild ? '20px' : '0' }}>{item.DESCRIPTION}</td>
                 </tr>
                 {expandedRows.has(item.CODE) && children.map((child, index) =>
@@ -380,7 +381,7 @@ const CoaTable = ({
                                     <option value="CODE">Code</option>
                                     <option value="NAME">Name</option>
                                     <option value="TYPE">Type</option>
-                                    <option value="CURRENCY">Currency</option>
+                                    <option value="NORMAL_BALANCE_POSITION">Normal Balance Position</option>
                                     <option value="DESCRIPTION">Description</option>
                                     <option value="IS_PARENT">Is Parent</option>
                                     <option value="PARENT_CODE_ID">Parent Code ID</option>
@@ -487,7 +488,7 @@ const CoaTable = ({
                                     <th>Code</th>
                                     <th>Name</th>
                                     <th>Type</th>
-                                    <th>Currency</th>
+                                    <th>Normal Balance Position</th>
                                     <th>Description</th>
                                 </tr>
                             </thead>

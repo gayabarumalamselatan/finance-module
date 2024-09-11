@@ -28,7 +28,7 @@ const EditPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, index
     const [departement, setDepartment] = useState('');
     const [company, setCompany] = useState('');
     const [project, setProject] = useState('');
-    const [status_request, setStatusRequest] = useState('Draft');
+    const [status_request, setStatusRequest] = useState('');
     const [items, setItems] = useState([]);
     const [description, setDescription] = useState('');
     const [selectedItems, setSelectedItems] = useState([]);
@@ -39,8 +39,8 @@ const EditPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, index
     const [selectedCurrency, setSelectedCurrency] = useState(null);
     const [departementOptions, setDepartementOptions] = useState([]);
     const [selectedDepartement, setSelectedDepartement] = useState(null);
-    const [companyOptions, setCompanyOptions] = useState([]);
-    const [selectedCompany, setSelectedCompany] = useState(null);
+    // const [companyOptions, setCompanyOptions] = useState([]);
+    // const [selectedCompany, setSelectedCompany] = useState(null);
     const [projectOptions, setProjectOptions] = useState([]);
     const [selectedProject, setSelectedProject] = useState(null);
     const [productOptions, setProductOptions] = useState([]);
@@ -71,6 +71,7 @@ const EditPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, index
                     setCompany(data.company);
                     setProject(data.project);
                     setDescription(data.description);
+                    setStatusRequest(data.status_request);
                 })
                 .catch(error => {
                     console.error('Failed to load purchase request data:', error);
@@ -94,7 +95,10 @@ const EditPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, index
                     console.log('Items fetched:', fetchedItems);
 
                     // Set fetched items to state
-                    setItems(fetchedItems);
+                    const sortedItems = fetchedItems.sort((a, b) => a.ID - b.ID);
+
+                    console.log('Items fetched (after sorting):', sortedItems);
+                    setItems(sortedItems);
 
                     // Fetch product lookup data
                     LookupParamService.fetchLookupData("MSDT_FORMPRDT", authToken, branchId)
@@ -246,32 +250,6 @@ const EditPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, index
                     console.error('Failed to fetch currency lookup:', error);
                 });
 
-            LookupParamService.fetchLookupData("MSDT_FORMVNDR", authToken, branchId)
-                .then(data => {
-                    console.log('Currency lookup data:', data);
-
-                    // Transform keys to uppercase directly in the received data
-                    const transformedData = data.data.map(item =>
-                        Object.keys(item).reduce((acc, key) => {
-                            acc[key.toUpperCase()] = item[key];
-                            return acc;
-                        }, {})
-                    );
-                    //console.log('Transformed data:', transformedData);
-
-                    const options = transformedData.map(item => ({
-                        value: item.NAME,
-                        label: item.NAME
-                    }));
-                    setCompanyOptions(options);
-                    const selectedCompanyOption = options.find(option => option.value === selectedData[0].COMPANY);
-                    setSelectedCompany(selectedCompanyOption || null);
-                })
-                .catch(error => {
-                    console.error('Failed to fetch currency lookup:', error);
-                });
-
-
             LookupParamService.fetchLookupData("MSDT_FORMPRJT", authToken, branchId)
                 .then(data => {
                     console.log('Currency lookup data:', data);
@@ -362,11 +340,6 @@ const EditPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, index
         setDepartment(selectedOption ? selectedOption.value : '');
     };
 
-    const handleCompanyChange = (selectedOption) => {
-        setSelectedCompany(selectedOption);
-        setCompany(selectedOption ? selectedOption.value : '');
-    };
-
     const handleProjectChange = (selectedOption) => {
         setSelectedProject(selectedOption);
         setProject(selectedOption ? selectedOption.value : '');
@@ -378,7 +351,7 @@ const EditPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, index
     }
 
     const handleAddItem = () => {
-        setItems([...items, { product: '', product_note: '', quantity: 0, currency: 'IDR', unit_price: 0, total_price: 0 }]);
+        setItems([...items, { product: '', product_note: '', quantity: '', currency: 'IDR', unit_price: 0, total_price: 0 }]);
     };
 
     const handleItemChange = (index, field, value) => {
@@ -468,14 +441,13 @@ const EditPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, index
         setDocReff('');
         setRequestor('');
         setDepartment('');
-        setCompany('');
+        setCompany('PT. Abhimata Persada');
         setProject('');
         setDescription('');
         setItems([]);
         setSelectedItems([]);
         setSelectedRequestor(null);
         setSelectedDepartement(null);
-        setSelectedCompany(null);
         setSelectedProject(null);
         setSelectedCurrency(null);
     };
@@ -501,17 +473,15 @@ const EditPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, index
             text: "Do you want to save the Purchase Request?",
             icon: 'warning',
             showCancelButton: true,
-            confirmButtonText: 'Yes, submit it!',
-            cancelButtonText: 'No, cancel!',
+            confirmButtonText: 'Yes, Save It!',
+            cancelButtonText: 'No, Cancel!',
             reverseButtons: true,
         });
 
         if (result.isConfirmed) {
             setIsLoading(true);
             try {
-                // Generate PR number
-                const pr_number = await generatePrNumber();
-
+                console.log('Status: ', status_request);
                 const total_amount = calculateTotalAmount();
                 // Save general information and description
                 const createBy = sessionStorage.getItem('userId');
@@ -530,7 +500,113 @@ const EditPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, index
                     project,
                     description,
                     total_amount,
-                    created_by: createBy,
+                    status_request
+                };
+
+                console.log('Master', generalInfo);
+                console.log('Items', items);
+
+                //Update general information
+                const response = await UpdateDataService.postData(generalInfo, `PUREQ&column=id&value=${id}`, authToken, branchId);
+                console.log('General data posted successfully:', response);
+
+                if (response.message === "Update Data Successfully") {
+                    // Iterate over items array and attempt to delete each item
+                    for (const item of items) {
+                        if (item.ID) {
+                            const itemId = item.ID;
+                            try {
+                                const itemResponse = await DeleteDataService.postData(`column=id&value=${itemId}`, "PUREQD", authToken, branchId);
+                                console.log('Item deleted successfully:', itemResponse);
+                            } catch (error) {
+                                console.error('Error deleting item:', itemId, error);
+                            }
+                        } else {
+                            console.log('No ID found, skipping delete for this item:', item);
+                        }
+                    }
+
+                    // After deletion, insert updated items
+                    for (const item of items) {
+                        // Exclude rwnum, ID, status, and id_trx fields
+                        const { rwnum, ID, status, id_trx, ...rest } = item;
+
+                        const updatedItem = {
+                            ...rest,
+                            pr_number
+                        };
+
+                        try {
+                            const itemResponse = await InsertDataService.postData(updatedItem, "PUREQD", authToken, branchId);
+                            console.log('Item inserted successfully:', itemResponse);
+                        } catch (error) {
+                            console.error('Error inserting item:', updatedItem, error);
+                        }
+                    }
+
+                    // Show success message and reset form
+                    messageAlertSwal('Success', response.message, 'success');
+                    resetForm();
+                }
+
+            } catch (err) {
+                console.error(err);
+                setIsLoading(false);
+                messageAlertSwal('Error', err.message, 'error');
+            } finally {
+                setIsLoading(false);
+                setIsEditingPurchaseRequest(false);
+                handleRefresh(); // Set loading state back to false after completion
+            }
+        } else {
+            console.log('Form submission was canceled.');
+        }
+    };
+
+
+    const handleSubmit = async (event) => {
+        event.preventDefault();
+
+        // Show SweetAlert2 confirmation
+        const result = await Swal.fire({
+            title: 'Are you sure?',
+            text: "Do you want to submit the Purchase Request?",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonText: 'Yes, Submit It!',
+            cancelButtonText: 'No, Cancel!',
+            reverseButtons: true,
+        });
+
+        if (result.isConfirmed) {
+            setIsLoading(true);
+            try {
+                // Generate PR number
+                let pr_number = selectedData[0].PR_NUMBER;
+
+                if (pr_number.slice(0, 2) !== 'PR') {
+                    pr_number = await generatePrNumber();
+                } else {
+                    pr_number
+                }
+
+                const total_amount = calculateTotalAmount();
+                // Save general information and description
+                const id = selectedData[0].ID; // Assuming you use selectedData to get the ID for updating
+
+                const generalInfo = {
+                    pr_number,
+                    request_date, // Converts to date format
+                    customer,
+                    schedule_date, // Converts to date format
+                    doc_no,
+                    doc_reff,
+                    requestor,
+                    departement,
+                    company,
+                    project,
+                    description,
+                    total_amount,
                     status_request: "IN_PROCESS"
                 };
 
@@ -607,18 +683,19 @@ const EditPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, index
                             <Card.Header className="d-flex justify-content-between align-items-center">
                                 <Card.Title>General Information</Card.Title>
                                 <div className="ml-auto">
-                                    <Button
-                                        variant="secondary"
-                                        className="mr-2"
+                                    <Button variant="secondary" className="mr-2"
                                         onClick={() => {
                                             handleRefresh();
                                             setIsEditingPurchaseRequest(false);
                                         }}
                                     >
-                                        <i className="fas fa-times"></i> Cancel
+                                        <i className="fas fa-arrow-left"></i> Go Back
                                     </Button>
-                                    <Button variant="primary" onClick={handleSave}>
-                                        <i className="fas fa-save"></i> Submit
+                                    <Button variant="primary" className="mr-2" onClick={handleSave}>
+                                        <i className="fas fa-save"></i> Save
+                                    </Button>
+                                    <Button variant="primary" onClick={handleSubmit}>
+                                        <i className="fas fa-check"></i> Submit
                                     </Button>
                                 </div>
                             </Card.Header>
@@ -692,21 +769,13 @@ const EditPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, index
                                         <Col md={6}>
                                             <Form.Group controlId="formRequestor">
                                                 <Form.Label>Requestor</Form.Label>
-                                                <CreatableSelect
-                                                    id="requestor"
-                                                    value={selectedRequestor}
-                                                    onChange={handleRequestorChange}
-                                                    options={requestorOptions}
-                                                    isClearable
-                                                    placeholder="Select or type to create..."
-                                                    onCreateOption={(inputValue) => {
-                                                        const newOption = { value: inputValue, label: inputValue };
-                                                        setRequestorOptions(prevOptions => [...prevOptions, newOption]);
-                                                        setSelectedRequestor(newOption);
-                                                    }}
-                                                    required
+                                                <Form.Control
+                                                    type="text"
+                                                    // placeholder="Enter Document Number"
+                                                    value={requestor}
+                                                    onChange={(e) => setDocNo(e.target.value)}
+                                                    disabled
                                                 />
-
                                             </Form.Group>
                                         </Col>
 
@@ -728,18 +797,15 @@ const EditPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, index
                                         <Col md={6}>
                                             <Form.Group controlId="formCompany">
                                                 <Form.Label>Company</Form.Label>
-                                                <Select
-                                                    id="company"
-                                                    value={selectedCompany}
-                                                    onChange={handleCompanyChange}
-                                                    options={companyOptions}
-                                                    isClearable
-                                                    placeholder="Select..."
+                                                <Form.Control
+                                                    type="text"
+                                                    value={company}
+                                                    onChange={(e) => setCompany(e.target.value)}
+                                                    disabled
                                                     required
                                                 />
                                             </Form.Group>
                                         </Col>
-
                                         <Col md={6}>
                                             <Form.Group controlId="formProject">
                                                 <Form.Label>Project</Form.Label>
@@ -888,9 +954,40 @@ const EditPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, index
                                                                     </td>
                                                                     <td>
                                                                         <Form.Control
-                                                                            type="number"
-                                                                            value={item.unit_price}
-                                                                            onChange={(e) => handleItemChange(index, 'unit_price', parseFloat(e.target.value) || 0)}
+                                                                            type="text"
+                                                                            value={item.unit_price === 0
+                                                                                ? ''  // Show an empty input if the value is 0
+                                                                                : item.currency === 'IDR'
+                                                                                    ? item.unit_price.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })  // Format for IDR without decimals
+                                                                                    : item.unit_price.toLocaleString('en-US')} // Format for non-IDR with 2 decimals
+                                                                            onChange={(e) => {
+                                                                                const rawValue = e.target.value.replace(/,/g, '');  // Remove commas to get raw number
+                                                                                const value = parseFloat(rawValue);
+
+                                                                                if (!isNaN(value)) {
+                                                                                    handleItemChange(index, 'unit_price', value);  // Update state with raw numeric value
+                                                                                } else if (rawValue === '') {
+                                                                                    handleItemChange(index, 'unit_price', 0);  // Set value to 0 if input is cleared
+                                                                                }
+                                                                            }}
+                                                                            onBlur={(e) => {
+                                                                                const rawValue = e.target.value.replace(/,/g, '');  // Remove commas to get raw number
+                                                                                let value = parseFloat(rawValue) || 0;
+
+                                                                                let formattedValue;
+                                                                                if (item.currency === 'IDR') {
+                                                                                    // For IDR: Format without decimals
+                                                                                    formattedValue = value.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+                                                                                } else {
+                                                                                    // For non-IDR: Ensure there are 2 decimal places
+                                                                                    formattedValue = value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                                                                                }
+
+                                                                                e.target.value = formattedValue;  // Set the formatted value in the input field
+
+                                                                                handleItemChange(index, 'unit_price', value);  // Update state with the parsed value
+                                                                            }}
+                                                                            style={{ textAlign: 'right' }}
                                                                         />
                                                                     </td>
                                                                     <td>{item.total_price.toLocaleString('en-US', { style: 'currency', currency: item.currency })}</td>
@@ -956,10 +1053,13 @@ const EditPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, index
                                 setIsEditingPurchaseRequest(false);
                             }}
                         >
-                            <i className="fas fa-times"></i> Cancel
+                            <i className="fas fa-arrow-left"></i> Go Back
                         </Button>
-                        <Button variant="primary" onClick={handleSave}>
-                            <i className="fas fa-save"></i> Submit
+                        <Button variant="primary" className="mr-2" onClick={handleSave}>
+                            <i className="fas fa-save"></i> Save
+                        </Button>
+                        <Button variant="primary" onClick={handleSubmit}>
+                            <i className="fas fa-check"></i> Submit
                         </Button>
                     </Col>
                 </Row>
