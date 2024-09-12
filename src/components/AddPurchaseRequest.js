@@ -21,23 +21,21 @@ const AddPurchaseRequest = ({ setIsAddingNewPurchaseRequest, handleRefresh, inde
   const [schedule_date, setScheduleDate] = useState('');
   const [doc_no, setDocNo] = useState('FRM.PTAP.PRC.21a-01');
   const [doc_reff, setDocReff] = useState('');
+  const [doc_reff_no, setDocReffNo] = useState('');
   const [requestor, setRequestor] = useState(userId);
   const [departement, setDepartment] = useState('');
   const [company, setCompany] = useState('PT. Abhimata Persada');
   const [project, setProject] = useState('');
+  const [project_contract_number, setProjectContractNumber] = useState('');
   const [status_request, setStatusRequest] = useState('Draft');
   const [items, setItems] = useState([]);
   const [description, setDescription] = useState('');
   const [selectedItems, setSelectedItems] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
-  // const [requestorOptions, setRequestorOptions] = useState([]);
-  // const [selectedRequestor, setSelectedRequestor] = useState(null);
   const [currencyOptions, setCurrencyOptions] = useState([]);
   const [selectedCurrency, setSelectedCurrency] = useState(null);
   const [departementOptions, setDepartementOptions] = useState([]);
   const [selectedDepartement, setSelectedDepartement] = useState(null);
-  // const [companyOptions, setCompanyOptions] = useState([]);
-  // const [selectedCompany, setSelectedCompany] = useState(null);
   const [projectOptions, setProjectOptions] = useState([]);
   const [selectedProject, setSelectedProject] = useState(null);
   const [productOptions, setProductOptions] = useState([]);
@@ -48,29 +46,6 @@ const AddPurchaseRequest = ({ setIsAddingNewPurchaseRequest, handleRefresh, inde
   const authToken = headers;
 
   useEffect(() => {
-    // Ambil data lookup untuk currency
-    // LookupParamService.fetchLookupData("MSDT_FORMEMPL", authToken, branchId)
-    //   .then(data => {
-    //     console.log('Currency lookup data:', data);
-
-    //     // Transform keys to uppercase directly in the received data
-    //     const transformedData = data.data.map(item =>
-    //       Object.keys(item).reduce((acc, key) => {
-    //         acc[key.toUpperCase()] = item[key];
-    //         return acc;
-    //       }, {})
-    //     );
-    //     //console.log('Transformed data:', transformedData);
-
-    //     const options = transformedData.map(item => ({
-    //       value: item.NAME,
-    //       label: item.NAME
-    //     }));
-    //     setRequestorOptions(options);
-    //   })
-    //   .catch(error => {
-    //     console.error('Failed to fetch currency lookup:', error);
-    //   });
 
     LookupParamService.fetchLookupData("MSDT_FORMCCY", authToken, branchId)
       .then(data => {
@@ -120,7 +95,7 @@ const AddPurchaseRequest = ({ setIsAddingNewPurchaseRequest, handleRefresh, inde
 
     LookupParamService.fetchLookupData("MSDT_FORMPRJT", authToken, branchId)
       .then(data => {
-        console.log('Currency lookup data:', data);
+        console.log('Project lookup data:', data);
 
         // Transform keys to uppercase directly in the received data
         const transformedData = data.data.map(item =>
@@ -129,11 +104,12 @@ const AddPurchaseRequest = ({ setIsAddingNewPurchaseRequest, handleRefresh, inde
             return acc;
           }, {})
         );
-        //console.log('Transformed data:', transformedData);
+        console.log('Transformed data project:', transformedData);
 
         const options = transformedData.map(item => ({
           value: item.NAME,
-          label: item.NAME
+          label: item.NAME,
+          project_contract_number: item.CONTRACT_NUMBER
         }));
         setProjectOptions(options);
       })
@@ -200,8 +176,10 @@ const AddPurchaseRequest = ({ setIsAddingNewPurchaseRequest, handleRefresh, inde
 
 
   const handleProjectChange = (selectedOption) => {
+    console.log(selectedOption);
     setSelectedProject(selectedOption);
     setProject(selectedOption ? selectedOption.value : '');
+    setProjectContractNumber(selectedOption.project_contract_number);
   };
 
   const handleCustomerChange = (selectedOption) => {
@@ -292,10 +270,12 @@ const AddPurchaseRequest = ({ setIsAddingNewPurchaseRequest, handleRefresh, inde
     setCustomer('');
     setScheduleDate('');
     setDocReff('');
+    setDocReffNo('');
     setRequestor(userId);
     setDepartment('');
     setCompany('PT. Abhimata Persada');
     setProject('');
+    setProjectContractNumber('');
     setDescription('');
     setItems([]);
     setSelectedItems([]);
@@ -334,13 +314,15 @@ const AddPurchaseRequest = ({ setIsAddingNewPurchaseRequest, handleRefresh, inde
           schedule_date, // Converts to date format
           doc_no,
           doc_reff,
+          doc_reff_no,
           requestor,
           departement,
           company,
           project,
           description,
           total_amount,
-          status_request: 'DRAFT'
+          status_request: 'DRAFT',
+          project_contract_number
         };
 
         console.log('Master', generalInfo);
@@ -406,13 +388,15 @@ const AddPurchaseRequest = ({ setIsAddingNewPurchaseRequest, handleRefresh, inde
           schedule_date, // Converts to date format
           doc_no,
           doc_reff,
+          doc_reff_no,
           requestor,
           departement,
           company,
           project,
           description,
           total_amount,
-          status_request: 'IN_PROCESS'
+          status_request: 'IN_PROCESS',
+          project_contract_number
         };
 
         console.log('Master', generalInfo);
@@ -461,6 +445,11 @@ const AddPurchaseRequest = ({ setIsAddingNewPurchaseRequest, handleRefresh, inde
   useEffect(() => {
 
     generatePrNumber("DRAFT_PR");
+  }, []);
+
+  useEffect(() => {
+    const today = new Date().toISOString().split('T')[0]; // Get today's date in YYYY-MM-DD format
+    setRequestDate(today);
   }, []);
 
   return (
@@ -547,6 +536,18 @@ const AddPurchaseRequest = ({ setIsAddingNewPurchaseRequest, handleRefresh, inde
                         />
                       </Form.Group>
                     </Col>
+                    <Col md={6}>
+                      <Form.Group controlId="formDocReffNo">
+                        <Form.Label>Doc. Reference No</Form.Label>
+                        <Form.Control
+                          type="text"
+                          placeholder="Enter Document Reference"
+                          value={doc_reff_no}
+                          onChange={(e) => setDocReffNo(e.target.value)}
+
+                        />
+                      </Form.Group>
+                    </Col>
 
                     <Col md={6}>
                       <Form.Group controlId="formRequestor">
@@ -561,6 +562,18 @@ const AddPurchaseRequest = ({ setIsAddingNewPurchaseRequest, handleRefresh, inde
                       </Form.Group>
                     </Col>
 
+                    <Col md={6}>
+                      <Form.Group controlId="formRequestDate">
+                        <Form.Label>Request Date</Form.Label>
+                        <Form.Control
+                          type="date"
+                          value={request_date}
+                          onChange={(e) => setRequestDate(e.target.value)}
+                          disabled // Disable the input field
+                          required
+                        />
+                      </Form.Group>
+                    </Col>
 
                     <Col md={6}>
                       <Form.Group controlId="formScheduleDate">
@@ -633,17 +646,19 @@ const AddPurchaseRequest = ({ setIsAddingNewPurchaseRequest, handleRefresh, inde
                         />
                       </Form.Group>
                     </Col>
+
                     <Col md={6}>
-                      <Form.Group controlId="formRequestDate">
-                        <Form.Label>Request Date</Form.Label>
+                      <Form.Group controlId="formProjectContactNumber">
+                        <Form.Label>Project Contact No.</Form.Label>
                         <Form.Control
-                          type="date"
-                          value={request_date}
-                          onChange={(e) => setRequestDate(e.target.value)}
-                          required
+                          type="text"
+                          placeholder="Enter Document Number"
+                          value={project_contract_number}
+                          onChange={(e) => setDocNo(e.target.value)}
                         />
                       </Form.Group>
                     </Col>
+
                     <Col md={6}>
                       <Form.Group controlId="formStatusRequest">
                         <Form.Label>Status Request</Form.Label>
@@ -709,7 +724,7 @@ const AddPurchaseRequest = ({ setIsAddingNewPurchaseRequest, handleRefresh, inde
                                 />
                               </th>
                               <th>Product</th>
-                              <th>Notes</th>
+                              <th>Product Description</th>
                               <th>Quantity</th>
                               <th>Currency</th>
                               <th>Unit Price</th>
@@ -754,6 +769,7 @@ const AddPurchaseRequest = ({ setIsAddingNewPurchaseRequest, handleRefresh, inde
                                       type="number"
                                       value={item.quantity}
                                       onChange={(e) => handleItemChange(index, 'quantity', parseFloat(e.target.value))}
+                                      style={{ width: '80px' }}
                                     />
                                   </td>
                                   <td>
@@ -763,6 +779,7 @@ const AddPurchaseRequest = ({ setIsAddingNewPurchaseRequest, handleRefresh, inde
                                       options={currencyOptions}
                                       isClearable
                                       placeholder="Select currency"
+                                      style={{ width: '80px' }}
                                     />
                                   </td>
                                   <td>
@@ -773,11 +790,11 @@ const AddPurchaseRequest = ({ setIsAddingNewPurchaseRequest, handleRefresh, inde
                                     /> */}
                                     <Form.Control
                                       type="text"
-                                      value={item.unit_price === 0
-                                        ? ''  // Show an empty input if the value is 0
-                                        : item.currency === 'IDR'
-                                          ? item.unit_price.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })  // Format for IDR without decimals
-                                          : item.unit_price.toLocaleString('en-US')} // Format for non-IDR with 2 decimals
+                                      // value={item.unit_price === 0
+                                      //   ? ''  // Show an empty input if the value is 0
+                                      //   : item.currency === 'IDR'
+                                      //     ? item.unit_price.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })  // Format for IDR without decimals
+                                      //     : item.unit_price.toLocaleString('en-US')} // Format for non-IDR with 2 decimals
                                       onChange={(e) => {
                                         const rawValue = e.target.value.replace(/,/g, '');  // Remove commas to get raw number
                                         const value = parseFloat(rawValue);
@@ -801,16 +818,18 @@ const AddPurchaseRequest = ({ setIsAddingNewPurchaseRequest, handleRefresh, inde
                                           formattedValue = value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
                                         }
 
+                                        console.log('Formatted value:', formattedValue);
+
                                         e.target.value = formattedValue;  // Set the formatted value in the input field
 
                                         handleItemChange(index, 'unit_price', value);  // Update state with the parsed value
                                       }}
-                                      style={{ textAlign: 'right' }} 
+                                      style={{ textAlign: 'right' }}
                                     />
 
 
                                   </td>
-                                  <td className="text-end">{item.total_price.toLocaleString('en-US', { style: 'currency', currency: item.currency })}</td>
+                                  <td className="text-end">{item.total_price.toLocaleString('en-US', { currency: item.currency, minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                                   <td>
                                     <Button
                                       variant="danger"
@@ -827,7 +846,7 @@ const AddPurchaseRequest = ({ setIsAddingNewPurchaseRequest, handleRefresh, inde
                           <tfoot>
                             <tr>
                               <td colSpan="6" className="text-right">Total Amount:</td>
-                              <td className="text-end"><strong>{calculateTotalAmount().toLocaleString('en-US', { style: 'currency', currency: 'IDR' })} </strong></td>
+                              <td className="text-end"><strong>{calculateTotalAmount().toLocaleString('en-US', { currency: 'IDR', minimumFractionDigits: 2, maximumFractionDigits: 2 })} </strong></td>
                               <td></td>
                             </tr>
                           </tfoot>

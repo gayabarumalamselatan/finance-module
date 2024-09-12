@@ -24,10 +24,12 @@ const EditPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, index
     const [schedule_date, setScheduleDate] = useState('');
     const [doc_no, setDocNo] = useState('FRM.PTAP.PRC.21a-01');
     const [doc_reff, setDocReff] = useState('');
+    const [doc_reff_no, setDocReffNo] = useState('');
     const [requestor, setRequestor] = useState('');
     const [departement, setDepartment] = useState('');
     const [company, setCompany] = useState('');
     const [project, setProject] = useState('');
+    const [project_contract_number, setProjectContractNumber] = useState('');
     const [status_request, setStatusRequest] = useState('');
     const [items, setItems] = useState([]);
     const [description, setDescription] = useState('');
@@ -66,10 +68,12 @@ const EditPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, index
                     setScheduleDate(data.schedule_date);
                     setDocNo(data.doc_no);
                     setDocReff(data.doc_reff);
+                    setDocReffNo(data.doc_reff_no);
                     setRequestor(data.requestor);
                     setDepartment(data.departement);
                     setCompany(data.company);
                     setProject(data.project);
+                    setProjectContractNumber(data.project_contract_number);
                     setDescription(data.description);
                     setStatusRequest(data.status_request);
                 })
@@ -265,7 +269,8 @@ const EditPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, index
 
                     const options = transformedData.map(item => ({
                         value: item.NAME,
-                        label: item.NAME
+                        label: item.NAME,
+                        project_contract_number: item.CONTRACT_NUMBER
                     }));
                     setProjectOptions(options);
                     const selectedProjectOption = options.find(option => option.value === selectedData[0].PROJECT);
@@ -341,8 +346,10 @@ const EditPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, index
     };
 
     const handleProjectChange = (selectedOption) => {
+        //console.log(selectedOption);
         setSelectedProject(selectedOption);
         setProject(selectedOption ? selectedOption.value : '');
+        setProjectContractNumber(selectedOption.project_contract_number);
     };
 
     const handleCustomerChange = (selectedOption) => {
@@ -439,10 +446,12 @@ const EditPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, index
         setScheduleDate('');
         setDocNo('');
         setDocReff('');
+        setDocReffNo('');
         setRequestor('');
         setDepartment('');
         setCompany('PT. Abhimata Persada');
         setProject('');
+        setProjectContractNumber('');
         setDescription('');
         setItems([]);
         setSelectedItems([]);
@@ -494,10 +503,12 @@ const EditPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, index
                     schedule_date, // Converts to date format
                     doc_no,
                     doc_reff,
+                    doc_reff_no,
                     requestor,
                     departement,
                     company,
                     project,
+                    project_contract_number,
                     description,
                     total_amount,
                     status_request
@@ -601,10 +612,12 @@ const EditPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, index
                     schedule_date, // Converts to date format
                     doc_no,
                     doc_reff,
+                    doc_reff_no,
                     requestor,
                     departement,
                     company,
                     project,
+                    project_contract_number,
                     description,
                     total_amount,
                     status_request: "IN_PROCESS"
@@ -756,6 +769,30 @@ const EditPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, index
                                             </Form.Group>
                                         </Col>
                                         <Col md={6}>
+                                            <Form.Group controlId="formDocReffNo">
+                                                <Form.Label>Doc. Reference No</Form.Label>
+                                                <Form.Control
+                                                    type="text"
+                                                    placeholder="Enter Document Reference"
+                                                    value={doc_reff_no}
+                                                    onChange={(e) => setDocReffNo(e.target.value)}
+
+                                                />
+                                            </Form.Group>
+                                        </Col>
+                                        <Col md={6}>
+                                            <Form.Group controlId="formRequestDate">
+                                                <Form.Label>Request Date</Form.Label>
+                                                <Form.Control
+                                                    type="date"
+                                                    value={request_date}
+                                                    onChange={(e) => setRequestDate(e.target.value)}
+                                                    required
+                                                    disabled
+                                                />
+                                            </Form.Group>
+                                        </Col>
+                                        <Col md={6}>
                                             <Form.Group controlId="formScheduleDate">
                                                 <Form.Label>Schedule Date</Form.Label>
                                                 <Form.Control
@@ -820,17 +857,19 @@ const EditPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, index
                                                 />
                                             </Form.Group>
                                         </Col>
+
                                         <Col md={6}>
-                                            <Form.Group controlId="formRequestDate">
-                                                <Form.Label>Request Date</Form.Label>
+                                            <Form.Group controlId="formProjectContactNumber">
+                                                <Form.Label>Project Contact No.</Form.Label>
                                                 <Form.Control
-                                                    type="date"
-                                                    value={request_date}
-                                                    onChange={(e) => setRequestDate(e.target.value)}
-                                                    required
+                                                    type="text"
+                                                    placeholder="Enter Document Number"
+                                                    value={project_contract_number}
+                                                    onChange={(e) => setDocNo(e.target.value)}
                                                 />
                                             </Form.Group>
                                         </Col>
+
                                         <Col md={6}>
                                             <Form.Group controlId="formStatusRequest">
                                                 <Form.Label>Status Request</Form.Label>
@@ -896,7 +935,7 @@ const EditPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, index
                                                                 />
                                                             </th>
                                                             <th>Product</th>
-                                                            <th>Notes</th>
+                                                            <th>Product Description</th>
                                                             <th>Quantity</th>
                                                             <th>Currency</th>
                                                             <th>Unit Price</th>
@@ -941,6 +980,7 @@ const EditPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, index
                                                                             type="number"
                                                                             value={item.quantity}
                                                                             onChange={(e) => handleItemChange(index, 'quantity', parseFloat(e.target.value) || 0)}
+                                                                            style={{ width: '80px' }}
                                                                         />
                                                                     </td>
                                                                     <td>

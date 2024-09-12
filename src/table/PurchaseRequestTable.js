@@ -591,6 +591,10 @@ const PurchaseRequestTable = ({
                                         <div className="col-md-8">{selectedRowData.PROJECT}</div>
                                     </div>
                                     <div className="row mb-3">
+                                        <div className="col-md-4 font-weight-bold">Project Contract Number:</div>
+                                        <div className="col-md-8">{selectedRowData.PROJECT_CONTRACT_NUMBER}</div>
+                                    </div>
+                                    <div className="row mb-3">
                                         <div className="col-md-4 font-weight-bold">Customer:</div>
                                         <div className="col-md-8">{selectedRowData.CUSTOMER}</div>
                                     </div>
@@ -608,6 +612,10 @@ const PurchaseRequestTable = ({
                                     </div>
                                     <div className="row mb-3">
                                         <div className="col-md-4 font-weight-bold">Document Reference:</div>
+                                        <div className="col-md-8">{selectedRowData.DOC_REFF}</div>
+                                    </div>
+                                    <div className="row mb-3">
+                                        <div className="col-md-4 font-weight-bold">Document Reference Number:</div>
                                         <div className="col-md-8">{selectedRowData.DOC_REFF}</div>
                                     </div>
                                     <div className="row mb-3">
@@ -629,7 +637,7 @@ const PurchaseRequestTable = ({
                                     <thead>
                                         <tr>
                                             <th>Product</th>
-                                            <th>Product Note</th>
+                                            <th>Product Description</th>
                                             <th>Currency</th>
                                             <th>Quantity</th>
                                             <th>Unit Price</th>
