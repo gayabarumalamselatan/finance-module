@@ -62,6 +62,7 @@ module.exports = {
                 './PurchaseRequest': './src/components/PurchaseRequest',
                 './PurchaseOrder': './src/components/PurchaseOrder',
                 './PurchaseInvoice': './src/components/PurchaseInvoice',
+                './DashboardPr': './src/components/DashboardPr',
             },
             shared: {
                 react: { 
