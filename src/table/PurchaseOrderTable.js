@@ -431,25 +431,30 @@ const PurchaseOrderTable = ({
                                 >
                                     <option value="">Select a column</option>
                                     <option value="PO_NUMBER">PO Number</option>
-                                    <option value="TITLE">Title</option>
-                                    <option value="DOC_REFERENCE">Doc. Reference</option>
+                                    <option value="STATUS_PO">Status PO</option>
+                                    <option value="DOC_REFF">Doc. Refference</option>
+                                    <option value="DOC_REFF_NO">Doc. Refference Number</option>
                                     <option value="CUSTOMER">Customer</option>
                                     <option value="REQUESTOR">Requestor</option>
-                                    <option value="DEPARTEMENT">Department</option>
-                                    <option value="COMPANY">Company</option>
+                                    <option value="DEPARTMENT">Department</option>
                                     <option value="PROJECT">Project</option>
+                                    <option value="REQUEST_DAE">Request Date</option>
                                     <option value="VENDOR">Vendor</option>
                                     <option value="ORDER_DATE">Order Date</option>
-                                    <option value="PAYMENT_TERM">Payment Term</option>
-                                    <option value="STATUS_PO">Status PO</option>
-                                    <option value="TOTAL_AMOUNT">Total Amount</option>
-                                    <option value="DESCRIPTION">Description</option>
                                     <option value="CREATED_BY">Created By</option>
                                     <option value="APPROVED_BY">Approved By</option>
+                                    <option value="FORM_TO">To</option>
+                                    <option value="TO_ADDRESS">To Address</option>
                                     <option value="SHIP_TO">Ship To</option>
                                     <option value="SHIP_TO_ADDRESS">Ship To Address</option>
                                     <option value="BILL_TO">Bill To</option>
-                                    <option value="BILL_TO_ADDRESS">Bill To Address</option>    
+                                    <option value="BILL_TO_ADDRESS">Bill To Address</option>
+                                    <option value="TERM_CONDITIONS">Terms and Conditions</option>
+                                    <option value="DESCRIPTION">Description</option>
+                                    <option value="DISCOUNT">Discount</option>
+                                    <option value="SUB_TOTAL">Sub Total</option>
+                                    <option value="TOTAL_PPN">Total PPN</option>
+                                    <option value="TOTAL_AMOUNT">Total Amount</option>    
                                 </select>
                             </div>
                             <div className="col-md-4 mb-3">
@@ -497,28 +502,30 @@ const PurchaseOrderTable = ({
                                         />
                                     </th>
                                     <th>PO Number</th>
-                                    <th>Doc. Reference</th>
-                                    <th>Title</th>
+                                    <th>Status PO</th>
+                                    <th>Doc. Refference</th>
+                                    <th>Doc. Refference Number</th>
                                     <th>Customer</th>
                                     <th>Requestor</th>
                                     <th>Department</th>
-                                    <th>Company</th>
                                     <th>Project</th>
+                                    <th>Request Date</th>
                                     <th>Vendor</th>
                                     <th>Order Date</th>
-                                    <th>Payment Term</th>
-                                    <th>Status PO</th>
-                                    <th>Total Amount</th>
-                                    <th>Description</th>
                                     <th>Created By</th>
                                     <th>Approved By</th>
+                                    <th>To</th>
+                                    <th>To Address</th>
                                     <th>Ship To</th>
                                     <th>Ship To Address</th>
                                     <th>Bill To</th>
                                     <th>Bill To Address</th>
+                                    <th>Terms and Conditions</th>
+                                    <th>Description</th>
+                                    <th>Discount</th>
                                     <th>Sub Total</th>
                                     <th>Total PPN</th>
-                                    <th>Discount</th>
+                                    <th>Total Amount</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -550,32 +557,27 @@ const PurchaseOrderTable = ({
                                                 />
                                             </td>
                                             <td>{item.PO_NUMBER}</td>
-                                            <td>{item.DOC_REFERENCE}</td>
-                                            <td>{item.TITLE}</td>
+                                            <td>{item.STATUS_PO}</td>
+                                            <td>{item.DOC_REFF}</td>
+                                            <td>{item.DOC_REFF_NO}</td>
                                             <td>{item.CUSTOMER}</td>
                                             <td>{item.REQUESTOR}</td>
                                             <td>{item.DEPARTEMENT}</td>
-                                            <td>{item.COMPANY}</td>
                                             <td>{item.PROJECT}</td>
+                                            <td>{item.REQUEST_DATE}</td>
                                             <td>{item.VENDOR}</td>
                                             <td>{item.ORDER_DATE}</td>
-                                            <td>{item.PAYMENT_TERM}</td>
-                                            <td>{item.STATUS_PO}</td>
-                                            <td>
-                                                <NumericFormat
-                                                    value={item.TOTAL_AMOUNT}
-                                                    displayType="text"
-                                                    thousandSeparator=","
-                                                    prefix="Rp "
-                                                />
-                                            </td>
-                                            <td>{item.DESCRIPTION}</td>
                                             <td>{item.CREATED_BY}</td>
                                             <td>{item.APPROVED_BY}</td>
+                                            <td>{item.FORM_TO}</td>
+                                            <td>{item.TO_ADDRESS}</td>
                                             <td>{item.SHIP_TO}</td>
                                             <td>{item.SHIP_TO_ADDRESS}</td>
                                             <td>{item.BILL_TO}</td>
                                             <td>{item.BILL_TO_ADDRESS}</td>
+                                            <td>{item.TERM_CONDITIONS}</td>
+                                            <td>{item.DESCRIPTION}</td>
+                                            <td>{item.DISCOUNT}</td>
                                             <td>
                                                 <NumericFormat
                                                     value={item.TOTAL_TAX_BASE}
@@ -592,7 +594,14 @@ const PurchaseOrderTable = ({
                                                     prefix="Rp "
                                                 />
                                             </td>
-                                            <td>{item.DISCOUNT}</td>
+                                            <td>
+                                                <NumericFormat
+                                                    value={item.TOTAL_AMOUNT}
+                                                    displayType="text"
+                                                    thousandSeparator=","
+                                                    prefix="Rp "
+                                                />
+                                            </td>
                                         </tr>
                                     ))
                                 )}
@@ -624,12 +633,16 @@ const PurchaseOrderTable = ({
                                         <div className="col-md-8">{selectedRowData.PO_NUMBER}</div>
                                     </div>
                                     <div className="row mb-3">
-                                        <div className="col-md-4 font-weight-bold">Doc. Reference:</div>
-                                        <div className="col-md-8">{selectedRowData.DOC_REFERENCE}</div>
+                                        <div className="col-md-4 font-weight-bold">Status PO:</div>
+                                        <div className="col-md-8">{selectedRowData.STATUS_PO}</div>
                                     </div>
                                     <div className="row mb-3">
-                                        <div className="col-md-4 font-weight-bold">Title:</div>
-                                        <div className="col-md-8">{selectedRowData.TITLE}</div>
+                                        <div className="col-md-4 font-weight-bold">Doc. Reference:</div>
+                                        <div className="col-md-8">{selectedRowData.DOC_REFF}</div>
+                                    </div>
+                                    <div className="row mb-3">
+                                        <div className="col-md-4 font-weight-bold">Doc. Refference Number:</div>
+                                        <div className="col-md-8">{selectedRowData.DOC_REFF_NO}</div>
                                     </div>
                                     <div className="row mb-3">
                                         <div className="col-md-4 font-weight-bold">Customer:</div>
@@ -644,12 +657,12 @@ const PurchaseOrderTable = ({
                                         <div className="col-md-8">{selectedRowData.DEPARTEMENT}</div>
                                     </div>
                                     <div className="row mb-3">
-                                        <div className="col-md-4 font-weight-bold">Company:</div>
-                                        <div className="col-md-8">{selectedRowData.COMPANY}</div>
-                                    </div>
-                                    <div className="row mb-3">
                                         <div className="col-md-4 font-weight-bold">Project:</div>
                                         <div className="col-md-8">{selectedRowData.PROJECT}</div>
+                                    </div>
+                                    <div className="row mb-3">
+                                        <div className="col-md-4 font-weight-bold">Request Date:</div>
+                                        <div className="col-md-8">{selectedRowData.REQUEST_DATE}</div>
                                     </div>
                                     <div className="row mb-3">
                                         <div className="col-md-4 font-weight-bold">Vendor:</div>
@@ -660,35 +673,20 @@ const PurchaseOrderTable = ({
                                         <div className="col-md-8">{selectedRowData.ORDER_DATE}</div>
                                     </div>
                                     <div className="row mb-3">
-                                        <div className="col-md-4 font-weight-bold">Payment Term:</div>
-                                        <div className="col-md-8">{selectedRowData.PAYMENT_TERM}</div>
-                                    </div>
-                                    <div className="row mb-3">
-                                        <div className="col-md-4 font-weight-bold">Status PO:</div>
-                                        <div className="col-md-8">{selectedRowData.STATUS_PO}</div>
-                                    </div>
-                                    <div className="row mb-3">
-                                        <div className="col-md-4 font-weight-bold">Total Amount:</div>
-                                        <div className="col-md-8">
-                                            <NumericFormat
-                                                value={selectedRowData.TOTAL_AMOUNT}
-                                                displayType="text"
-                                                thousandSeparator=","
-                                                prefix="Rp "
-                                            />    
-                                        </div>
-                                    </div>
-                                    <div className="row mb-3">
-                                        <div className="col-md-4 font-weight-bold">Description:</div>
-                                        <div className="col-md-8">{selectedRowData.DESCRIPTION}</div>
-                                    </div>
-                                    <div className="row mb-3">
                                         <div className="col-md-4 font-weight-bold">Created By:</div>
                                         <div className="col-md-8">{selectedRowData.CREATED_BY}</div>
                                     </div>
                                     <div className="row mb-3">
                                         <div className="col-md-4 font-weight-bold">Approved By:</div>
                                         <div className="col-md-8">{selectedRowData.APPROVED_BY}</div>
+                                    </div>
+                                    <div className="row mb-3">
+                                        <div className="col-md-4 font-weight-bold">To:</div>
+                                        <div className="col-md-8">{selectedRowData.FORM_TO}</div>
+                                    </div>
+                                    <div className="row mb-3">
+                                        <div className="col-md-4 font-weight-bold">To Address:</div>
+                                        <div className="col-md-8">{selectedRowData.TO_ADDRESS}</div>
                                     </div>
                                     <div className="row mb-3">
                                         <div className="col-md-4 font-weight-bold">Ship To:</div>
@@ -705,6 +703,18 @@ const PurchaseOrderTable = ({
                                     <div className="row mb-3">
                                         <div className="col-md-4 font-weight-bold">Bill To Address:</div>
                                         <div className="col-md-8">{selectedRowData.BILL_TO_ADDRESS}</div>
+                                    </div>
+                                    <div className="row mb-3">
+                                        <div className="col-md-4 font-weight-bold">Terms and Conditions:</div>
+                                        <div className="col-md-8">{selectedRowData.TERM_CONDITIONS}</div>
+                                    </div>
+                                    <div className="row mb-3">
+                                        <div className="col-md-4 font-weight-bold">Description:</div>
+                                        <div className="col-md-8">{selectedRowData.DESCRIPTION}</div>
+                                    </div>
+                                    <div className="row mb-3">
+                                        <div className="col-md-4 font-weight-bold">Discount:</div>
+                                        <div className="col-md-8">{selectedRowData.DISCOUNT}</div>
                                     </div>
                                     <div className="row mb-3">
                                         <div className="col-md-4 font-weight-bold">Subtotal:</div>
@@ -726,6 +736,17 @@ const PurchaseOrderTable = ({
                                                 thousandSeparator=","
                                                 prefix="Rp "
                                             />
+                                        </div>
+                                    </div>
+                                    <div className="row mb-3">
+                                        <div className="col-md-4 font-weight-bold">Total Amount:</div>
+                                        <div className="col-md-8">
+                                            <NumericFormat
+                                                value={selectedRowData.TOTAL_AMOUNT}
+                                                displayType="text"
+                                                thousandSeparator=","
+                                                prefix="Rp "
+                                            />    
                                         </div>
                                     </div>
                                 </div>

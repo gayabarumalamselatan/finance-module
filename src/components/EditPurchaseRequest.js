@@ -5,7 +5,7 @@ import Swal from 'sweetalert2';
 import { messageAlertSwal } from "../config/Swal";
 import InsertDataService from '../service/InsertDataService';
 import { getBranch, getToken } from '../config/Constant';
-import { GENERATED_NUMBER } from '../config/ConfigUrl';
+import { GENERATED_DUE_DATE, GENERATED_NUMBER } from '../config/ConfigUrl';
 import { generateUniqueId } from '../service/GeneratedId';
 import Select from 'react-select';
 import LookupParamService from '../service/LookupParamService';
@@ -13,6 +13,7 @@ import CreatableSelect from 'react-select/creatable';
 import LookupService from '../service/LookupService';
 import UpdateDataService from '../service/UpdateDataService';
 import DeleteDataService from '../service/DeleteDataService';
+import axios from 'axios';
 
 const EditPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, index, item, selectedData }) => {
     console.log('selectedData', selectedData);
@@ -28,11 +29,14 @@ const EditPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, index
     const [requestor, setRequestor] = useState('');
     const [departement, setDepartment] = useState('');
     const [company, setCompany] = useState('');
+    const [vendor, setVendor] = useState('');
     const [project, setProject] = useState('');
+    const [payment_term, setPaymentTerm] = useState('7 Weekday');
     const [project_contract_number, setProjectContractNumber] = useState('');
     const [status_request, setStatusRequest] = useState('');
     const [items, setItems] = useState([]);
     const [description, setDescription] = useState('');
+    const [due_date, setDueDate] = useState('');
     const [selectedItems, setSelectedItems] = useState([]);
     const [isLoading, setIsLoading] = useState(false);
     const [requestorOptions, setRequestorOptions] = useState([]);
@@ -47,8 +51,12 @@ const EditPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, index
     const [selectedProject, setSelectedProject] = useState(null);
     const [productOptions, setProductOptions] = useState([]);
     const [selectedProduct, setSelectedProduct] = useState(null);
-    const [customerOptions, setCustomerOptions] = useState([]);
-    const [selectedCustomer, setSelectedCustomer] = useState(null);
+    // const [customerOptions, setCustomerOptions] = useState([]);
+    // const [selectedCustomer, setSelectedCustomer] = useState(null);
+    const [vendorOptions, setVendorOptions] = useState([]);
+    const [selectedVendor, setSelectedVendor] = useState(null);
+    // const [paymentTermOptions, setPaymentTermOptions] = useState([]);
+    // const [selectedPaymentTerm, setSelectedPaymentTerm] = useState([]);
 
     const authToken = headers;
     useEffect(() => {
@@ -76,23 +84,13 @@ const EditPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, index
                     setProjectContractNumber(data.project_contract_number);
                     setDescription(data.description);
                     setStatusRequest(data.status_request);
+                    setVendor(data.vendor);
+                    setPaymentTerm(data.payment_term);
+                    setDueDate(data.due_date);
                 })
                 .catch(error => {
                     console.error('Failed to load purchase request data:', error);
                 });
-
-            // Panggil API untuk mendapatkan item berdasarkan pr_number
-            // LookupService.fetchLookupData(`PURC_FORMPUREQD&filterBy=PR_NUMBER&filterValue=${PR_NUMBER}&operation=EQUAL`, authToken, branchId)
-            //     .then(response => {
-            //         const fetchedItems = response.data || [];
-            //         console.log('Items fetch:', fetchedItems);
-            //         setItems(fetchedItems);
-            //     })
-            //     .catch(error => {
-            //         console.error('Failed to load items:', error);
-            //     });
-
-            // Fetch items based on PR_NUMBER and set them to state
             LookupService.fetchLookupData(`PURC_FORMPUREQD&filterBy=PR_NUMBER&filterValue=${PR_NUMBER}&operation=EQUAL`, authToken, branchId)
                 .then(response => {
                     const fetchedItems = response.data || [];
@@ -270,7 +268,8 @@ const EditPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, index
                     const options = transformedData.map(item => ({
                         value: item.NAME,
                         label: item.NAME,
-                        project_contract_number: item.CONTRACT_NUMBER
+                        project_contract_number: item.CONTRACT_NUMBER,
+                        customer: item.CUSTOMER
                     }));
                     setProjectOptions(options);
                     const selectedProjectOption = options.find(option => option.value === selectedData[0].PROJECT);
@@ -300,6 +299,7 @@ const EditPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, index
                     setProductOptions(options);
                     console.log('Product :', options);
                     const selectedProductOption = options.find(option => option.value === selectedData[0].PRODUCT);
+                    console.log('product : ', selectedProductOption);
                     setSelectedProduct(selectedProductOption || null);
                 })
                 .catch(error => {
@@ -318,15 +318,53 @@ const EditPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, index
                         }, {})
                     );
                     //console.log('Transformed data:', transformedData);
+                    const filteredData = transformedData.filter(item =>
+                        item.ENTITY_TYPE === 'BOTH' || item.ENTITY_TYPE === 'Vendor'
+                    );
 
-                    const options = transformedData.map(item => ({
+                    const options = filteredData.map(item => ({
                         value: item.NAME,
                         label: item.NAME
                     }));
-                    setCustomerOptions(options);
-                    console.log('Customer :', customer);
-                    const selectedCustomerOption = options.find(option => option.value === selectedData[0].CUSTOMER);
-                    setSelectedCustomer(selectedCustomerOption || null);
+
+                    console.log('Vendor ops :', options);
+
+
+                    setVendorOptions(options);
+
+                    const selectedVendorOption = options.find(option => option.value === selectedData[0].VENDOR);
+                    console.log('Vendor :', selectedVendorOption);
+                    setSelectedVendor(selectedVendorOption || null);
+                })
+                .catch(error => {
+                    console.error('Failed to fetch currency lookup:', error);
+                });
+
+
+
+            LookupParamService.fetchLookupData("MSDT_FORMPYTM", authToken, branchId)
+                .then(data => {
+                    console.log('Currency lookup data:', data);
+
+                    // Transform keys to uppercase directly in the received data
+                    const transformedData = data.data.map(item =>
+                        Object.keys(item).reduce((acc, key) => {
+                            acc[key.toUpperCase()] = item[key];
+                            return acc;
+                        }, {})
+                    );
+                    //console.log('Transformed data:', transformedData);
+
+                    const options = transformedData.map(item => ({
+                        value: item.COUNT,
+                        label: item.NAME,
+                        dateType: item.DATE_TYPE
+                    }));
+                    setPaymentTermOptions(options);
+                    console.log('Payment Term :', options);
+                    const selectedPaymentTermOption = options.find(option => option.value === selectedData[0].PAYMENT_TERM);
+                    console.log('Payment Term :', selectedPaymentTermOption);
+                    setSelectedPaymentTerm(selectedPaymentTermOption || null);
                 })
                 .catch(error => {
                     console.error('Failed to fetch currency lookup:', error);
@@ -350,26 +388,99 @@ const EditPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, index
         setSelectedProject(selectedOption);
         setProject(selectedOption ? selectedOption.value : '');
         setProjectContractNumber(selectedOption.project_contract_number);
+        setCustomer(selectedOption.customer);
     };
 
-    const handleCustomerChange = (selectedOption) => {
-        setSelectedCustomer(selectedOption);
-        setCustomer(selectedOption ? selectedOption.value : '');
+    // const handleCustomerChange = (selectedOption) => {
+    //     setSelectedCustomer(selectedOption);
+    //     setCustomer(selectedOption ? selectedOption.value : '');
+    // }
+
+    const handleVendorChange = (selectedOption) => {
+        setSelectedVendor(selectedOption);
+        setVendor(selectedOption ? selectedOption.value : '');
     }
 
+    const fetchPaymentTermData = async (data) => {
+        console.log('Fetching payment term data', data);
+        console.log('Request date:', request_date);
+        const today = new Date().toISOString().split('T')[0];
+
+        const payload = {
+            date: today,
+            count: data ? data.value : '',
+            dateType: data ? data.dateType : ''
+        };
+
+        console.log('Payload:', payload);
+
+        try {
+            // Hit the API with the required data and Bearer token in the headers
+            const response = await axios.post(`${GENERATED_DUE_DATE}`, payload, {
+                headers: {
+                    Authorization: `Bearer ${headers}`
+                }
+            });
+
+            // Process the response if needed
+            console.log('API response:', response.data.dueDate);
+            setDueDate(response.data.dueDate);
+            setScheduleDate(response.data.dueDate);
+
+        } catch (error) {
+            // Handle any errors
+            console.error('Error calling API:', error);
+        }
+    };
+
+    useEffect(() => {
+        // Hardcoded payment term to simulate a selected option
+        const hardcodedPaymentTerm = {
+            value: '7',
+            dateType: 'Weekday' // Example date type
+        };
+
+        // Call the API when the component loads
+        fetchPaymentTermData(hardcodedPaymentTerm);
+    }, []);
     const handleAddItem = () => {
         setItems([...items, { product: '', product_note: '', quantity: '', currency: 'IDR', unit_price: 0, total_price: 0 }]);
     };
 
+    // const handleItemChange = (index, field, value) => {
+    //     const newItems = [...items];
+    //     if (field === 'product' || field === 'currency') {
+    //         newItems[index][field] = value ? value.value : null;
+    //     } else {
+    //         newItems[index][field] = value;
+    //     }
+
+    //     if (field === 'quantity' || field === 'unit_price') {
+    //         newItems[index].total_price = newItems[index].quantity * newItems[index].unit_price;
+    //     }
+
+    //     setItems(newItems);
+    // };
+
     const handleItemChange = (index, field, value) => {
         const newItems = [...items];
+
         if (field === 'product' || field === 'currency') {
             newItems[index][field] = value ? value.value : null;
         } else {
             newItems[index][field] = value;
         }
 
+        // if (field === 'quantity' || field === 'unit_price') {
+        //   newItems[index].total_price = newItems[index].quantity * newItems[index].unit_price;
+        // }
         if (field === 'quantity' || field === 'unit_price') {
+            // Check if quantity is 0 and set it to 1
+            if (newItems[index].quantity === 0 || newItems[index].quantity === '') {
+                newItems[index].quantity = 1;
+            }
+
+            // Calculate total price
             newItems[index].total_price = newItems[index].quantity * newItems[index].unit_price;
         }
 
@@ -476,6 +587,11 @@ const EditPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, index
     const handleSave = async (event) => {
         event.preventDefault();
 
+        if (schedule_date !== due_date && (!description || description.trim() === '')) {
+            messageAlertSwal('Warning', 'Description is required !!!', 'warning');
+            return; // Exit the function if validation fails
+        }
+
         // Show SweetAlert2 confirmation
         const result = await Swal.fire({
             title: 'Are you sure?',
@@ -508,10 +624,13 @@ const EditPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, index
                     departement,
                     company,
                     project,
+                    vendor,
+                    payment_term,
                     project_contract_number,
                     description,
                     total_amount,
-                    status_request
+                    status_request,
+                    due_date
                 };
 
                 console.log('Master', generalInfo);
@@ -578,6 +697,10 @@ const EditPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, index
     const handleSubmit = async (event) => {
         event.preventDefault();
 
+        if (schedule_date !== due_date && (!description || description.trim() === '')) {
+            messageAlertSwal('Warning', 'Description is required !!!', 'warning');
+            return; // Exit the function if validation fails
+        }
         // Show SweetAlert2 confirmation
         const result = await Swal.fire({
             title: 'Are you sure?',
@@ -617,10 +740,13 @@ const EditPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, index
                     departement,
                     company,
                     project,
+                    vendor,
+                    payment_term,
                     project_contract_number,
                     description,
                     total_amount,
-                    status_request: "IN_PROCESS"
+                    status_request: "IN_PROCESS",
+                    due_date
                 };
 
                 console.log('Master', generalInfo);
@@ -730,20 +856,7 @@ const EditPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, index
                                             </Form.Group>
                                         </Col>
 
-                                        <Col md={6}>
-                                            <Form.Group controlId="formCustomer">
-                                                <Form.Label>Customer</Form.Label>
-                                                <Select
-                                                    id="customer"
-                                                    value={selectedCustomer}
-                                                    onChange={handleCustomerChange}
-                                                    options={customerOptions}
-                                                    isClearable
-                                                    placeholder="Select..."
-                                                    required
-                                                />
-                                            </Form.Group>
-                                        </Col>
+
                                         <Col md={6}>
                                             <Form.Group controlId="formDocNo">
                                                 <Form.Label>Doc. No</Form.Label>
@@ -781,6 +894,18 @@ const EditPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, index
                                             </Form.Group>
                                         </Col>
                                         <Col md={6}>
+                                            <Form.Group controlId="formRequestor">
+                                                <Form.Label>Requestor</Form.Label>
+                                                <Form.Control
+                                                    type="text"
+                                                    // placeholder="Enter Document Number"
+                                                    value={requestor}
+                                                    onChange={(e) => setDocNo(e.target.value)}
+                                                    disabled
+                                                />
+                                            </Form.Group>
+                                        </Col>
+                                        <Col md={6}>
                                             <Form.Group controlId="formRequestDate">
                                                 <Form.Label>Request Date</Form.Label>
                                                 <Form.Control
@@ -789,6 +914,18 @@ const EditPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, index
                                                     onChange={(e) => setRequestDate(e.target.value)}
                                                     required
                                                     disabled
+                                                />
+                                            </Form.Group>
+                                        </Col>
+                                        <Col md={6}>
+                                            <Form.Group controlId="formPaymentTerm">
+                                                <Form.Label>Payment Term</Form.Label>
+                                                <Form.Control
+                                                    type="text"
+                                                    value={payment_term}
+                                                    onChange={(e) => setPaymentTerm(e.target.value)}
+                                                    disabled
+                                                    required
                                                 />
                                             </Form.Group>
                                         </Col>
@@ -803,18 +940,8 @@ const EditPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, index
                                                 />
                                             </Form.Group>
                                         </Col>
-                                        <Col md={6}>
-                                            <Form.Group controlId="formRequestor">
-                                                <Form.Label>Requestor</Form.Label>
-                                                <Form.Control
-                                                    type="text"
-                                                    // placeholder="Enter Document Number"
-                                                    value={requestor}
-                                                    onChange={(e) => setDocNo(e.target.value)}
-                                                    disabled
-                                                />
-                                            </Form.Group>
-                                        </Col>
+
+                                        
 
                                         <Col md={6}>
                                             <Form.Group controlId="formDepartment">
@@ -831,7 +958,7 @@ const EditPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, index
                                             </Form.Group>
                                         </Col>
 
-                                        <Col md={6}>
+                                        {/* <Col md={6}>
                                             <Form.Group controlId="formCompany">
                                                 <Form.Label>Company</Form.Label>
                                                 <Form.Control
@@ -842,7 +969,35 @@ const EditPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, index
                                                     required
                                                 />
                                             </Form.Group>
+                                        </Col> */}
+                                        <Col md={6}>
+                                            <Form.Group controlId="formVendor">
+                                                <Form.Label>Vendor</Form.Label>
+                                                <Select
+                                                    id="vendor"
+                                                    value={selectedVendor}
+                                                    onChange={handleVendorChange}
+                                                    options={vendorOptions}
+                                                    isClearable
+                                                    placeholder="Select..."
+                                                    required
+                                                />
+                                            </Form.Group>
                                         </Col>
+                                        {/* <Col md={6}>
+                                            <Form.Group controlId="formCustomer">
+                                                <Form.Label>Customer</Form.Label>
+                                                <Select
+                                                    id="customer"
+                                                    value={selectedCustomer}
+                                                    onChange={handleCustomerChange}
+                                                    options={customerOptions}
+                                                    isClearable
+                                                    placeholder="Select..."
+                                                    required
+                                                />
+                                            </Form.Group>
+                                        </Col> */}
                                         <Col md={6}>
                                             <Form.Group controlId="formProject">
                                                 <Form.Label>Project</Form.Label>
@@ -857,6 +1012,18 @@ const EditPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, index
                                                 />
                                             </Form.Group>
                                         </Col>
+                                        <Col md={6}>
+                                            <Form.Group controlId="formCustomer">
+                                                <Form.Label>Customer</Form.Label>
+                                                <Form.Control
+                                                    type="text"
+                                                    placeholder="Enter Customer"
+                                                    value={customer}
+                                                    onChange={(e) => setCustomer(e.target.value)}
+                                                    disabled
+                                                />
+                                            </Form.Group>
+                                        </Col>
 
                                         <Col md={6}>
                                             <Form.Group controlId="formProjectContactNumber">
@@ -865,7 +1032,8 @@ const EditPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, index
                                                     type="text"
                                                     placeholder="Enter Document Number"
                                                     value={project_contract_number}
-                                                    onChange={(e) => setDocNo(e.target.value)}
+                                                    onChange={(e) => setProjectContractNumber(e.target.value)}
+                                                    disabled
                                                 />
                                             </Form.Group>
                                         </Col>

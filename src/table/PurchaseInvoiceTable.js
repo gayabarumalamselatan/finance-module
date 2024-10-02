@@ -177,110 +177,214 @@ const PurchaseInvoiceTable = ({
   //     console.log('dataSelected Delete:', dataSelected)  // Pass the selected data for further processing
   // };
 
+  // const handleDelete = async (value) => {
+  //   const dataSelected = getSelectedRowsData(); // Ambil data yang dipilih
+  //   console.log("dataSelected Delete:", dataSelected);
+
+  //   // Cek jika lebih dari satu baris dipilih
+  //   if (dataSelected.length !== 1) {
+  //     Swal.fire({
+  //       icon: "warning",
+  //       title: "Multiple Rows Selected",
+  //       text: "Please select exactly one row to delete.",
+  //       confirmButtonText: "OK",
+  //     });
+  //     return;
+  //   }
+
+  //   const userId = sessionStorage.getItem("userId");
+
+  //   // Cek apakah status IN_PROCESS dan userId cocok dengan REQUESTOR
+  //   if (!checker && dataSelected[0].STATUS_REQUEST === "IN_PROCESS" && userId === dataSelected[0].REQUESTOR) {
+  //     Swal.fire({
+  //       icon: "warning",
+  //       title: "Delete Restricted",
+  //       text: 'You cannot delete this request while it is "IN_PROCESS".',
+  //       confirmButtonText: "OK",
+  //     });
+  //     return;
+  //   }
+
+  //   const puinvcId = dataSelected[0].ID; // ID dari data utama
+  //   const invoice_number = dataSelected[0].INVOICE_NUMBER;
+
+  //   // Konfirmasi sebelum penghapusan
+  //   Swal.fire({
+  //     title: "Are you sure?",
+  //     text: "Do you really want to delete this request and its details? This process cannot be undone.",
+  //     icon: "warning",
+  //     showCancelButton: true,
+  //     confirmButtonText: "Yes, delete it!",
+  //     cancelButtonText: "Cancel",
+  //   }).then(async (result) => {
+  //     if (result.isConfirmed) {
+  //       try {
+  //         // Panggil API untuk menghapus data master (utama)
+  //         const response = await DeleteDataService.postData(`column=id&value=${puinvcId}`, "PUINVC", authToken, branchId);
+
+  //         if (!response.message === "Delete Data Successfully") {
+  //           throw new Error("Failed to delete main request");
+  //         }
+
+  //         // Jika berhasil hapus master, lanjutkan ke detail berdasarkan INVOICE_NUMBER
+  //         const responseDetail = await LookupService.fetchLookupData(`PURC_FORMPUINVCD&filterBy=INVOICE_NUMBER&filterValue=${invoice_number}&operation=EQUAL`, authToken, branchId);
+
+  //         const fetchedItems = responseDetail.data || [];
+  //         console.log("Items fetch:", fetchedItems);
+
+  //         if (fetchedItems.length > 0) {
+  //           // Hapus setiap detail yang ditemukan
+  //           for (const item of fetchedItems) {
+  //             if (item.ID) {
+  //               try {
+  //                 const itemResponseDelete = await DeleteDataService.postData(`column=id&value=${item.ID}`, "PUREQD", authToken, branchId);
+  //                 console.log("Item deleted successfully:", itemResponseDelete);
+  //               } catch (error) {
+  //                 console.error("Error deleting item:", item, error);
+  //                 throw new Error("Failed to delete one or more detail items");
+  //               }
+  //             } else {
+  //               console.log("No ID found for this item, skipping delete:", item);
+  //             }
+  //           }
+  //         } else {
+  //           throw new Error("No details found for this INVOICE_NUMBER");
+  //         }
+
+  //         Swal.fire({
+  //           icon: "success",
+  //           title: "Request and Details Deleted",
+  //           text: "Both the request and its details have been successfully deleted.",
+  //           confirmButtonText: "OK",
+  //         });
+
+  //         handleRefresh();
+
+  //         // Lakukan refresh data atau aksi lain yang diperlukan setelah penghapusan berhasil
+  //       } catch (error) {
+  //         console.error("Error during delete process:", error);
+  //         Swal.fire({
+  //           icon: "error",
+  //           title: "Delete Error",
+  //           text: "Failed to delete the request or its details. Please try again later.",
+  //           confirmButtonText: "OK",
+  //         });
+  //       }
+  //     } else {
+  //       Swal.fire({
+  //         icon: "info",
+  //         title: "Cancelled",
+  //         text: "Your request deletion has been cancelled.",
+  //         confirmButtonText: "OK",
+  //       });
+  //     }
+  //   });
+  // };
+
   const handleDelete = async (value) => {
-    const dataSelected = getSelectedRowsData(); // Ambil data yang dipilih
-    console.log("dataSelected Delete:", dataSelected);
+    try {
+      const dataSelected = getSelectedRowsData();
+      if (dataSelected.length !== 1) {
+        Swal.fire({
+          icon: "warning",
+          title: "Multiple Rows Selected",
+          text: "Please select exactly one row to delete.",
+          confirmButtonText: "OK",
+        });
+        return;
+      }
 
-    // Cek jika lebih dari satu baris dipilih
-    if (dataSelected.length !== 1) {
+      const userId = sessionStorage.getItem("userId");
+      if (!checker && dataSelected[0].STATUS_REQUEST === "IN_PROCESS" && userId === dataSelected[0].REQUESTOR) {
+        Swal.fire({
+          icon: "warning",
+          title: "Delete Restricted",
+          text: 'You cannot delete this request while it is "IN_PROCESS".',
+          confirmButtonText: "OK",
+        });
+        return;
+      }
+
+      const puinvcId = dataSelected[0].ID;
+      const invoice_number = dataSelected[0].INVOICE_NUMBER;
+
       Swal.fire({
+        title: "Are you sure?",
+        text: "Do you really want to delete this request and its details? This process cannot be undone.",
         icon: "warning",
-        title: "Multiple Rows Selected",
-        text: "Please select exactly one row to delete.",
-        confirmButtonText: "OK",
-      });
-      return;
-    }
+        showCancelButton: true,
+        confirmButtonText: "Yes, delete it!",
+        cancelButtonText: "Cancel",
+      }).then(async (result) => {
+        if (result.isConfirmed) {
+          try {
+            const response = await DeleteDataService.postData(`column=id&value=${puinvcId}`, "PUINVC", authToken, branchId);
+            if (!response.message === "Delete Data Successfully") {
+              throw new Error("Failed to delete main request");
+            }
 
-    const userId = sessionStorage.getItem("userId");
+            const responseDetail = await LookupService.fetchLookupData(`PURC_FORMPUINVCD&filterBy=INVOICE_NUMBER&filterValue=${invoice_number}&operation=EQUAL`, authToken, branchId);
+            const fetchedItems = responseDetail.data || [];
 
-    // Cek apakah status IN_PROCESS dan userId cocok dengan REQUESTOR
-    if (!checker && dataSelected[0].STATUS_REQUEST === "IN_PROCESS" && userId === dataSelected[0].REQUESTOR) {
-      Swal.fire({
-        icon: "warning",
-        title: "Delete Restricted",
-        text: 'You cannot delete this request while it is "IN_PROCESS".',
-        confirmButtonText: "OK",
-      });
-      return;
-    }
-
-    const puinvcId = dataSelected[0].ID; // ID dari data utama
-    const invoice_number = dataSelected[0].INVOICE_NUMBER;
-
-    // Konfirmasi sebelum penghapusan
-    Swal.fire({
-      title: "Are you sure?",
-      text: "Do you really want to delete this request and its details? This process cannot be undone.",
-      icon: "warning",
-      showCancelButton: true,
-      confirmButtonText: "Yes, delete it!",
-      cancelButtonText: "Cancel",
-    }).then(async (result) => {
-      if (result.isConfirmed) {
-        try {
-          // Panggil API untuk menghapus data master (utama)
-          const response = await DeleteDataService.postData(`column=id&value=${puinvcId}`, "PUINVC", authToken, branchId);
-
-          if (!response.message === "Delete Data Successfully") {
-            throw new Error("Failed to delete main request");
-          }
-
-          // Jika berhasil hapus master, lanjutkan ke detail berdasarkan INVOICE_NUMBER
-          const responseDetail = await LookupService.fetchLookupData(`PURC_FORMPUINVCD&filterBy=INVOICE_NUMBER&filterValue=${invoice_number}&operation=EQUAL`, authToken, branchId);
-
-          const fetchedItems = responseDetail.data || [];
-          console.log("Items fetch:", fetchedItems);
-
-          if (fetchedItems.length > 0) {
-            // Hapus setiap detail yang ditemukan
-            for (const item of fetchedItems) {
-              if (item.ID) {
-                try {
-                  const itemResponseDelete = await DeleteDataService.postData(`column=id&value=${item.ID}`, "PUREQD", authToken, branchId);
-                  console.log("Item deleted successfully:", itemResponseDelete);
-                } catch (error) {
-                  console.error("Error deleting item:", item, error);
-                  throw new Error("Failed to delete one or more detail items");
+            if (fetchedItems.length === 0) {
+              Swal.fire({
+                icon: "info",
+                title: "No Details Found",
+                text: `No details found for invoice number ${invoice_number}.`,
+                confirmButtonText: "OK",
+              });
+            } else {
+              for (const item of fetchedItems) {
+                if (item.ID) {
+                  try {
+                    const itemResponseDelete = await DeleteDataService.postData(`column=id&value=${item.ID}`, "PUINVCD", authToken, branchId);
+                    console.log("Item deleted successfully:", itemResponseDelete);
+                  } catch (error) {
+                    console.error("Error deleting item:", item, error);
+                    throw new Error("Failed to delete one or more detail items");
+                  }
+                } else {
+                  console.log("No ID found for this item, skipping delete:", item);
                 }
-              } else {
-                console.log("No ID found for this item, skipping delete:", item);
               }
             }
-          } else {
-            throw new Error("No details found for this INVOICE_NUMBER");
+
+            Swal.fire({
+              icon: "success",
+              title: "Request Deleted",
+              text: "The request has been successfully deleted.",
+              confirmButtonText: "OK",
+            });
+
+            handleRefresh();
+          } catch (error) {
+            console.error("Error during delete process:", error);
+            Swal.fire({
+              icon: "error",
+              title: "Delete Error",
+              text: "Failed to delete the request or its details. Please try again later.",
+              confirmButtonText: "OK",
+            });
           }
-
+        } else {
           Swal.fire({
-            icon: "success",
-            title: "Request and Details Deleted",
-            text: "Both the request and its details have been successfully deleted.",
-            confirmButtonText: "OK",
-          });
-
-          handleRefresh();
-
-          // Lakukan refresh data atau aksi lain yang diperlukan setelah penghapusan berhasil
-        } catch (error) {
-          console.error("Error during delete process:", error);
-          Swal.fire({
-            icon: "error",
-            title: "Delete Error",
-            text: "Failed to delete the request or its details. Please try again later.",
+            icon: "info",
+            title: "Cancelled",
+            text: "Your request deletion has been cancelled.",
             confirmButtonText: "OK",
           });
         }
-      } else {
-        Swal.fire({
-          icon: "info",
-          title: "Cancelled",
-          text: "Your request deletion has been cancelled.",
-          confirmButtonText: "OK",
-        });
-      }
-    });
+      });
+    } catch (error) {
+      console.error("Error in handleDelete:", error);
+      Swal.fire({
+        icon: "error",
+        title: "Delete Error",
+        text: "An error occurred while deleting the request. Please try again later.",
+        confirmButtonText: "OK",
+      });
+    }
   };
-
   const handleResetFilters = () => {
     setFilterColumn("");
     setFilterValue("");
@@ -413,9 +517,10 @@ const PurchaseInvoiceTable = ({
               <div className="col-md-4 mb-3">
                 <select className="form-control" value={filterColumn} onChange={(e) => setFilterColumn(e.target.value)}>
                   <option value="">Select a column</option>
-                  <option value="INV_NUMBER">INV Number</option>
-                  <option value="TITLE">Title</option>
-                  <option value="DOC_REFERENCE">Doc Reference</option>
+                  <option value="INVOICE_NUMBER">Invoice Number</option>
+                  {/* <option value="TITLE">Title</option> */}
+                  <option value="DOC_REFF">Doc Reference</option>
+                  <option value="DOC_REFF_NO">Doc Reference Number</option>
                   <option value="INVOICE_TYPE">Invoice type</option>
                   <option value="INVOICE_DATE">Invoice Date</option>
                   <option value="INVOICE_STATUS">Invoice Status</option>
@@ -429,9 +534,9 @@ const PurchaseInvoiceTable = ({
                   <option value="TAX_RATE">Tax Rate</option>
                   <option value="TAX_INVOICE_NUMBER">Tax Invoice Number</option>
                   <option value="BI_MIDDLE_RATE">Bi Middle Rate</option>
-                  <option value="TOTAL_TAX_BASE">Total Tax Base</option>
+                  {/* <option value="TOTAL_TAX_BASE">Total Tax Base</option>
                   <option value="TOTAL_AMOUNT_PPN">Total Amount Ppn</option>
-                  <option value="TOTAL_AMOUNT_PPH">Total Amount Pph</option>
+                  <option value="TOTAL_AMOUNT_PPH">Total Amount Pph</option> */}
                   <option value="DOC_SOURCE">Doc Source</option>
                 </select>
               </div>
@@ -466,8 +571,9 @@ const PurchaseInvoiceTable = ({
                     <input type="checkbox" onChange={handleSelectAll} checked={selectedRows.size === dataTable.length && dataTable.length > 0} />
                   </th>
                   <th>Invoice Number</th>
-                  <th>Title</th>
+                  {/* <th>Title</th> */}
                   <th>Doc Reference</th>
+                  <th>Doc Reference Number</th>
                   <th>Invoice Type</th>
                   <th>Invoice Date</th>
                   <th>Invoice Status</th>
@@ -477,13 +583,13 @@ const PurchaseInvoiceTable = ({
                   <th>Description</th>
                   <th>Payment Term</th>
                   <th>Due Date</th>
-                  <th>Term Of Payment</th>
+                  {/* <th>Term Of Payment</th> */}
                   <th>Tax rate</th>
                   <th>Tax Invoice Number</th>
                   <th>Bi Middle Rate</th>
                   <th>Total Tax Base</th>
-                  <th>Total Amount Ppn</th>
-                  <th>Total Amount Pph</th>
+                  {/* <th>Total Amount Ppn</th>
+                  <th>Total Amount Pph</th> */}
                   <th>Doc Source</th>
                 </tr>
               </thead>
@@ -511,8 +617,9 @@ const PurchaseInvoiceTable = ({
                         <input type="checkbox" checked={selectedRows.has(item.ID)} onChange={(e) => handleCheckboxSelect(e, item.ID)} />
                       </td>
                       <td>{item.INVOICE_NUMBER}</td>
-                      <td>{item.TITLE}</td>
-                      <td>{item.DOC_REFERENCE}</td>
+                      {/* <td>{item.TITLE}</td> */}
+                      <td>{item.DOC_REFF}</td>
+                      <td>{item.DOC_REFF_NO}</td>
                       <td>{item.INVOICE_TYPE}</td>
                       <td>{item.INVOICE_DATE}</td>
                       <td>{item.INVOICE_STATUS}</td>
@@ -528,9 +635,9 @@ const PurchaseInvoiceTable = ({
                       <td>{item.TAX_RATE}</td>
                       <td>{item.TAX_INVOICE_NUMBER}</td>
                       <td>{item.BI_MIDDLE_RATE}</td>
-                      <td>{item.TOTAL_TAX_BASE}</td>
+                      {/* <td>{item.TOTAL_TAX_BASE}</td>
                       <td>{item.TOTAL_AMOUNT_PPN}</td>
-                      <td>{item.TOTAL_AMOUNT_PPH}</td>
+                      <td>{item.TOTAL_AMOUNT_PPH}</td> */}
                       <td>{item.DOC_SOURCE}</td>
                     </tr>
                   ))
@@ -557,13 +664,17 @@ const PurchaseInvoiceTable = ({
                     <div className="col-md-4 font-weight-bold">Invoice Number:</div>
                     <div className="col-md-8">{selectedRowData.INVOICE_NUMBER}</div>
                   </div>
-                  <div className="row mb-3">
+                  {/* <div className="row mb-3">
                     <div className="col-md-4 font-weight-bold">Title:</div>
                     <div className="col-md-8">{selectedRowData.TITLE}</div>
-                  </div>
+                  </div> */}
                   <div className="row mb-3">
                     <div className="col-md-4 font-weight-bold">Doc Reference:</div>
-                    <div className="col-md-8">{selectedRowData.DOC_REFERENCE}</div>
+                    <div className="col-md-8">{selectedRowData.DOC_REFF}</div>
+                  </div>
+                  <div className="row mb-3">
+                    <div className="col-md-4 font-weight-bold">Doc Reference Number:</div>
+                    <div className="col-md-8">{selectedRowData.DOC_REFF_NO}</div>
                   </div>
                   <div className="row mb-3">
                     <div className="col-md-4 font-weight-bold">Invoice Type:</div>
@@ -610,7 +721,7 @@ const PurchaseInvoiceTable = ({
                     <div className="col-md-4 font-weight-bold">BI Middle Rate:</div>
                     <div className="col-md-8">{selectedRowData.BI_MIDDLE_RATE}</div>
                   </div>
-                  <div className="row mb-3">
+                  {/* <div className="row mb-3">
                     <div className="col-md-4 font-weight-bold">Total Tax Base:</div>
                     <div className="col-md-8">{selectedRowData.TOTAL_TAX_BASE}</div>
                   </div>
@@ -621,7 +732,7 @@ const PurchaseInvoiceTable = ({
                   <div className="row mb-3">
                     <div className="col-md-4 font-weight-bold">Total Amount Pph:</div>
                     <div className="col-md-8">{selectedRowData.TOTAL_AMOUNT_PPH}</div>
-                  </div>
+                  </div> */}
                   <div className="row mb-3">
                     <div className="col-md-4 font-weight-bold">Description:</div>
                     <div className="col-md-8">{selectedRowData.DESCRIPTION}</div>

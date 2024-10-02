@@ -9,8 +9,8 @@ import { GENERATED_NUMBER } from "../config/ConfigUrl";
 import { generateUniqueId } from "../service/GeneratedId";
 import Select from "react-select";
 import LookupParamService from "../service/LookupParamService";
-import CreatableSelect from "react-select/creatable";
-import DropFileInput from "./drop-file-input/DropFileInput";
+import { GENERATED_DUE_DATE } from "../config/ConfigUrl";
+import axios from "axios";
 
 const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, handleRefresh, index, item }) => {
   const headers = getToken();
@@ -73,6 +73,8 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, handleRefresh, inde
   const [doc_reference, setDocReference] = useState("");
   const [allvendoroptions, setAllVendorOptions] = useState([]);
   const [selectedbothvendor, setSelectedBothVendor] = useState([]);
+  const [doc_source, setDocSource] = useState("");
+  const [doc_reff, setDocReff] = useState("");
   const authToken = headers;
 
   useEffect(() => {
@@ -103,9 +105,40 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, handleRefresh, inde
       });
 
     //  buat project
-    LookupParamService.fetchLookupData("MSDT_PRJT", authToken, branchId)
+    // LookupParamService.fetchLookupData("MSDT_PRJT", authToken, branchId)
+    //   .then((data) => {
+    //     console.log("Project lookup data:", data);
+
+    //     // Transform keys to uppercase directly in the received data
+    //     const transformedData = data.data.map((item) =>
+    //       Object.keys(item).reduce((acc, key) => {
+    //         acc[key.toUpperCase()] = item[key];
+    //         return acc;
+    //       }, {})
+    //     );
+    //     //console.log('Transformed data:', transformedData);
+
+    //     const options = transformedData.map((item) => ({
+    //       value: item.NAME,
+    //       label: item.NAME,
+    //     }));
+    //     setProjectOptions(options);
+    //   })
+    //   .catch((error) => {
+    //     console.error("Failed to fetch project lookup:", error);
+    //   });
+
+    // const options = transformedData
+    //     .filter((item) => item.ENTITY_TYPE === "BOTH")
+    //     .map((item) => ({
+    //       value: item.NAME,
+    //       label: item.NAME,
+    //     }));
+    //   setVendorOptions(options);
+
+    LookupParamService.fetchLookupData("MSDT_FORMPRDT", authToken, branchId)
       .then((data) => {
-        console.log("Project lookup data:", data);
+        console.log("Currency lookup data:", data);
 
         // Transform keys to uppercase directly in the received data
         const transformedData = data.data.map((item) =>
@@ -120,19 +153,11 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, handleRefresh, inde
           value: item.NAME,
           label: item.NAME,
         }));
-        setProjectOptions(options);
+        setProductOptions(options);
       })
       .catch((error) => {
-        console.error("Failed to fetch project lookup:", error);
+        console.error("Failed to fetch currency lookup:", error);
       });
-
-    // const options = transformedData
-    //     .filter((item) => item.ENTITY_TYPE === "BOTH")
-    //     .map((item) => ({
-    //       value: item.NAME,
-    //       label: item.NAME,
-    //     }));
-    //   setVendorOptions(options);
 
     // buat vendor
     LookupParamService.fetchLookupData("MSDT_FORMCUST", authToken, branchId)
@@ -155,7 +180,7 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, handleRefresh, inde
         setAllVendorOptions(allOptions);
 
         const bothOptions = transformedData
-          .filter((item) => item.ENTITY_TYPE === "BOTH")
+          .filter((item) => item.ENTITY_TYPE === "BOTH" || item.ENTITY_TYPE === "Vendor")
           .map((item) => ({
             value: item.NAME,
             label: item.NAME,
@@ -181,8 +206,9 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, handleRefresh, inde
         //console.log('Transformed data:', transformedData);
 
         const options = transformedData.map((item) => ({
-          value: item.NAME,
+          value: item.COUNT,
           label: item.NAME,
+          dateType: item.DATE_TYPE,
         }));
         setPaymentTermOptions(options);
       })
@@ -215,6 +241,9 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, handleRefresh, inde
           currency: item.CURRENCY,
           quantity: item.QUANTITY,
           description: item.DESCRIPTION,
+          paymentTerm: item.PAYMENT_TERM, // Include payment term in the options
+          dueDate: item.DUE_DATE,
+          vendor: item.VENDOR,
         }));
         setPrNumberOptions(options);
       })
@@ -246,6 +275,7 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, handleRefresh, inde
           // quantity: item.QUANTITY,
           description: item.DESCRIPTION,
           title: item.TITLE,
+          vendor: item.VENDOR,
         }));
         setPoNumberOptions(options);
       })
@@ -299,29 +329,6 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, handleRefresh, inde
         console.error("Failed to fetch currency lookup:", error);
       });
 
-    LookupParamService.fetchLookupData("MSDT_FORMPRDT", authToken, branchId)
-      .then((data) => {
-        console.log("Currency lookup data:", data);
-
-        // Transform keys to uppercase directly in the received data
-        const transformedData = data.data.map((item) =>
-          Object.keys(item).reduce((acc, key) => {
-            acc[key.toUpperCase()] = item[key];
-            return acc;
-          }, {})
-        );
-        //console.log('Transformed data:', transformedData);
-
-        const options = transformedData.map((item) => ({
-          value: item.NAME,
-          label: item.NAME,
-        }));
-        setProductOptions(options);
-      })
-      .catch((error) => {
-        console.error("Failed to fetch currency lookup:", error);
-      });
-
     LookupParamService.fetchLookupData("MSDT_FORMTAX", authToken, branchId)
       .then((data) => {
         console.log("Currency lookup data:", data);
@@ -358,9 +365,34 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, handleRefresh, inde
       });
   }, []);
 
-  const handlePaymentTermChange = (selectedOption) => {
+  const handlePaymentTermChange = async (selectedOption) => {
+    console.log("pay term select", selectedOption);
+    console.log(due_date);
     setSelectedPaymentTerm(selectedOption);
     setPaymentTerm(selectedOption ? selectedOption.value : "");
+
+    const payload = {
+      date: invoice_date,
+      count: selectedOption ? selectedOption.value : "",
+      dateType: selectedOption ? selectedOption.dateType : "",
+    };
+
+    console.log(payload);
+    try {
+      // Hit the API with the required data and Bearer token in the headers
+      const response = await axios.post(`${GENERATED_DUE_DATE}`, payload, {
+        headers: {
+          Authorization: `Bearer ${headers}`,
+        },
+      });
+
+      // Process the response if needed
+      console.log("API response:", response.data.dueDate);
+      setDueDate(response.data.dueDate);
+    } catch (error) {
+      // Handle any errors
+      console.error("Error calling API:", error);
+    }
   };
 
   // const handlePrNumberChange = (selectedOption) => {
@@ -369,7 +401,128 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, handleRefresh, inde
   // };
 
   // Handle PR Number Change
-  const handlePrNumberChange = (selectedOption) => {
+  // const handlePrNumberChange = (selectedOption) => {
+  //   setSelectedPrNumber(selectedOption);
+  //   // setPrNumber(selectedOption ? selectedOption.value : "");
+  //   setDocReference(selectedOption ? selectedOption.value : "");
+  //   console.log("pr_number", pr_number);
+
+  //   if (selectedOption) {
+  //     const projectValue = selectedOption.project || selectedOption.PR_NUMBER;
+
+  //     const matchingProjectOption = projectOptions.find((option) => option.value === projectValue);
+  //     setSelectedProject(matchingProjectOption ? matchingProjectOption : null);
+  //     setProject(selectedOption.project);
+  //     setID(selectedOption.id); // Set the selected ID value
+  //     setTotalAmount(selectedOption.totalAmount); // Autofill total amount
+  //     setTitle(selectedOption.title);
+  //     setDescription(selectedOption.description); // Autofill description
+  //     setPaymentTerm(selectedOption.paymentTerm);
+
+  //     const selectedPaymentTermOption = paymentTermOptions.find((option) => option.value === selectedOption.paymentTerm);
+  //     if (!selectedPaymentTermOption) {
+  //       console.error("Payment term is required for PR number", selectedOption.value);
+  //       setSelectedPaymentTerm(null); // Clear the payment term selection
+  //       return; // Exit the function to prevent further processing
+  //     }
+  //     setSelectedPaymentTerm(selectedPaymentTermOption);
+
+  //     LookupParamService.fetchLookupData(`PURC_FORMPUREQD&filterBy=PR_NUMBER&filterValue=${selectedOption.value}&operation=EQUAL`, authToken, branchId)
+  //       .then((response) => {
+  //         const fetchedItems = response.data || [];
+  //         console.log("Items fetched:", fetchedItems);
+
+  //         const resetItems = fetchedItems.map((item) => ({
+  //           ...item,
+  //           vat_type: "",
+  //           tax_ppn_type: "",
+  //           tax_base: item.tax_base || 0,
+  //         }));
+  //         // Set fetched items to state
+  //         setItems(resetItems);
+
+  //         // product lookup data
+  //         LookupParamService.fetchLookupData("MSDT_FORMPRDT", authToken, branchId)
+  //           .then((productData) => {
+  //             console.log("Product lookup data:", productData);
+
+  //             // Transform and map product data to options
+  //             const transformedProductData = productData.data.map((item) =>
+  //               Object.keys(item).reduce((acc, key) => {
+  //                 acc[key.toUpperCase()] = item[key];
+  //                 return acc;
+  //               }, {})
+  //             );
+
+  //             const productOptions = transformedProductData.map((item) => ({
+  //               value: item.NAME,
+  //               label: item.NAME,
+  //             }));
+
+  //             setProductOptions(productOptions); // Set product options to state
+
+  //             // Fetch currency lookup data
+  //             LookupParamService.fetchLookupData("MSDT_FORMCCY", authToken, branchId)
+  //               .then((currencyData) => {
+  //                 console.log("Currency lookup data:", currencyData);
+
+  //                 // Transform and map currency data to options
+  //                 const transformedCurrencyData = currencyData.data.map((item) =>
+  //                   Object.keys(item).reduce((acc, key) => {
+  //                     acc[key.toUpperCase()] = item[key];
+  //                     return acc;
+  //                   }, {})
+  //                 );
+
+  //                 const currencyOptions = transformedCurrencyData.map((item) => ({
+  //                   value: item.CODE,
+  //                   label: item.CODE,
+  //                 }));
+
+  //                 setCurrencyOptions(currencyOptions); // Set currency options to state
+
+  //                 // Update fetched items with selected options
+  //                 const updatedItems = fetchedItems.map((item) => {
+  //                   const selectedProductOption = productOptions.find((option) => option.value === item.product);
+
+  //                   console.log("Selected product option:", selectedProductOption);
+
+  //                   const selectedCurrencyOption = currencyOptions.find((option) => option.value === item.currency);
+
+  //                   console.log("Selected currency option:", selectedCurrencyOption);
+  //                   const selectedPaymentTerm = paymentTermOptions.find((option) => option.value === item.paymentTerm);
+  //                   console.log("payment term:", selectedPaymentTermOption);
+
+  //                   setSelectedCurrency(selectedCurrencyOption);
+  //                   setSelectedProduct(selectedProductOption);
+  //                   setSelectedPaymentTerm(selectedPaymentTermOption);
+  //                 });
+
+  //                 // Set the updated items with selected product and currency options to state
+  //                 setItems(fetchedItems);
+  //               })
+  //               .catch((error) => {
+  //                 console.error("Failed to fetch currency lookup:", error);
+  //               });
+  //           })
+  //           .catch((error) => {
+  //             console.error("Failed to fetch product lookup:", error);
+  //           });
+  //       })
+  //       .catch((error) => {
+  //         console.error("Failed to load items:", error);
+  //       });
+  //   } else {
+  //     setSelectedProject(null);
+  //     setTotalAmount(null); // Clear total amount if no option is selected
+  //     setTitle(null);
+  //     setID(null); // Clear the ID value if no option is selected
+  //     setDescription(null);
+  //     setSelectedPaymentTerm(null);
+  //     setItems([]);
+  //   }
+  // };
+  const handlePrNumberChange = async (selectedOption) => {
     setSelectedPrNumber(selectedOption);
     // setPrNumber(selectedOption ? selectedOption.value : "");
     setDocReference(selectedOption ? selectedOption.value : "");
@@ -377,6 +530,12 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, handleRefresh, inde
 
     if (selectedOption) {
       const projectValue = selectedOption.project || selectedOption.PR_NUMBER;
+      const vendorValue = selectedOption.vendor || selectedOption.PR_NUMBER;
+
+      const matchingVendorOption = allvendoroptions.find((option) => option.value === vendorValue);
+      setSelectedVendor(matchingVendorOption ? matchingVendorOption : null);
+      setVendor(selectedOption.vendor); // Autofill vendor
+      setSelectedBothVendor(matchingVendorOption); // Autofill vendor when PO number is chosen
 
       const matchingProjectOption = projectOptions.find((option) => option.value === projectValue);
       setSelectedProject(matchingProjectOption ? matchingProjectOption : null);
@@ -385,22 +544,151 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, handleRefresh, inde
       setTotalAmount(selectedOption.totalAmount); // Autofill total amount
       setTitle(selectedOption.title);
       setDescription(selectedOption.description); // Autofill description
+      setPaymentTerm(selectedOption.paymentTerm);
+      setVendor(selectedOption.vendor);
+
+      const selectedPaymentTermOption = paymentTermOptions.find((option) => option.value === selectedOption.paymentTerm);
+      if (!selectedPaymentTermOption) {
+        console.error("Payment term is required for PR number", selectedOption.value);
+        setSelectedPaymentTerm(null); // Clear the payment term selection
+        return; // Exit the function to prevent further processing
+      }
+      setSelectedPaymentTerm(selectedPaymentTermOption);
+
+      const paymentTerm = selectedOption.paymentTerm;
+      const payload = {
+        date: invoice_date,
+        count: paymentTerm,
+        dateType: paymentTermOptions.find((option) => option.value === paymentTerm).dateType,
+      };
+
+      try {
+        // Hit the API with the required data and Bearer token in the headers
+        const response = await axios.post(`${GENERATED_DUE_DATE}`, payload, {
+          headers: {
+            Authorization: `Bearer ${headers}`,
+          },
+        });
+
+        // Process the response if needed
+        console.log("API response:", response.data.dueDate);
+        setDueDate(response.data.dueDate);
+      } catch (error) {
+        // Handle any errors
+        console.error("Error calling API:", error);
+      }
+
+      try {
+        const response = await LookupParamService.fetchLookupData(`PURC_FORMPUREQD&filterBy=PR_NUMBER&filterValue=${selectedOption.value}&operation=EQUAL`, authToken, branchId);
+        const fetchedItems = response.data || [];
+        console.log("Items fetched:", fetchedItems);
+
+        const resetItems = fetchedItems.map((item) => ({
+          ...item,
+          vat_type: "",
+          tax_ppn_type: "",
+          tax_base: item.tax_base || 0,
+        }));
+        // Set fetched items to state
+        setItems(resetItems);
+
+        // product lookup data
+        try {
+          const productData = await LookupParamService.fetchLookupData("MSDT_FORMPRDT", authToken, branchId);
+          console.log("Product lookup data:", productData);
+
+          // Transform and map product data to options
+          const transformedProductData = productData.data.map((item) =>
+            Object.keys(item).reduce((acc, key) => {
+              acc[key.toUpperCase()] = item[key];
+              return acc;
+            }, {})
+          );
+
+          const productOptions = transformedProductData.map((item) => ({
+            value: item.NAME,
+            label: item.NAME,
+          }));
+
+          setProductOptions(productOptions); // Set product options to state
+
+          // Fetch currency lookup data
+          try {
+            const currencyData = await LookupParamService.fetchLookupData("MSDT_FORMCCY", authToken, branchId);
+            console.log("Currency lookup data:", currencyData);
+
+            // Transform and map currency data to options
+            const transformedCurrencyData = currencyData.data.map((item) =>
+              Object.keys(item).reduce((acc, key) => {
+                acc[key.toUpperCase()] = item[key];
+                return acc;
+              }, {})
+            );
+
+            const currencyOptions = transformedCurrencyData.map((item) => ({
+              value: item.CODE,
+              label: item.CODE,
+            }));
+
+            setCurrencyOptions(currencyOptions); // Set currency options to state
+
+            // Update fetched items with selected options
+            const updatedItems = fetchedItems.map((item) => {
+              const selectedProductOption = productOptions.find((option) => option.value === item.product);
+
+              console.log("Selected product option :", selectedProductOption);
+
+              const selectedCurrencyOption = currencyOptions.find((option) => option.value === item.currency);
+
+              console.log("Selected currency option:", selectedCurrencyOption);
+              const selectedPaymentTerm = paymentTermOptions.find((option) => option.value === item.paymentTerm);
+              console.log("payment term:", selectedPaymentTermOption);
+
+              setSelectedCurrency(selectedCurrencyOption);
+              setSelectedProduct(selectedProductOption);
+              setSelectedPaymentTerm(selectedPaymentTermOption);
+            });
+
+            // Set the updated items with selected product and currency options to state
+            setItems(fetchedItems);
+          } catch (error) {
+            console.error("Failed to fetch currency lookup:", error);
+          }
+        } catch (error) {
+          console.error("Failed to fetch product lookup:", error);
+        }
+      } catch (error) {
+        console.error("Failed to load items:", error);
+      }
     } else {
       setSelectedProject(null);
       setTotalAmount(null); // Clear total amount if no option is selected
       setTitle(null);
       setID(null); // Clear the ID value if no option is selected
       setDescription(null);
+      setSelectedPaymentTerm(null);
+      setSelectedBothVendor(null); // Clear selectedBothVendor
+      setSelectedVendor(null);
+      setItems([]);
     }
   };
 
   const handlePoNumberChange = (selectedOption) => {
     setSelectedPoNumber(selectedOption);
-    // setPoNumber(selectedOption ? selectedOption.value : "");
     setDocReference(selectedOption ? selectedOption.value : "");
+    console.log("po_number", po_number);
 
     if (selectedOption) {
+      console.log("Payment Term:", selectedOption.paymentTerm); // <-- Check if paymentTerm exists
+      console.log("vendor:", selectedOption.vendor);
+
       const projectValue = selectedOption.project || selectedOption.PO_NUMBER;
+      const vendorValue = selectedOption.vendor || selectedOption.PO_NUMBER;
+
+      const matchingVendorOption = allvendoroptions.find((option) => option.value === vendorValue);
+      setSelectedVendor(matchingVendorOption ? matchingVendorOption : null);
+      setVendor(selectedOption.vendor); // Autofill vendor
+      setSelectedBothVendor(matchingVendorOption); // Autofill vendor when PO number is chosen
 
       const matchingProjectOption = projectOptions.find((option) => option.value === projectValue);
       setSelectedProject(matchingProjectOption ? matchingProjectOption : null);
@@ -409,12 +697,95 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, handleRefresh, inde
       setTotalAmount(selectedOption.totalAmount); // Autofill total amount
       setTitle(selectedOption.title);
       setDescription(selectedOption.description); // Autofill description
+      setVendor(selectedOption.vendor); // Autofill vendor
+
+      // Autofill payment term
+      const paymentTermOption = paymentTermOptions.find((option) => option.value === selectedOption.paymentTerm);
+      setSelectedPaymentTerm(paymentTermOption ? paymentTermOption : null);
+      setPaymentTerm(selectedOption.paymentTerm); // Autofill payment term
+
+      // Fetch other items based on the selected PO number
+      LookupParamService.fetchLookupData(`PURC_FORMPUORD&filterBy=PO_NUMBER&filterValue=${selectedOption.value}&operation=EQUAL`, authToken, branchId)
+        .then((response) => {
+          const fetchedItems = response.data || [];
+          console.log("Items fetched:", fetchedItems);
+
+          const resetItems = fetchedItems.map((item) => ({
+            ...item,
+            vat_type: "",
+            tax_ppn_type: "",
+            tax_base: item.tax_base || 0,
+          }));
+          setItems(resetItems);
+
+          // Fetch product lookup data
+          LookupParamService.fetchLookupData("MSDT_FORMPRDT", authToken, branchId)
+            .then((productData) => {
+              const transformedProductData = productData.data.map((item) =>
+                Object.keys(item).reduce((acc, key) => {
+                  acc[key.toUpperCase()] = item[key];
+                  return acc;
+                }, {})
+              );
+
+              const productOptions = transformedProductData.map((item) => ({
+                value: item.NAME,
+                label: item.NAME,
+              }));
+
+              setProductOptions(productOptions);
+
+              // Fetch currency lookup data
+              LookupParamService.fetchLookupData("MSDT_FORMCCY", authToken, branchId)
+                .then((currencyData) => {
+                  const transformedCurrencyData = currencyData.data.map((item) =>
+                    Object.keys(item).reduce((acc, key) => {
+                      acc[key.toUpperCase()] = item[key];
+                      return acc;
+                    }, {})
+                  );
+
+                  const currencyOptions = transformedCurrencyData.map((item) => ({
+                    value: item.CODE,
+                    label: item.CODE,
+                  }));
+
+                  setCurrencyOptions(currencyOptions);
+
+                  // Update fetched items with selected product and currency options
+                  const updatedItems = fetchedItems.map((item) => {
+                    const selectedProductOption = productOptions.find((option) => option.value === item.product);
+                    const selectedCurrencyOption = currencyOptions.find((option) => option.value === item.currency);
+                    const selectedPaymentTerm = paymentTermOption.find((option) => option.value === item.paymentTerm);
+
+                    setSelectedCurrency(selectedCurrencyOption);
+                    setSelectedProduct(selectedProductOption);
+                    setSelectedPaymentTerm(selectedPaymentTerm);
+                  });
+
+                  setItems(fetchedItems);
+                })
+                .catch((error) => {
+                  console.error("Failed to fetch currency lookup:", error);
+                });
+            })
+            .catch((error) => {
+              console.error("Failed to fetch product lookup:", error);
+            });
+        })
+        .catch((error) => {
+          console.error("Failed to load items:", error);
+        });
     } else {
       setSelectedProject(null);
-      setTotalAmount(null); // Clear total amount if no option is selected
+      setTotalAmount(null);
       setTitle(null);
-      setID(null); // Clear the ID value if no option is selected
+      setID(null);
       setDescription(null);
+      setSelectedPaymentTerm(null); // Clear payment term if no option is selected
+      setPaymentTerm(null); // Clear payment term if no option is selected
+      setSelectedBothVendor(null); // Clear selectedBothVendor
+      setItems([]);
     }
   };
 
@@ -445,7 +816,7 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, handleRefresh, inde
         quantity: 1,
         currency: "IDR",
         unit_price: 0,
-        vat: "Select an Option",
+        vat_type: "",
         tax_ppn: 0,
         tax_ppn_type: "",
         tax_ppn_rate: "",
@@ -459,34 +830,134 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, handleRefresh, inde
         total_amount_ppn: 0,
         total_amount_pph: 0,
         total_price: 0,
+        vat_included: false,
+        new_unit_price: 0,
       },
     ]);
   };
 
   const handleItemChange = (index, field, value) => {
-    value = value === null || value === undefined ? 0 : value;
     const newItems = [...items];
     newItems[index][field] = value;
+    // newItems[index].original_unit_price = newItems[index].unit_price || 0;
 
     console.log(index, field, value);
 
-    if (field === "quantity" || field === "unit_price") {
-      newItems[index].total_price = (newItems[index].quantity || 0) * (newItems[index].unit_price || 0);
-    }
+    // Itungan Baru
 
-    if (field === "vat") {
-      if (value === "include") {
-        newItems[index].unit_price = (newItems[index].unit_price || 0) * 1.1;
-        newItems[index].total_price = (newItems[index].quantity || 0) * newItems[index].unit_price;
-      } else if (value === "exclude") {
-        newItems[index].unit_price = (newItems[index].unit_price || 0) / 1.1;
-        newItems[index].total_price = (newItems[index].quantity || 0) * newItems[index].unit_price;
+    // Reset field vat type dan ppn type ketika mengubah unit price dan quantity
+
+    if (field === "unit_price" || field === "quantity") {
+      newItems[index].vat_type = "";
+      newItems[index].tax_ppn_rate = 0;
+      newItems[index].tax_ppn_type = "";
+      newItems[index].tax_pph_rate = 0;
+      newItems[index].tax_pph_type = "";
+      newItems[index].tax_base = 0;
+      newItems[index].tax_ppn_amount = 0;
+      newItems[index].tax_pph_amount = 0;
+      if (newItems[index].vat_included !== undefined) {
+        newItems[index].vat_included = false;
       }
     }
-
-    if (field === "tax_ppn_rate") {
-      newItems[index].tax_ppn_amount = ((newItems[index].total_price || 0) * value) / 100;
+    if (field === "quantity" || field === "unit_price") {
+      newItems[index].total_price = newItems[index].quantity * newItems[index].unit_price;
     }
+
+    // Itungan New Unit Price
+    let pengkali = newItems[index].tax_ppn_rate / 100;
+
+    if (field === "tax_ppn_type" || field === "tax_ppn_rate") {
+      if (newItems[index].vat_type === "include") {
+        newItems[index].new_unit_price = newItems[index].unit_price + newItems[index].unit_price * pengkali;
+        newItems[index].tax_base = Math.round(newItems[index].unit_price / ((1 + newItems[index].tax_ppn_rate / 100) * newItems[index].quantity));
+        newItems[index].tax_ppn_amount = Math.round(newItems[index].tax_base * (newItems[index].tax_ppn_rate / 100));
+        newItems[index].vat_included = true;
+      } else if (newItems[index].vat_type === "exclude") {
+        newItems[index].tax_ppn_amount = Math.round(newItems[index].total_price * (newItems[index].tax_ppn_rate / 100));
+        newItems[index].tax_base = Math.round(newItems[index].unit_price * newItems[index].quantity);
+      }
+      newItems[index].total_price = newItems[index].unit_price * newItems[index].quantity;
+    }
+
+    let pengkali2 = newItems[index].tax_pph_rate / 100;
+
+    if (field === "tax_pph_type" || field === "tax_pph_rate") {
+      if (newItems[index].vat_type === "include") {
+        newItems[index].new_unit_price = newItems[index].unit_price + newItems[index].unit_price * pengkali2;
+        newItems[index].tax_base = Math.round(newItems[index].unit_price / ((1 + newItems[index].tax_pph_rate / 100) * newItems[index].quantity));
+        newItems[index].tax_pph_amount = Math.round(newItems[index].tax_base * (newItems[index].tax_pph_rate / 100));
+        newItems[index].vat_included = true;
+      } else if (newItems[index].vat_type === "exclude") {
+        newItems[index].tax_pph_amount = Math.round(newItems[index].total_price * (newItems[index].tax_pph_rate / 100));
+        newItems[index].tax_base = Math.round(newItems[index].unit_price * newItems[index].quantity);
+      }
+      newItems[index].total_price = newItems[index].unit_price * newItems[index].quantity;
+    }
+
+    if (field === "vat_type") {
+      newItems[index].tax_ppn_type = "";
+      newItems[index].tax_ppn_rate = 0;
+      newItems[index].tax_pph_type = "";
+      newItems[index].tax_pph_rate = 0;
+      newItems[index].tax_base = 0;
+      newItems[index].tax_ppn_amount = 0;
+      newItems[index].tax_pph_amount = 0;
+      if (newItems[index].vat_type === "exclude" && newItems[index].vat_included === true) {
+        newItems[index].new_unit_price = newItems[index].new_unit_price - newItems[index].unit_price * pengkali;
+        newItems[index].vat_included = false;
+      } else {
+        newItems[index].new_unit_price = newItems[index].unit_price;
+      }
+      newItems[index].total_price = newItems[index].unit_price * newItems[index].quantity;
+    }
+
+    // Itungan Original Unit Price
+
+    // let pengkali = newItems[index].tax_ppn_rate/100;
+
+    // if (field === 'tax_ppn_type' || field === 'tax_ppn_rate') {
+    //   if (newItems[index].vat_type === 'include'){
+    //     newItems[index].unit_price = newItems[index].original_unit_price + (newItems[index].original_unit_price * (pengkali));
+    //     newItems[index].tax_base = newItems[index].unit_price / ((1 + (newItems[index].tax_ppn_rate / 100)) * newItems[index].quantity);
+    //     newItems[index].tax_ppn_amount = newItems[index].tax_base * (newItems[index].tax_ppn_rate / 100);
+    //     newItems[index].vat_included = true;
+    //   } else if (newItems[index].vat_type === "exclude"){
+    //     newItems[index].tax_ppn_amount = newItems[index].total_price * (newItems[index].tax_ppn_rate/100);
+    //     newItems[index].tax_base = newItems[index].unit_price * newItems[index].quantity;
+    //   }
+    //   newItems[index].total_price = newItems[index].unit_price * newItems[index].quantity;
+    // }
+
+    // if (field === 'vat_type') {
+    //   newItems[index].tax_ppn_type = '';
+    //   newItems[index].tax_ppn_rate = 0;
+    //   newItems[index].tax_base = 0;
+    //   newItems[index].tax_ppn_amount = 0;
+    //   if (newItems[index].vat_type === 'exclude' && newItems[index].vat_included === true) {
+    //     newItems[index].unit_price = newItems[index].unit_price - (newItems[index].original_unit_price * (pengkali));
+    //     newItems[index].vat_included = false;
+
+    //   }else{
+    //     newItems[index].new_unit_price = newItems[index].unit_price;
+
+    //   }
+    //   newItems[index].total_price = newItems[index].unit_price * newItems[index].quantity;
+    // }
+
+    console.log("new unit price", newItems[index].new_unit_price);
+    console.log("original", newItems[index].original_unit_price);
+    console.log("unit", newItems[index].unit_price);
+    console.log("pengkali", pengkali);
+    console.log("vatinc", newItems[index].vat_included);
+    console.log("base", newItems[index].tax_base);
+    console.log("vat", newItems[index].vat_type);
+    console.log("pengkali2", pengkali2);
+
+    // if (field === 'tax_type') {
+    //   const selectedTaxType = taxTypeOptions.find(option => option.value === value);
+    //   setPPNRate(selectedTaxType ? selectedTaxType.RATE : '');
+    // }
 
     setItems(newItems);
   };
@@ -520,7 +991,24 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, handleRefresh, inde
   };
 
   const calculateTotalAmount = () => {
-    return items.reduce((total, item) => total + item.total_price, 0);
+    const subTotal = items.reduce((total, item) => {
+      const taxBase = isNaN(item.tax_base) ? 0 : item.tax_base;
+      return total + taxBase;
+    }, 0);
+
+    const totalPPNAmount = items.reduce((total, item) => {
+      const taxPPNAmount = isNaN(item.tax_ppn_amount) ? 0 : item.tax_ppn_amount;
+      return total + taxPPNAmount;
+    }, 0);
+
+    const totalPPHAmount = items.reduce((total, item) => {
+      const taxPPHAmount = isNaN(item.tax_pph_amount) ? 0 : item.tax_pph_amount;
+      return total + taxPPHAmount;
+    }, 0);
+
+    const total_amount = subTotal + totalPPNAmount + totalPPHAmount;
+    const validTotalAmount = isNaN(total_amount) ? 0 : total_amount;
+    return { subTotal, totalPPNAmount, totalPPHAmount, totalAmount: validTotalAmount };
   };
 
   const handleOnDragEnd = (result) => {
@@ -575,11 +1063,12 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, handleRefresh, inde
     if (result.isConfirmed) {
       setIsLoading(true);
       try {
-        const total_amount = calculateTotalAmount();
+        const { subTotal, totalPPNAmount, totalPPHAmount, total_amount } = calculateTotalAmount();
         // Save general information and description
         const createBy = sessionStorage.getItem("userId");
         const generalInfo = {
-          doc_reference,
+          doc_reff: docRef,
+          doc_reff_no: doc_reference,
           // internalmemo,
           title,
           payment_term, // Converts to date format
@@ -592,13 +1081,13 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, handleRefresh, inde
           tax_invoice_number,
           term_of_payment,
           bi_middle_rate,
-          total_tax_base,
-          total_amount_ppn,
-          total_amount_pph,
+          total_tax_base: subTotal,
+          total_amount_ppn: totalPPNAmount,
+          total_amount_pph: totalPPHAmount,
           project,
           due_date,
           description,
-          total_amount,
+          total_amount: total_amount,
         };
 
         console.log("Master", generalInfo);
@@ -613,13 +1102,16 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, handleRefresh, inde
             const updatedItem = {
               ...item,
               invoice_number,
-              type_of_vat: item.vat,
+              type_of_vat: item.vat_type,
               tax_ppn: item.tax_ppn_type,
               tax_pph: item.tax_pph_type,
-              tax_base: item.total_tax_base,
-              tax_ppn_amount: item.total_amount_ppn,
-              tax_pph_amount: item.total_amount_pph,
+              tax_base: item.tax_base,
+              tax_ppn_amount: item.tax_ppn_amount,
+              tax_pph_amount: item.tax_pph_amount,
+              vat_type: item.type_of_payment,
+              // new_unit_price: item.unit_price,
             };
+            delete updatedItem.ID;
             delete updatedItem.id;
             delete updatedItem.vat;
             delete updatedItem.tax_ppn_type;
@@ -627,6 +1119,12 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, handleRefresh, inde
             delete updatedItem.total_tax_base;
             delete updatedItem.total_amount_pph;
             delete updatedItem.total_amount_ppn;
+            delete updatedItem.rwnum;
+            delete updatedItem.pr_number;
+            delete updatedItem.id_trx;
+            delete updatedItem.status;
+            delete updatedItem.new_unit_price;
+            delete updatedItem.vat_included;
 
             const itemResponse = await InsertDataService.postData(updatedItem, "PUINVCD", authToken, branchId);
             console.log("Item posted successfully:", itemResponse);
@@ -669,11 +1167,11 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, handleRefresh, inde
     if (result.isConfirmed) {
       setIsLoading(true);
       try {
-        const total_amount = totalAmount;
+        const { subTotal, totalPPNAmount, totalPPHAmount, total_amount } = calculateTotalAmount();
         // Save general information and description
         const generalInfo = {
-          // po_number,
-          doc_reference,
+          doc_reff: docRef,
+          doc_reff_no: doc_reference,
           // internalmemo,
           title,
           payment_term, // Converts to date format
@@ -686,13 +1184,13 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, handleRefresh, inde
           tax_invoice_number,
           term_of_payment,
           bi_middle_rate,
-          total_tax_base,
-          total_amount_ppn,
-          total_amount_pph,
+          total_tax_base: subTotal,
+          total_amount_ppn: totalPPNAmount,
+          total_amount_pph: totalPPHAmount,
           project,
           due_date,
           description,
-          total_amount,
+          total_amount: total_amount,
         };
 
         console.log("Master", generalInfo);
@@ -707,13 +1205,16 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, handleRefresh, inde
             const updatedItem = {
               ...item,
               invoice_number,
-              type_of_vat: item.vat,
+              type_of_vat: item.vat_type,
               tax_ppn: item.tax_ppn_type,
               tax_pph: item.tax_pph_type,
-              tax_base: item.total_tax_base,
-              tax_ppn_amount: item.total_amount_ppn,
-              tax_pph_amount: item.total_amount_pph,
+              tax_base: item.tax_base,
+              tax_ppn_amount: item.tax_ppn_amount,
+              tax_pph_amount: item.tax_pph_amount,
+              vat_type: item.type_of_payment,
+              // new_unit_price: item.unit_price,
             };
+            delete updatedItem.ID;
             delete updatedItem.id;
             delete updatedItem.vat;
             delete updatedItem.tax_ppn_type;
@@ -721,6 +1222,12 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, handleRefresh, inde
             delete updatedItem.total_tax_base;
             delete updatedItem.total_amount_pph;
             delete updatedItem.total_amount_ppn;
+            delete updatedItem.rwnum;
+            delete updatedItem.pr_number;
+            delete updatedItem.id_trx;
+            delete updatedItem.status;
+            delete updatedItem.new_unit_price;
+            delete updatedItem.vat_included;
 
             const itemResponse = await InsertDataService.postData(updatedItem, "PUINVCD", authToken, branchId);
             console.log("Item posted successfully:", itemResponse);
@@ -755,6 +1262,11 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, handleRefresh, inde
   //   generatePrNumber();
   // }, []);
 
+  useEffect(() => {
+    const today = new Date().toISOString().split("T")[0]; // Get today's date in YYYY-MM-DD format
+    setInvoiceDate(today);
+  }, []);
+
   return (
     <Fragment>
       <section className="content">
@@ -786,12 +1298,12 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, handleRefresh, inde
               <Card.Body>
                 <Form>
                   <Row>
-                    <Col md={6}>
+                    {/* <Col md={6}>
                       <Form.Group controlId="formTitle">
                         <Form.Label>Title</Form.Label>
-                        <Form.Control type="text" placeholder="Enter Title" value={title} onChange={(e) => setTitle(e.target.value)} required />{" "}
+                        <Form.Control type="text" placeholder="Enter Title" value={title || ""} onChange={(e) => setTitle(e.target.value)} disabled={docRef === "purchaseOrder"} required />
                       </Form.Group>
-                    </Col>
+                    </Col> */}
 
                     {/* {docRef === "purchaseRequest" ? (
                       <Col md={6}>
@@ -817,7 +1329,7 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, handleRefresh, inde
                     )} */}
 
                     <Col md={6}>
-                      <Form.Group controlId="formDocRef">
+                      <Form.Group controlId="formDocReff">
                         <Form.Label>Document Reference</Form.Label>
                         <Form.Control as="select" placeholder="Enter Document Number" value={docRef} onChange={(e) => setDocRef(e.target.value)}>
                           <option value="">Select Document Reference</option>
@@ -854,6 +1366,23 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, handleRefresh, inde
                         </Form.Group>
                       </Col>
                     )}
+
+                    <Col md={6}>
+                      <Form.Group controlId="formDocSource">
+                        <Form.Label>Choose File</Form.Label>
+                        <Form.Control
+                          type="file"
+                          placeholder="Choose File"
+                          onChange={(e) => {
+                            if (e.target.files && e.target.files[0]) {
+                              setDocSource(e.target.files[0]);
+                            } else {
+                              setDocSource(null); // or some other default value
+                            }
+                          }}
+                        />
+                      </Form.Group>
+                    </Col>
 
                     {/* {docRef === "purchaseRequest" && (
                       <Col md={6}>
@@ -960,7 +1489,7 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, handleRefresh, inde
                       <Col md={6}>
                         <Form.Group controlId="formProject">
                           <Form.Label>Project</Form.Label>
-                          <Select value={selectedProject} onChange={handleProjectChange} options={projectOptions} isClearable placeholder="Select Project..." />
+                          <Select value={selectedProject} onChange={handleProjectChange} options={projectOptions} isClearable placeholder="Select Project..." isDisabled={docRef === "purchaseOrder"} />
                         </Form.Group>
                       </Col>
                     )}
@@ -977,7 +1506,7 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, handleRefresh, inde
                       <Col md={6}>
                         <Form.Group controlId="formVendor">
                           <Form.Label>Vendor</Form.Label>
-                          <Select value={selectedbothvendor} onChange={handleBothVendorChange} options={allvendoroptions} isClearable placeholder="Select Vendor..." />
+                          <Select value={selectedbothvendor} onChange={handleBothVendorChange} options={allvendoroptions} isClearable placeholder="Select Vendor..." isDisabled />
                         </Form.Group>
                       </Col>
                     )}
@@ -985,22 +1514,38 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, handleRefresh, inde
                       <Col md={6}>
                         <Form.Group controlId="formVendor">
                           <Form.Label>Vendor</Form.Label>
-                          <Select value={selectedVendor} onChange={handleVendorChange} options={vendorOptions} isClearable placeholder="Select Vendor..." />
+                          <Select value={selectedVendor} onChange={handleVendorChange} options={allvendoroptions} isClearable placeholder="Select Vendor..." />
+                        </Form.Group>
+                      </Col>
+                    )}
+
+                    {docRef === "purchaseOrder" ? (
+                      <Col md={6}>
+                        <Form.Group controlId="formPaymentTerm">
+                          <Form.Label>Payment Term</Form.Label>
+                          <Select value={selectedPaymentTerm} onChange={handlePaymentTermChange} options={paymentTermOptions} isClearable placeholder="Select Payment Term..." />
+                        </Form.Group>
+                      </Col>
+                    ) : (
+                      <Col md={6}>
+                        <Form.Group controlId="formPaymentTerm">
+                          <Form.Label>Payment Term</Form.Label>
+                          <Select value={selectedPaymentTerm} onChange={handlePaymentTermChange} options={paymentTermOptions} isClearable placeholder="Select Payment Term..." />
                         </Form.Group>
                       </Col>
                     )}
 
                     <Col md={6}>
-                      <Form.Group controlId="formPaymentTerm">
-                        <Form.Label>Payment Term</Form.Label>
-                        <Select value={selectedPaymentTerm} onChange={handlePaymentTermChange} options={paymentTermOptions} isClearable placeholder="Select Payment Term..." />
+                      <Form.Group controlId="formDueDate">
+                        <Form.Label>Due Date</Form.Label>
+                        <Form.Control type="date" value={due_date} onChange={(e) => setDueDate(e.target.value)} required />
                       </Form.Group>
                     </Col>
 
                     <Col md={6}>
-                      <Form.Group controlId="formDueDate">
-                        <Form.Label>Due Date</Form.Label>
-                        <Form.Control type="date" value={due_date} onChange={(e) => setDueDate(e.target.value)} required />
+                      <Form.Group controlId="formTermOfPayment">
+                        <Form.Label>Term Of Payment</Form.Label>
+                        <Form.Control type="text" placeholder="Enter Term Of Payment" value={term_of_payment} onChange={(e) => setTermOfPayment(e.target.value)} />
                       </Form.Group>
                     </Col>
 
@@ -1038,17 +1583,6 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, handleRefresh, inde
                         <Form.Control type="text" placeholder="Enter Type Of Payment" value={type_of_payment} onChange={(e) => setTypeOfPayment(e.target.value)} />
                       </Form.Group>
                     </Col> */}
-
-                    <Col md={6}>
-                      <Form.Group controlId="formTermOfPayment">
-                        <Form.Label>Term Of Payment</Form.Label>
-                        <Form.Control type="text" placeholder="Enter Term Of Payment" value={term_of_payment} onChange={(e) => setTermOfPayment(e.target.value)} />
-                      </Form.Group>
-                    </Col>
-
-                    <Col md={12} style={{ marginTop: 20, marginBottom: 20 }}>
-                      <DropFileInput />
-                    </Col>
                   </Row>
                 </Form>
               </Card.Body>
@@ -1086,12 +1620,12 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, handleRefresh, inde
                               {/* <th>ID</th> */}
                               {/* <th>Invoice Number</th> */}
                               <th>Product</th>
+                              <th>Product Note</th>
                               <th>Currency</th>
                               <th>Quantity</th>
                               <th>Unit Price</th>
                               <th>Total Price</th>
                               <th>Type Of VAT</th>
-                              <th>Product Note</th>
                               {/* <th>Tax PPN</th> */}
                               <th>Tax PPN</th>
                               <th>Tax PPN Rate</th>
@@ -1100,7 +1634,7 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, handleRefresh, inde
                               <th>Tax PPh</th>
                               <th>Tax PPh Rate</th>
                               <th>Tax PPh Amount</th>
-                              <th>Total Tax Base</th>
+                              <th>Tax Base</th>
 
                               {/* <th>Total Price</th> */}
                               <th>Actions</th>
@@ -1109,7 +1643,7 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, handleRefresh, inde
                           <tbody>
                             {items.length === 0 ? (
                               <tr>
-                                <td colSpan="17" className="text-center">
+                                <td colSpan="15" className="text-center">
                                   No data available
                                 </td>
                               </tr>
@@ -1153,7 +1687,9 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, handleRefresh, inde
                                       placeholder="Select Product..."
                                     />
                                   </td>
-
+                                  <td>
+                                    <Form.Control type="text" value={item.product_note} onChange={(e) => handleItemChange(index, "product_note", e.target.value)} />
+                                  </td>
                                   <td>
                                     <Select
                                       value={currencyOptions.find((option) => option.value === item.currency)} // Menemukan mata uang yang sesuai
@@ -1177,15 +1713,13 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, handleRefresh, inde
                                   <td>{item.total_price.toLocaleString("en-US", { style: "currency", currency: item.currency || 0 })}</td>
 
                                   <td>
-                                    <Form.Control as="select" value={item.vat} onChange={(e) => handleItemChange(index, "vat", e.target.value)}>
+                                    <Form.Control as="select" value={item.vat_type} onChange={(e) => handleItemChange(index, "vat_type", e.target.value)}>
                                       <option value="Select an Option">Select an Option</option>
                                       <option value="include">Include</option>
                                       <option value="exclude">Exclude</option>
                                     </Form.Control>
                                   </td>
-                                  <td>
-                                    <Form.Control type="text" value={item.product_note} onChange={(e) => handleItemChange(index, "product_note", e.target.value)} />
-                                  </td>
+
                                   {/* <td>
                                     <Form.Control type="number" value={item.tax_ppn} onChange={(e) => handleItemChange(index, "tax_ppn", parseFloat(e.target.value))} />
                                   </td> */}
@@ -1215,9 +1749,8 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, handleRefresh, inde
                                     <Form.Control type="number" value={item.tax_ppn_rate} onChange={(e) => handleItemChange(index, "tax_ppn_rate", parseFloat(e.target.value))} readOnly />
                                   </td>
 
-                                  <td>
-                                    <Form.Control className="text-end" type="text" value={item.tax_ppn_amount} onChange={(e) => handleItemChange(index, "tax_ppn_amount", e.target.value)} />
-                                  </td>
+                                  <td style={{ textAlign: "right" }}>{item.tax_ppn_amount ? item.tax_ppn_amount.toLocaleString("en-US", { style: "currency", currency: item.currency }) : "IDR 0.00"}</td>
+
                                   {/* <td>
                                     <Form.Control type="number" value={item.tax_pph} onChange={(e) => handleItemChange(index, "tax_pph", parseFloat(e.target.value))} />
                                   </td> */}
@@ -1288,11 +1821,10 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, handleRefresh, inde
                                   {/* <td>
                                     <Form.Control type="text" value={item.tax_pph_type} onChange={(e) => handleItemChange(index, "tax_pph_type", e.target.value)} />
                                   </td> */}
+                                  <td style={{ textAlign: "right" }}>{item.tax_pph_amount ? item.tax_pph_amount.toLocaleString("en-US", { style: "currency", currency: item.currency }) : "IDR 0.00"}</td>
+
                                   <td>
-                                    <Form.Control className="text-end " type="text" value={item.tax_pph_amount} onChange={(e) => handleItemChange(index, "tax_pph_amount", e.target.value)} />
-                                  </td>
-                                  <td>
-                                    <Form.Control type="number" value={item.total_tax_base} onChange={(e) => handleItemChange(index, "total_tax_base", parseFloat(e.target.value))} />
+                                    <Form.Control type="number" value={item.tax_base} onChange={(e) => handleItemChange(index, "tax_base", parseFloat(e.target.value))} />
                                   </td>
 
                                   {/* <td>
@@ -1309,41 +1841,29 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, handleRefresh, inde
                             )}
                           </tbody>
                           <tfoot>
-                            <tr>
-                              <td colSpan="15" className="text-right">
-                                Sub Total:
-                              </td>
+                            <tr className="text-right">
+                              <td colSpan="14">Subtotal:</td>
                               <td>
-                                <strong>{calculateTotalAmount().toLocaleString("en-US", { style: "currency", currency: "IDR" || 0 })}</strong>
+                                <strong>{calculateTotalAmount().subTotal.toLocaleString("en-US", { style: "currency", currency: "IDR" })}</strong>
                               </td>
-                              <td></td>
                             </tr>
-                            <tr>
-                              <td colSpan="15" className="text-right">
-                                Total Ppn Amount:
-                              </td>
+                            <tr className="text-right">
+                              <td colSpan="14">Total Ppn Amount:</td>
                               <td>
-                                <strong>{calculateTotalAmount().toLocaleString("en-US", { style: "currency", currency: "IDR" || 0 })}</strong>
+                                <strong>{calculateTotalAmount().totalPPNAmount.toLocaleString("en-US", { style: "currency", currency: "IDR" })}</strong>
                               </td>
-                              <td></td>
                             </tr>
-                            <tr>
-                              <td colSpan="15" className="text-right">
-                                Total Pph Amount:
-                              </td>
+                            <tr className="text-right">
+                              <td colSpan="14">Total Pph Amount:</td>
                               <td>
-                                <strong>{calculateTotalAmount().toLocaleString("en-US", { style: "currency", currency: "IDR" || 0 })}</strong>
+                                <strong>{calculateTotalAmount().totalPPHAmount.toLocaleString("en-US", { style: "currency", currency: "IDR" })}</strong>
                               </td>
-                              <td></td>
                             </tr>
-                            <tr>
-                              <td colSpan="15" className="text-right">
-                                Total Amount:
-                              </td>
+                            <tr className="text-right">
+                              <td colSpan="14">Total Amount:</td>
                               <td>
-                                <strong>{calculateTotalAmount().toLocaleString("en-US", { style: "currency", currency: "IDR" || 0 })}</strong>
+                                <strong>{calculateTotalAmount().totalAmount.toLocaleString("en-US", { style: "currency", currency: "IDR" })} </strong>
                               </td>
-                              <td></td>
                             </tr>
                           </tfoot>
                         </table>

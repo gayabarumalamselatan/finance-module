@@ -487,6 +487,7 @@ const PurchaseRequestTable = ({
                                             checked={selectedRows.size === dataTable.length && dataTable.length > 0}
                                         />
                                     </th>
+                                    <th>End to End ID</th>
                                     <th>PR Number</th>
                                     <th>Request Date</th>
                                     <th>Schedule Date</th>
@@ -530,6 +531,7 @@ const PurchaseRequestTable = ({
                                                     onChange={(e) => handleCheckboxSelect(e, item.ID)}
                                                 />
                                             </td>
+                                            <td>{item.ENDTOENDID}</td>
                                             <td>{item.PR_NUMBER}</td>
                                             <td>{item.REQUEST_DATE}</td>
                                             <td>{item.SCHEDULE_DATE}</td>

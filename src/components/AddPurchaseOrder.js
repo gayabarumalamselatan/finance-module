@@ -29,22 +29,22 @@
     const [currencyOptions, setCurrencyOptions] = useState([]);
     const [selectedCurrency, setSelectedCurrency] = useState(null);
 
-    const [vatIncluded, setVatIncluded] = useState(false);
 
     // PO Fields
     const [title, setTitle] = useState('');
     const [po_number, setPoNumber] = useState('');
     const [docRef,setDocRef] = useState(''); 
-    const [request_date, setRequestDate] = useState('');
+    const [request_date, setRequestDate] = useState(new Date().toISOString().slice(0, 10));
     const [company, setCompany] = useState('');
-    const [prNumber, setPrNumber] = useState('');
     const [order_date, setOrderDate] = useState(new Date().toISOString().slice(0, 10));
     const [createdBy, setCreatedBy] = useState(userId);
     const [approveBy, setApproveBy] = useState('');
-    const [shipTo, setShipTo] = useState('');
-    const [shipToAddress, setShipToAddress] = useState('');
-    const [billTo, setBillTo] = useState('');
-    const [billToAddress, setBillToAddress] = useState('');
+    const [shipTo, setShipTo] = useState('PT. Abhimata Persada');
+    const [shipToAddress, setShipToAddress] = useState('Menara Batavia, 5th Floor, DKI Jakarta, 10220, ID');
+    const [billTo, setBillTo] = useState('PT. Abhihmata Persada');
+    const [billToAddress, setBillToAddress] = useState('Menara Batavia, 5th Floor, DKI Jakarta, 10220, ID');
+    const [termConditions, setTermConditions] = useState('');
+
    
 
     // PO Lookup
@@ -72,6 +72,12 @@
     const [PPNRate, setPPNRate] = useState('');
     const [docRefNumber, setDocRefNumber] = useState('');
     const [selectedDocRefNum, setSelectedDocRefNum] = useState([]);
+    const [to, setTo] = useState('');
+    const [toOptions, setToOptions] = useState([]);
+    const [selectedTo, setSelectedTo] = useState(null);
+    const [toAddress, setToAddress] = useState('');
+    const [toAddressOptions, setToAddressOptions] = useState([]);
+    const [selectedToAddress, setSelectedToAddress] = useState(null);
 
 
 
@@ -107,7 +113,8 @@
             COMPANY: item.COMPANY,
             PROJECT: item.PROJECT,
             CUSTOMER: item.CUSTOMER,
-            REQUESTDATE: item.REQUEST_DATE
+            REQUESTDATE: item.REQUEST_DATE,
+            VENDOR: item.VENDOR
           };
         }).filter(option => option !== null);
         setPROptions(options);
@@ -234,11 +241,27 @@
           );
           //console.log('Transformed data:', transformedData);
 
-          const options = transformedData.filter(item => item.ENTITY_TYPE === 'BOTH').map(item => ({
+          const options = transformedData.filter(item => item.ENTITY_TYPE === 'BOTH' || item.ENTITY_TYPE === 'Vendor').map(item => ({
             value: item.NAME,
-            label: item.NAME
+            label: item.NAME,
+            vendAddress: item.ADDRESS
           }));
           setVendorOptions(options);
+
+          const optionForTo = transformedData.map(item => ({
+            value: item.NAME,
+            label: item.NAME,
+            vendAddress: item.ADDRESS
+          }));
+          setToOptions(optionForTo);
+
+          const uniqueAddress = [...new Set(transformedData.map(item => item.ADDRESS))];
+          const optionsForToAddress = uniqueAddress.map(address => ({
+            value: address,
+            label: address
+          }));
+          setToAddressOptions(optionsForToAddress);
+
         })
         .catch(error => {
           console.error('Failed to fetch currency lookup:', error);
@@ -261,9 +284,17 @@
 
           const options = transformedData.map(item => ({
             value: item.NAME,
-            label: item.NAME
+            label: item.NAME,
+            customer: item.CUSTOMER
           }));
+
+          const optionsCustomer = transformedData.map(item => ({
+            value: item.CUSTOMER,
+            label: item.CUSTOMER
+          }))
+
           setProjectOptions(options);
+          setCustomerOptions(optionsCustomer);
         })
         .catch(error => {
           console.error('Failed to fetch currency lookup:', error);
@@ -271,29 +302,29 @@
 
 
         // Lookup Customer
-        LookupParamService.fetchLookupData("MSDT_FORMCUST", authToken, branchId)
-        .then(data => {
-          console.log('Currency lookup data:', data);
+        // LookupParamService.fetchLookupData("MSDT_FORM", authToken, branchId)
+        // .then(data => {
+        //   console.log('Currency lookup data:', data);
 
-          // Transform keys to uppercase directly in the received data
-          const transformedData = data.data.map(item =>
-            Object.keys(item).reduce((acc, key) => {
-              acc[key.toUpperCase()] = item[key];
-              return acc;
-            }, {})
-          );
-          //console.log('Transformed data:', transformedData);
+        //   // Transform keys to uppercase directly in the received data
+        //   const transformedData = data.data.map(item =>
+        //     Object.keys(item).reduce((acc, key) => {
+        //       acc[key.toUpperCase()] = item[key];
+        //       return acc;
+        //     }, {})
+        //   );
+        //   //console.log('Transformed data:', transformedData);
 
-          const options = transformedData.map(item => ({
-            value: item.NAME,
-            label: item.NAME,
-            address: item.ADDRESS
-          }));
-          setCustomerOptions(options);
-        })
-        .catch(error => {
-          console.error('Failed to fetch currency lookup:', error);
-        });
+        //   const options = transformedData.map(item => ({
+        //     value: item.NAME,
+        //     label: item.NAME,
+        //     address: item.ADDRESS
+        //   }));
+        //   setCustomerOptions(options);
+        // })
+        // .catch(error => {
+        //   console.error('Failed to fetch currency lookup:', error);
+        // });
 
 
         // Lookup Product
@@ -344,13 +375,41 @@
         .catch(error => {
           console.error('Failed to fetch currency lookup:', error);
         });
-
-       
-
         
     }, []);
-    
 
+    // Handler Project untuk autofill customer
+    const handleProjectChange = (selectedOption) => {
+      setSelectedProject(selectedOption);
+      setProject(selectedOption ? selectedOption.value: '');
+
+      if(selectedOption) {
+        const customerProject = customerOptions.find((option) => option.value === selectedOption.customer);
+        setSelectedCustomer(customerProject);
+        setCustomer(customerProject ? customerProject : null);
+      } else {
+        setSelectedCustomer(null);
+        setCustomer('');
+      }
+    }
+    
+    // To Handler untuk autofill address
+    const handleToChange = (selectedOption) => {
+      setSelectedTo(selectedOption);
+      setTo(selectedOption ? selectedOption.value : '');
+      
+      // Autofill
+      if(selectedOption) {
+        const toAddressOption = toAddressOptions.find((option) => option.value === selectedOption.vendAddress);
+        setSelectedToAddress(toAddressOption);
+        setToAddress(toAddressOption ? toAddressOption.value : '');
+      }else{
+        setSelectedToAddress(null);
+        setToAddress('');
+      }
+    }
+
+    // Pr handler 
     const handlePRChange = (selectedOption) => {
       setSelectedDocRefNum(selectedOption);
       setDocRefNumber(selectedOption ? selectedOption.value : '');
@@ -362,6 +421,8 @@
         const departementOption = departementOptions.find((option) => option.value === selectedOption.DEPARTEMENT);
         const projectOption = projectOptions.find((option) => option.value === selectedOption.PROJECT);
         const customerOption = customerOptions.find((option) => option.value === selectedOption.CUSTOMER);
+        const vendorOption = vendorOptions.find((option) => option.value === selectedOption.VENDOR);
+        const ToOption = toOptions.find((option) => option.value === selectedOption.VENDOR);
 
         setSelectedRequestor(requestorOption ? requestorOption : null);
         setRequestor(selectedOption.REQUESTOR);
@@ -373,13 +434,27 @@
         setCustomer(selectedOption.CUSTOMER);
         setCompany(selectedOption.COMPANY ? selectedOption.COMPANY : '');
         setRequestDate(selectedOption.REQUESTDATE);
-        setShipTo(selectedOption.CUSTOMER ? selectedOption.CUSTOMER : '');
-        setShipToAddress(selectedOption.ADDRESS);
+        setSelectedVendor(vendorOption ? vendorOption : null);
+        setVendor(selectedOption.VENDOR);
+        setSelectedTo(ToOption ? ToOption : null);
+        setTo(selectedOption.VENDOR);
 
-        if (selectedOption.CUSTOMER) {
-          const customer = customerOptions.find((option) => option.value === selectedOption.CUSTOMER);
-          setShipToAddress(customer ? customer.address : '');
+        if (vendorOption) {
+          const toOption = toOptions.find((option) => option.value === vendorOption.value);
+          const toAddressOption = toAddressOptions.find((option) => option.value === vendorOption.vendAddress);
+    
+          setSelectedTo(toOption);
+          setTo(toOption ? toOption.value : '');
+          setSelectedToAddress(toAddressOption);
+          setToAddress(toAddressOption ? toAddressOption.value : '');
         }
+        // setShipTo(selectedOption.CUSTOMER ? selectedOption.CUSTOMER : '');
+        // setShipToAddress(selectedOption.ADDRESS);
+
+        // if (selectedOption.CUSTOMER) {
+        //   const customer = customerOptions.find((option) => option.value === selectedOption.CUSTOMER);
+        //   setShipToAddress(customer ? customer.address : '');
+        // }
 
         // Lookup Purchase Request Item List
         LookupService.fetchLookupData(`PURC_FORMPUREQD&filterBy=PR_NUMBER&filterValue=${selectedOption.value}&operation=EQUAL`, authToken, branchId)
@@ -387,11 +462,11 @@
           const fetchedItems = response.data || [];
           console.log('Items fetched:', fetchedItems);
 
+
           const resetItems = fetchedItems.map(item => ({
             ...item,
-            vat_type: '',       
-            tax_ppn_type: '',
-            tax_base: item.tax_base || 0,
+            original_unit_price: item.unit_price || 0,
+            vat_included: false
 
           }));
           // Set fetched items to state
@@ -474,13 +549,23 @@
         setRequestDate('');
         setCompany('');
         setSelectedRequestor(null);
+        setRequestor('')
         setSelectedDepartement(null);
+        setDepartement('');
         setSelectedProject(null);
+        setProject('')
         setSelectedCustomer(null);
+        setCustomer('');
         setSelectedProduct(null);
         setSelectedCurrency(null);
         setItems([]);
         setSelectedTaxType(null);
+        setVendor('');
+        setSelectedVendor(null);
+        setTo('')
+        setSelectedTo(null);
+        setToAddress('');
+        setSelectedToAddress(null);
       }
     }
 
@@ -489,13 +574,7 @@
       stateSetter(selectedOption ? selectedOption.value : '');
     };
 
-    const handleCustomerChange = (selectedOption) => {
-      setSelectedCustomer(selectedOption);
-      setCustomer(selectedOption ? selectedOption.value : '');
-      setShipTo(selectedOption ? selectedOption.value : '');
-      setShipToAddress(selectedOption ? selectedOption.address : '');
-    };
-   
+
     const handleAddItem = () => {
       setItems([...items, { 
         product: '', 
@@ -506,70 +585,165 @@
         original_unit_price: 0, 
         total_price: 0, 
         vat_type: '',
-        tax_ppn_type: 0, 
+        tax_ppn_type: '', 
         tax_ppn_rate: 0, 
         tax_ppn_amount: 0 , 
         tax_base: 0, 
         discount: 0,
         subTotal: 0,
         vat_included: false,
-        
+        new_unit_price: 0,
       }]);
     };
 
     const handleItemChange = (index, field, value) => {
       const newItems = [...items];
       newItems[index][field] = value;
+      // newItems[index].original_unit_price = newItems[index].unit_price || 0;
 
       console.log(index, field, value);
 
+      // itungan lama
+
+      // if (field === 'vat_type') {
+      //   newItems[index].tax_ppn_type = '';
+      //   newItems[index].tax_ppn_rate = 0;
+      //   newItems[index].tax_base = 0;
+        
+      //   if (newItems[index].vat_type === 'include') {
+      //     newItems[index].unit_price = newItems[index].unit_price + (newItems[index].unit_price * 0.1); 
+      //     newItems[index].vat_included = true;
+      //   } else if (value === 'exclude' && newItems[index].vat_included === true) {
+      //     if (newItems[index].vat_included === true) {
+      //       newItems[index].unit_price = Math.round(newItems[index].unit_price / 1.1);
+      //       newItems[index].vat_included = false;
+      //     }else if (value === ''){
+      //       newItems[index].vat_included = true;
+      //     }
+      //   }
+      //   newItems[index].total_price = newItems[index].quantity * newItems[index].unit_price;
+      // }
+
+
+      // if (field === 'tax_ppn_type' || newItems[index].tax_ppn_rate ) {
+      //   if (newItems[index].vat_type === 'include') {
+      //     newItems[index].tax_base = Math.round(newItems[index].unit_price/((1+(newItems[index].tax_ppn_rate/100))*newItems[index].quantity)); 
+      //   } else if (newItems[index].vat_type === 'exclude') {
+      //     newItems[index].tax_base = Math.round(newItems[index].total_price); 
+      //   }
+      //   if (isNaN(newItems[index].tax_base)) {
+      //     newItems[index].tax_base = 0;
+      //   }
+      // }
+
+      // console.log('vat', newItems[index].vat_included);
+      // console.log('vat', newItems[index].vat_type);
+      // console.log('unir', newItems[index].unit_price);
+      // console.log('tax', newItems[index].tax_base);
+      // console.log('quant', newItems[index].quantity);
+
+      // console.log('Updated tax_base:', newItems[index].tax_base);
+
+      // if (field === 'tax_ppn_type' || field === 'unit_price' || field === 'tax_base'|| field === 'vat_type') {
+      //   newItems[index].tax_ppn_amount = newItems[index].tax_base * (newItems[index].tax_ppn_rate / 100);
+      // }
+
+      // if (field === 'unit_price' && !newItems[index].original_unit_price) {
+      //     newItems[index].original_unit_price = Number(value);
+      //   }
+
+
+      // Itungan Baru
+
+      // Reset field vat type dan ppn type ketika mengubah unit price dan quantity
+
+      
+
+      if( field === 'unit_price' || field === 'quantity') {
+        newItems[index].vat_type = '';
+        newItems[index].tax_ppn_type = '';
+        newItems[index].tax_base = 0; 
+        newItems[index].tax_ppn_amount = 0;
+        if(newItems[index].vat_included !== undefined) {
+          newItems[index].vat_included = false;
+        }
+      }
+      if (field === 'quantity' || field === 'unit_price') {
+        newItems[index].total_price = newItems[index].quantity * newItems[index].unit_price; 
+      }
+
+      // Itungan New Unit Price
+      let pengkali = newItems[index].tax_ppn_rate/100;
+
+      if (field === 'tax_ppn_type' || field === 'tax_ppn_rate') {
+        if (newItems[index].vat_type === 'include'){
+          newItems[index].new_unit_price = newItems[index].unit_price + (newItems[index].unit_price * (pengkali));
+          newItems[index].tax_base =  Math.round(newItems[index].unit_price / ((1 + (newItems[index].tax_ppn_rate / 100)) * newItems[index].quantity));
+          newItems[index].tax_ppn_amount = Math.round(newItems[index].tax_base * (newItems[index].tax_ppn_rate / 100));
+          newItems[index].vat_included = true;
+        } else if (newItems[index].vat_type === "exclude"){
+          newItems[index].tax_ppn_amount = newItems[index].total_price * (newItems[index].tax_ppn_rate/100);
+          newItems[index].tax_base = newItems[index].unit_price * newItems[index].quantity;
+        }
+        newItems[index].total_price = newItems[index].unit_price * newItems[index].quantity;
+      }
+      
       if (field === 'vat_type') {
         newItems[index].tax_ppn_type = '';
         newItems[index].tax_ppn_rate = 0;
         newItems[index].tax_base = 0;
-        
-        if (newItems[index].vat_type === 'include') {
-          newItems[index].unit_price = newItems[index].unit_price + (newItems[index].unit_price * 0.1); 
-          newItems[index].vat_included = true;
-        } else if (value === 'exclude' && newItems[index].vat_included === true) {
-          if (newItems[index].vat_included === true) {
-            newItems[index].unit_price = Math.round(newItems[index].unit_price / 1.1);
-            newItems[index].vat_included = false;
-          }else if (value === ''){
-            newItems[index].vat_included = true;
-          }
+        newItems[index].tax_ppn_amount = 0;
+        if (newItems[index].vat_type === 'exclude' && newItems[index].vat_included === true) {
+          newItems[index].new_unit_price = newItems[index].new_unit_price - (newItems[index].unit_price * (pengkali));
+          newItems[index].vat_included = false;
+
+        }else{
+          newItems[index].new_unit_price = newItems[index].unit_price;
+
         }
-        newItems[index].total_price = newItems[index].quantity * newItems[index].unit_price;
+        newItems[index].total_price = newItems[index].unit_price * newItems[index].quantity;
       }
 
+      // Itungan Original Unit Price
 
-      if (field === 'tax_ppn_type' || newItems[index].tax_ppn_rate ) {
-        if (newItems[index].vat_type === 'include') {
-          newItems[index].tax_base = Math.round(newItems[index].unit_price/((1+(newItems[index].tax_ppn_rate/100))*newItems[index].quantity)); 
-        } else if (newItems[index].vat_type === 'exclude') {
-          newItems[index].tax_base = Math.round(newItems[index].total_price); 
-        }
-        if (isNaN(newItems[index].tax_base)) {
-          newItems[index].tax_base = 0;
-        }
-      }
+      // let pengkali = newItems[index].tax_ppn_rate/100;
 
-      console.log('vat', newItems[index].vat_included);
+      // if (field === 'tax_ppn_type' || field === 'tax_ppn_rate') {
+      //   if (newItems[index].vat_type === 'include'){
+      //     newItems[index].unit_price = newItems[index].original_unit_price + (newItems[index].original_unit_price * (pengkali));
+      //     newItems[index].tax_base = newItems[index].unit_price / ((1 + (newItems[index].tax_ppn_rate / 100)) * newItems[index].quantity);
+      //     newItems[index].tax_ppn_amount = newItems[index].tax_base * (newItems[index].tax_ppn_rate / 100);
+      //     newItems[index].vat_included = true;
+      //   } else if (newItems[index].vat_type === "exclude"){
+      //     newItems[index].tax_ppn_amount = newItems[index].total_price * (newItems[index].tax_ppn_rate/100);
+      //     newItems[index].tax_base = newItems[index].unit_price * newItems[index].quantity;
+      //   }
+      //   newItems[index].total_price = newItems[index].unit_price * newItems[index].quantity;
+      // }
+
+      // if (field === 'vat_type') {
+      //   newItems[index].tax_ppn_type = '';
+      //   newItems[index].tax_ppn_rate = 0;
+      //   newItems[index].tax_base = 0;
+      //   newItems[index].tax_ppn_amount = 0;
+      //   if (newItems[index].vat_type === 'exclude' && newItems[index].vat_included === true) {
+      //     newItems[index].unit_price = newItems[index].unit_price - (newItems[index].original_unit_price * (pengkali));
+      //     newItems[index].vat_included = false;
+
+      //   }else{
+      //     newItems[index].new_unit_price = newItems[index].unit_price;
+
+      //   }
+      //   newItems[index].total_price = newItems[index].unit_price * newItems[index].quantity;
+      // }
+
+      console.log('new unit price', newItems[index].new_unit_price)
+      console.log('original', newItems[index].tax_ppn_amount);
+      console.log('unit', newItems[index].unit_price);
+      console.log('pengkali', pengkali);  
+      console.log('vatinc', newItems[index].vat_included);
+      console.log('base', newItems[index].tax_base);
       console.log('vat', newItems[index].vat_type);
-      console.log('unir', newItems[index].unit_price);
-      console.log('tax', newItems[index].tax_base);
-      console.log('quant', newItems[index].quantity);
-
-      console.log('Updated tax_base:', newItems[index].tax_base);
-
-      if (field === 'tax_ppn_type' || field === 'unit_price' || field === 'tax_base'|| field === 'vat_type') {
-        newItems[index].tax_ppn_amount = newItems[index].tax_base * (newItems[index].tax_ppn_rate / 100);
-      }
-
-      if (field === 'quantity' || field === 'unit_price') {
-        newItems[index].total_price = newItems[index].quantity * newItems[index].unit_price;
-        
-      }
 
       // if (field === 'tax_type') {
       //   const selectedTaxType = taxTypeOptions.find(option => option.value === value);
@@ -614,12 +788,12 @@
       }, 0);
 
       const totalPPNAmount = items.reduce((total, item) => {
-        const taxPPNAmount = isNaN(item.tax_ppn_amount) ? 0 : item.tax_ppn_amount;
+        const taxPPNAmount = isNaN(item.tax_ppn_amount) ? 0 : parseFloat(item.tax_ppn_amount);
         return total + taxPPNAmount;
       }, 0);
 
       const totalAmount  =  subTotal + totalPPNAmount;
-      const validTotalAmount = isNaN(totalAmount) ? 0 : totalAmount;
+      const validTotalAmount = isNaN(totalAmount) ? 0 : parseFloat(totalAmount);
       return { subTotal, totalPPNAmount, totalAmount: validTotalAmount };
     };
 
@@ -632,15 +806,35 @@
     };
 
     const resetForm = () => {
-      setPrNumber('');
-      setRequestDate('');
+      setPoNumber('');
+      setDocRef('');
+      setDocRefNumber('');
+      setProject('');
+      setVendor('');
       setTitle('');
-      setScheduleDate('');
+      setCustomer('');
+      setSelectedCustomer(null);
       setRequestor('');
       setDepartement('');
-      setVendor('');
-      setProject('');
+      setSelectedPaymentTerm(null);
+      setCompany('');
+      setOrderDate(order_date);
+      setPaymentTerm('');
+      setCreatedBy(createdBy);
       setDescription('');
+      setApproveBy('');
+      setShipTo('');
+      setShipToAddress('');
+      setBillTo('');
+      setBillToAddress('');
+      
+
+      setRequestDate('');
+      
+      setScheduleDate('');
+      
+      
+    
       setItems([]);
       setSelectedItems([]);
       setSelectedRequestor(null);
@@ -674,28 +868,30 @@
           // Save general information and description
           const generalInfo = {
             po_number,
-            doc_reference: docRefNumber,
+            doc_reff: docRef,
+            doc_reff_no: docRefNumber,
             project,
             vendor,
             status_po: 'DRAFT',
-            title,
             customer,
             requestor,
             departement,
             company,
             order_date, // Converts to date format
-            payment_term: paymentTerm,
+            request_date,
             created_by: createdBy,
             description,
             total_amount: totalAmount,
             approved_by: approveBy,
+            form_to: to,
+            to_address: toAddress,
             ship_to: shipTo,
             ship_to_address: shipToAddress,
             bill_to: billTo,
             bill_to_address: billToAddress,
             total_tax_base: subTotal,
             total_amount_ppn: totalPPNAmount,
-            
+            term_conditions: termConditions,
           };
 
           console.log('Master', generalInfo);
@@ -714,14 +910,18 @@
                 type_of_vat: item.vat_type
               };
 
-              delete updatedItem.rwnum; //Delete rwnum
+              delete updatedItem.rwnum; 
               delete updatedItem.ID;
+              delete updatedItem.status;
+              delete updatedItem.id_trx;
               delete updatedItem.pr_number;
               delete updatedItem.original_unit_price;
+              delete updatedItem.new_unit_price;
               delete updatedItem.vat_type;
               delete updatedItem.tax_ppn_type;
               delete updatedItem.discount;
               delete updatedItem.vat_included;
+              delete updatedItem.subTotal;
 
 
               const itemResponse = await InsertDataService.postData(updatedItem, "PUORD", authToken, branchId);
@@ -766,27 +966,30 @@
           // Save general information and description
           const generalInfo = {
             po_number,
-            doc_reference: docRefNumber,
+            doc_reff: docRef,
+            doc_reff_no: docRefNumber,
             project,
             vendor,
             status_po: 'IN_PROCESS',
-            title,
-            order_date, // Converts to date format
-            payment_term: paymentTerm,
-            created_by: createdBy,
-            description,
             customer,
             requestor,
             departement,
             company,
+            order_date, // Converts to date format
+            request_date,
+            created_by: createdBy,
+            description,
             total_amount: totalAmount,
             approved_by: approveBy,
+            form_to: to,
+            to_address: toAddress,
             ship_to: shipTo,
             ship_to_address: shipToAddress,
             bill_to: billTo,
             bill_to_address: billToAddress,
             total_tax_base: subTotal,
             total_amount_ppn: totalPPNAmount,
+            term_conditions: termConditions,
             
           };
 
@@ -806,14 +1009,19 @@
                 type_of_vat: item.vat_type
               };
 
-              delete updatedItem.rwnum; //Delete rwnum
+              delete updatedItem.rwnum; 
               delete updatedItem.ID;
+              delete updatedItem.status;
+              delete updatedItem.id_trx;
               delete updatedItem.pr_number;
               delete updatedItem.original_unit_price;
+              delete updatedItem.new_unit_price;
               delete updatedItem.vat_type;
               delete updatedItem.tax_ppn_type;
               delete updatedItem.discount;
               delete updatedItem.vat_included;
+              delete updatedItem.subTotal;
+              
 
 
 
@@ -898,19 +1106,6 @@
                       </Col>
 
                       <Col md={6}>
-                        <Form.Group controlId="formTitle">
-                          <Form.Label>Title</Form.Label>
-                          <Form.Control
-                            type="text"
-                            placeholder="Enter Title"
-                            value={title}
-                            onChange={(e) => setTitle(e.target.value)}
-                            required
-                          />
-                        </Form.Group>
-                      </Col>
-
-                      <Col md={6}>
                         <Form.Group controlId="formDocRef">
                           <Form.Label>Doc. Reference</Form.Label>
                           <Form.Select
@@ -966,6 +1161,15 @@
                           </Col>
                       }
 
+                      <Col md={6}>
+                      <Form.Group controlId='formFile'>
+                        <Form.Label>File Document</Form.Label>
+                        <Form.Control
+                          type='file'
+                          placeholder='Upload Document'
+                        />
+                      </Form.Group>
+                      </Col>
 
                       <Col md={6}>
                         <Form.Group controlId='formCustomer'>
@@ -973,8 +1177,10 @@
                           <Select
                             id='customer'
                             value={selectedCustomer}
+                            onChange={(selectedOption) => {
+                              handleOptionChange(setSelectedCustomer, setCustomer, selectedOption)
+                            }}
                             options={customerOptions}
-                            onChange={handleCustomerChange}
                             placeholder='Customer...'
                             isClearable
                             required
@@ -982,24 +1188,40 @@
                           />
                         </Form.Group>
                       </Col>
+                      
 
-                      <Col md={6}>
-                        <Form.Group controlId="formRequestor">
-                          <Form.Label>Requestor</Form.Label>
-                          <Select
-                            id='requestor'
-                            value={selectedRequestor}
-                            onChange={(selectedOption) => {
-                              handleOptionChange(setSelectedRequestor, setRequestor, selectedOption);
-                            }}
-                            options={requestorOptions}
-                            placeholder='Requestor...'
-                            isClearable
-                            required
-                            isDisabled = {docRef === 'purchaseRequest'}
-                          />
-                        </Form.Group>
-                      </Col>
+                      {docRef === 'purchaseRequest' ?
+
+                        <Col md={6}>
+                          <Form.Group>
+                            <Form.Label>Requestor</Form.Label>
+                            <Form.Control
+                              value={requestor}
+                              onChange={(e)=> setRequestor(e.target.value)}
+                              disabled
+                              required
+                            />
+                          </Form.Group>
+                        </Col>
+                      :
+                        <Col md={6}>
+                          <Form.Group controlId="formRequestor">
+                            <Form.Label>Requestor</Form.Label>
+                            <Select
+                              id='requestor'
+                              value={selectedRequestor}
+                              onChange={(selectedOption) => {
+                                handleOptionChange(setSelectedRequestor, setRequestor, selectedOption);
+                              }}
+                              options={requestorOptions}
+                              placeholder='Requestor...'
+                              isClearable
+                              required
+                              isDisabled = {docRef === 'purchaseRequest'}
+                            />
+                          </Form.Group>
+                        </Col>
+                      }
 
                       <Col md={6}>
                         <Form.Group controlId="formDepartment">
@@ -1020,27 +1242,16 @@
                       </Col>
 
                       <Col md={6}>
-                        <Form.Group controlId="formCompany">
-                          <Form.Label>Company</Form.Label>
-                          <Form.Control
-                            type="text"
-                            placeholder="Enter Company"
-                            value={company}
-                            onChange={(e) => setCompany(e.target.value)}
-                          />
-                        </Form.Group>
-                      </Col>
-
-                      <Col md={6}>
                         <Form.Group controlId="formProject">
                           <Form.Label>Project</Form.Label>
                           <Select
                             id="project"
                             value={selectedProject}
                             options={projectOptions}
-                            onChange={(selectedOption) => {
-                              handleOptionChange(setSelectedProject, setProject, selectedOption);
-                            }}
+                            // onChange={(selectedOption) => {
+                            //   handleOptionChange(setSelectedProject, setProject, selectedOption);
+                            // }}
+                            onChange={handleProjectChange}
                             placeholder="Project..."
                             isClearable 
                             required
@@ -1057,6 +1268,7 @@
                             value={request_date}
                             onChange={(e) => setRequestDate(e.target.value)}
                             required
+                            disabled
                           />
                         </Form.Group>
                       </Col>
@@ -1070,6 +1282,19 @@
                             options={vendorOptions}
                             onChange={(selectedOption) => {
                               handleOptionChange(setSelectedVendor, setVendor, selectedOption);
+                              if(selectedOption){
+                              const toOption = toOptions.find((option) => option.value === selectedOption.value);
+                              const addressTo = toAddressOptions.find((option) => option.value === selectedOption.vendAddress);
+                              setSelectedTo(toOption);
+                              setTo(toOption ? toOption.value : null);
+                              setSelectedToAddress(addressTo);
+                              setToAddress(addressTo ? addressTo.value : null);
+                              }else{
+                                setSelectedTo(null);
+                                setTo('');
+                                setSelectedToAddress(null);
+                                setToAddress('');
+                              }
                             }}
                             isClearable
                             placeholder="Vendor..."
@@ -1086,22 +1311,6 @@
                             value={order_date}
                             onChange={(e) => setOrderDate(e.target.value)}
                             required
-                          />
-                        </Form.Group>
-                      </Col>
-
-                      <Col md={6}>
-                        <Form.Group controlId="formPaymentTerm">
-                          <Form.Label>Payment Term</Form.Label>
-                          <Select
-                            value={selectedPaymentTerm}
-                            options={paymentTermOptions}
-                            onChange={(selectedOption) => {
-                              handleOptionChange(setSelectedPaymentTerm, setPaymentTerm, selectedOption);
-                            }}
-                            isClearable
-                            placeholder='Payment Term...'
-                            required 
                           />
                         </Form.Group>
                       </Col>
@@ -1127,6 +1336,37 @@
                             placeholder='Insert Approved By'
                             value={approveBy}
                             onChange={(e) => setApproveBy(e.target.value)}
+                            required
+                          />
+                        </Form.Group>
+                      </Col>
+
+                      <Col md={6}>
+                        <Form.Group controlId='formTo'>
+                          <Form.Label>To</Form.Label>
+                          <Select
+                            id='to'
+                            value={selectedTo}
+                            options={toOptions}
+                            onChange={handleToChange}
+                            placeholder = "To..."
+                            isClearable
+                            required
+                          />
+                        </Form.Group>
+                      </Col>
+                      
+                      <Col md={6}>
+                        <Form.Group controlId='formToAddress'>
+                          <Form.Label>To Address</Form.Label>
+                          <Select
+                            id='toAddress'
+                            value={selectedToAddress}
+                            options={toAddressOptions}
+                            onChange={(selectedOption) => {
+                              handleOptionChange(setSelectedToAddress, setToAddress, selectedOption);
+                            }}
+                            isClearable
                             required
                           />
                         </Form.Group>
@@ -1167,6 +1407,7 @@
                             value={billTo}
                             onChange={(e) => setBillTo(e.target.value)}
                             required
+                            disabled
                           />
                         </Form.Group>
                       </Col>
@@ -1180,9 +1421,15 @@
                             value={billToAddress}
                             onChange={(e) => setBillToAddress(e.target.value)}
                             required
+                            disabled
                           />
                         </Form.Group>
                       </Col>
+
+
+                      {
+
+                      }
 
                     </Row>
                   </Form>
@@ -1312,9 +1559,17 @@
                                     
                                     <td>
                                       <Form.Control
-                                        type="number"
-                                        value={item.unit_price}
-                                        onChange={(e) => handleItemChange(index, 'unit_price', Math.max(0, parseFloat(e.target.value) || 0))}
+                                        type="Number"
+                                        value={item.unit_price !== undefined && item.unit_price !== null ? item.unit_price : 0}
+                                        onChange={(e) => {
+                                          const newPrice = parseFloat(e.target.value) || 0;
+                                          handleItemChange(index, 'unit_price',  newPrice);
+                                          // if (item.unit_price !== undefined && item.unit_price !== null) {
+                                          //   handleItemChange(index, 'original_unit_price', newPrice);
+                                          // }else{
+                                          //   handleItemChange(index, 'original_unit_price', item.unit_price);
+                                          // }
+                                        }}
                                       />
                                     </td>
 
@@ -1363,8 +1618,8 @@
                                       />
                                     </td>
 
-                                    <td style={{textAlign: 'right'}}>{item.tax_ppn_amount ? item.tax_ppn_amount.toLocaleString('en-US', { style: 'currency', currency: item.currency }) : 'IDR 0.00'}
-                                      
+                                    <td style={{textAlign: 'right'}}>
+                                      {item.tax_ppn_amount ? parseFloat(item.tax_ppn_amount).toLocaleString('en-US', { style: 'currency', currency: item.currency }) : 'IDR 0.00'}
                                     </td>
 
                                     <td>
@@ -1373,11 +1628,10 @@
                                         disabled
                                         style={{textAlign: 'right'}}
                                         value={item.tax_base !== undefined && item.tax_base !== null ? item.tax_base : 0}
-                                        onChange={(e) => handleItemChange(index, 'tax_base', parseFloat(e.target.value) || 0)}
+                                        onChange={(e) => handleItemChange(index, 'tax_base', Math.max(0, parseFloat(e.target.value) || 0))}
                                       />
                                     </td>
 
-                                    
                                     
                                     <td>
                                       <Button
@@ -1393,6 +1647,10 @@
                               )}
                             </tbody>
                             <tfoot>
+                              <tr className='text-right'>
+                                <td colSpan="11">Subtotal Before Discount:</td>
+                                <td><strong>{calculateTotalAmount().subTotal.toLocaleString('en-US', { style: 'currency', currency: 'IDR' })}</strong></td>
+                              </tr>
                               <tr>
                                 <td colSpan="11" className='text-right'>Discount:</td>
                                 <td colSpan="1" className='text-right'>
@@ -1403,7 +1661,7 @@
                               </tr>
                               <tr className='text-right'>
                                 <td colSpan="11">Subtotal:</td>
-                                <td><strong>{calculateTotalAmount().subTotal.toLocaleString('en-US', { style: 'currency', currency: 'IDR' })}</strong></td>
+                                <td>0.0</td>
                               </tr>
                               <tr className='text-right'>
                                 <td colSpan="11">Total PPN:</td>
@@ -1426,6 +1684,25 @@
             </Col>
 
           </Row>
+
+          <Row className='mt-4'>
+            <Col md={12}>
+              <Card>
+                <Card.Body>
+                  <Form.Group>
+                    <Form.Label>Terms & Conditions</Form.Label>
+                    <Form.Control
+                      as='textarea'
+                      rows={3}
+                      placeholder='Enter Terms & Conditions'
+                      onChange={(e)=>setTermConditions(e.target.value)}
+                    />
+                  </Form.Group>
+                </Card.Body>
+              </Card>
+            </Col>
+          </Row>
+
           <Row className="mt-4">
             <Col md={12}>
               <Card>
@@ -1477,4 +1754,4 @@
     );
   }
 
-  export default AddPurchaseOrder;
+export default AddPurchaseOrder;
