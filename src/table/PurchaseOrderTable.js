@@ -532,7 +532,7 @@ const PurchaseOrderTable = ({
                             <tbody>
                                 {isLoadingTable ? (
                                     <tr>
-                                        <td colSpan={19}>
+                                        <td colSpan={27}>
                                             <div className="text-center">
                                                 <div className="spinner-border text-primary" role="status">
                                                     <span className="sr-only">Loading...</span>
@@ -542,7 +542,7 @@ const PurchaseOrderTable = ({
                                     </tr>
                                 ) : dataTable.length === 0 ? (
                                     <tr>
-                                        <td colSpan={19}>
+                                        <td colSpan={27}>
                                             <div className="text-center">No data available</div>
                                         </td>
                                     </tr>
@@ -579,7 +579,14 @@ const PurchaseOrderTable = ({
                                             <td>{item.BILL_TO_ADDRESS}</td>
                                             <td>{item.TERM_CONDITIONS}</td>
                                             <td>{item.DESCRIPTION}</td>
-                                            <td>{item.DISCOUNT}</td>
+                                            <td>
+                                                <NumericFormat
+                                                    value={item.DISCOUNT}
+                                                    displayType="text"
+                                                    thousandSeparator=","
+                                                    prefix="Rp "
+                                                />
+                                            </td>
                                             <td>
                                                 <NumericFormat
                                                     value={item.TOTAL_TAX_BASE}
@@ -720,13 +727,20 @@ const PurchaseOrderTable = ({
                                     </div>
                                     <div className="row mb-3">
                                         <div className="col-md-4 font-weight-bold">Discount:</div>
-                                        <div className="col-md-8">{selectedRowData.DISCOUNT}</div>
+                                        <div className="col-md-8">
+                                            <NumericFormat
+                                                value={selectedRowData.DISCOUNT}
+                                                displayType="text"
+                                                thousandSeparator=","
+                                                prefix="Rp "
+                                            />
+                                        </div>
                                     </div>
                                     <div className="row mb-3">
                                         <div className="col-md-4 font-weight-bold">Subtotal:</div>
                                         <div className="col-md-8">
                                             <NumericFormat
-                                                value={selectedRowData.TOTAL_AMOUNT}
+                                                value={selectedRowData.TOTAL_TAX_BASE}
                                                 displayType="text"
                                                 thousandSeparator=","
                                                 prefix="Rp "
@@ -737,7 +751,7 @@ const PurchaseOrderTable = ({
                                         <div className="col-md-4 font-weight-bold">Total PPN:</div>
                                         <div className="col-md-8">  
                                             <NumericFormat
-                                                value={selectedRowData.TOTAL_AMOUNT}
+                                                value={selectedRowData.TOTAL_AMOUNT_PPN}
                                                 displayType="text"
                                                 thousandSeparator=","
                                                 prefix="Rp "

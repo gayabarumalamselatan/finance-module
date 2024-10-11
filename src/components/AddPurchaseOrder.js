@@ -5,7 +5,7 @@
   import { messageAlertSwal } from "../config/Swal";
   import InsertDataService from '../service/InsertDataService';
   import { getBranch, getToken, userLoggin } from '../config/Constant';
-  import { FORM_SERVICE_UPDATE_DATA, GENERATED_NUMBER } from '../config/ConfigUrl';
+  import { FORM_SERVICE_UPDATE_DATA, GENERATED_NUMBER, UPLOAD_FILES } from '../config/ConfigUrl';
   import { generateUniqueId } from '../service/GeneratedId';
   import Select from 'react-select';
   import LookupParamService from '../service/LookupParamService';
@@ -20,7 +20,7 @@ import axios from 'axios';
 
 
     const [schedule_date, setScheduleDate] = useState('');
-    const [requestor, setRequestor] = useState('');
+    const [requestor, setRequestor] = useState(userId);
     const [items, setItems] = useState([]);
     const [description, setDescription] = useState('');
     const [selectedItems, setSelectedItems] = useState([]);
@@ -47,6 +47,10 @@ import axios from 'axios';
     const [termConditions, setTermConditions] = useState('');
     const [endToEnd,setEndToEnd] = useState('');
     const [idPr, setIdPr] = useState(''); 
+    const [discount, setDiscount] = useState(0);
+    const [formattedDiscount, setFormattedDiscount] = useState('IDR 0.00');
+    const [validated, setValidated] = useState(false);
+    
 
     // PO Lookup
     const [project, setProject] = useState('');
@@ -79,6 +83,8 @@ import axios from 'axios';
     const [toAddress, setToAddress] = useState('');
     const [toAddressOptions, setToAddressOptions] = useState([]);
     const [selectedToAddress, setSelectedToAddress] = useState(null);
+    const [fileInput, setFileInput] = useState(null);
+    const [file, setFile] = useState(null);
 
 
 
@@ -109,7 +115,7 @@ import axios from 'axios';
           return {
             value: item.PR_NUMBER,
             label: label.replace('DRAFT ', ''), // remove 'DRAFT ' from the label
-            REQUESTOR: item.REQUESTOR,
+            // REQUESTOR: item.REQUESTOR,
             DEPARTEMENT: item.DEPARTEMENT,
             COMPANY: item.COMPANY,
             PROJECT: item.PROJECT,
@@ -420,15 +426,15 @@ import axios from 'axios';
       
       if (selectedOption) {
 
-        const requestorOption = requestorOptions.find((option) => option.value === selectedOption.REQUESTOR);
+        // const requestorOption = requestorOptions.find((option) => option.value === selectedOption.REQUESTOR);
         const departementOption = departementOptions.find((option) => option.value === selectedOption.DEPARTEMENT);
         const projectOption = projectOptions.find((option) => option.value === selectedOption.PROJECT);
         const customerOption = customerOptions.find((option) => option.value === selectedOption.CUSTOMER);
         const vendorOption = vendorOptions.find((option) => option.value === selectedOption.VENDOR);
         const ToOption = toOptions.find((option) => option.value === selectedOption.VENDOR);
 
-        setSelectedRequestor(requestorOption ? requestorOption : null);
-        setRequestor(selectedOption.REQUESTOR);
+        // setSelectedRequestor(requestorOption ? requestorOption : null);
+        // setRequestor(selectedOption.REQUESTOR);
         setSelectedDepartement(departementOption ? departementOption : null);
         setDepartement(selectedOption.DEPARTEMENT);
         setSelectedProject(projectOption ? projectOption : null);
@@ -551,8 +557,8 @@ import axios from 'axios';
 
       } else {
         setRequestDate('');
-        setSelectedRequestor(null);
-        setRequestor('')
+        // setSelectedRequestor(null);
+        // setRequestor('')
         setSelectedDepartement(null);
         setDepartement('');
         setSelectedProject(null);
@@ -784,20 +790,22 @@ import axios from 'axios';
       setSelectedItems([]);
     };
 
-    const calculateTotalAmount = () => {
+    const calculateTotalAmount = (currency = 'IDR') => {
       const subTotal = items.reduce((total, item) => {
         const taxBase = isNaN(item.tax_base) ? 0 : item.tax_base;
         return total + taxBase;
       }, 0);
+
+      const subtotalAfterDiscount = subTotal - discount;
 
       const totalPPNAmount = items.reduce((total, item) => {
         const taxPPNAmount = isNaN(item.tax_ppn_amount) ? 0 : parseFloat(item.tax_ppn_amount);
         return total + taxPPNAmount;
       }, 0);
 
-      const totalAmount  =  subTotal + totalPPNAmount;
+      const totalAmount  =  subtotalAfterDiscount + totalPPNAmount;
       const validTotalAmount = isNaN(totalAmount) ? 0 : parseFloat(totalAmount);
-      return { subTotal, totalPPNAmount, totalAmount: validTotalAmount };
+      return { subTotal, currency, subtotalAfterDiscount, totalPPNAmount, totalAmount: validTotalAmount };
     };
 
     const handleOnDragEnd = (result) => {
@@ -817,7 +825,6 @@ import axios from 'axios';
       setTitle('');
       setCustomer('');
       setSelectedCustomer(null);
-      setRequestor('');
       setDepartement('');
       setSelectedPaymentTerm(null);
       setOrderDate(order_date);
@@ -829,14 +836,12 @@ import axios from 'axios';
       setShipToAddress('');
       setBillTo('');
       setBillToAddress('');
-      
-
       setRequestDate('');
-      
       setScheduleDate('');
-      
-      
-    
+      setTo('');
+      setSelectedTo(null);
+      setToAddress('');
+      setSelectedToAddress(null);
       setItems([]);
       setSelectedItems([]);
       setSelectedRequestor(null);
@@ -847,22 +852,7 @@ import axios from 'axios';
       setEndToEnd('');
     };
 
-    // const handleEndToEnd = async () => {
-    //   console.log('end to end ',endToEnd);
-    //   if(docRef === 'purchaseRequest') {
-    //     setSelectedEndToEnd(endToEnd);
-    //   }else{
-    //     let uniquePrNumber;
-    //     try {
-    //       uniquePrNumber = await generateUniqueId(`${GENERATED_NUMBER}?code=PURC`, authToken);
-    //     } catch (error) {
-    //       console.error('Failed to generate End to end:', error);
-    //     }
-    //     setSelectedEndToEnd(uniquePrNumber);
-    //       return uniquePrNumber;
-    //   }
-    // }
-
+   
     const generatePrNumber = async (code) => {
       try {
         const uniquePrNumber = await generateUniqueId(`${GENERATED_NUMBER}?code=${code}`, authToken);
@@ -878,13 +868,19 @@ import axios from 'axios';
     const handleSave = async (event) => {
       event.preventDefault();
 
+      if (!po_number) {
+        messageAlertSwal('Error', 'PO Number Cant Be Empty', 'error');
+        return; 
+      }
+      
+
       // Show SweetAlert2 confirmation
       const result = await Swal.fire({
         title: 'Are you sure?',
         text: "Do you want to save the Purchase Request?",
         icon: 'warning',
         showCancelButton: true,
-        confirmButtonText: 'Yes, submit it!',
+        confirmButtonText: 'Yes, Save it!',
         cancelButtonText: 'No, cancel!',
         reverseButtons: true,
       });
@@ -933,6 +929,7 @@ import axios from 'axios';
             total_amount_ppn: totalPPNAmount,
             term_conditions: termConditions,
             endtoendid: endToEndId,
+            discount
           };
 
           console.log('Master', generalInfo);
@@ -967,6 +964,31 @@ import axios from 'axios';
 
               const itemResponse = await InsertDataService.postData(updatedItem, "PUORD", authToken, branchId);
               console.log('Item posted successfully:', itemResponse);
+
+              
+              // const file = fileInput.files[0];
+
+              const request = {
+                idTrx: endToEndId,
+                code: 'PUOR',
+              };
+              
+              const formData = new FormData();
+              formData.append('request', JSON.stringify(request));
+              formData.append('file', file); // Use the file variable directly
+              
+              const uploadResponse = await axios.post(UPLOAD_FILES, formData, {
+                headers: {
+                  Authorization: `Bearer ${authToken}`,
+                  'Content-Type': 'multipart/form-data',
+                },
+              });
+
+              if (uploadResponse.ok) {
+                console.log('File uploaded successfully');
+              } else {
+                console.error('Error uploading file:', uploadResponse.status);
+              }
             }
 
             messageAlertSwal('Success', response.message, 'success');
@@ -989,10 +1011,16 @@ import axios from 'axios';
     const handleSubmit = async (event) => {
       event.preventDefault();
 
+      if (!po_number) {
+        messageAlertSwal('Error', 'PO Number Cant Be Empty', 'error');
+        return; 
+      }
+      
+
       // Show SweetAlert2 confirmation
       const result = await Swal.fire({
         title: 'Are you sure?',
-        text: "Do you want to save the Purchase Request?",
+        text: "Do you want to Submit the Purchase Request?",
         icon: 'warning',
         showCancelButton: true,
         confirmButtonText: 'Yes, submit it!',
@@ -1016,7 +1044,7 @@ import axios from 'axios';
             console.log("endtoendId is not empty");
           }
 
-          const { subTotal, totalPPNAmount, totalAmount} = calculateTotalAmount();
+          const { subtotalAfterDiscount, totalPPNAmount, totalAmount} = calculateTotalAmount();
           // Save general information and description
           const generalInfo = {
             po_number,
@@ -1040,10 +1068,11 @@ import axios from 'axios';
             ship_to_address: shipToAddress,
             bill_to: billTo,
             bill_to_address: billToAddress,
-            total_tax_base: subTotal,
+            total_tax_base: subtotalAfterDiscount,
             total_amount_ppn: totalPPNAmount,
             term_conditions: termConditions,
             endtoendid: endToEndId,
+            discount
           };
 
           console.log('Master', generalInfo);
@@ -1227,6 +1256,7 @@ import axios from 'axios';
                         <Form.Control
                           type='file'
                           placeholder='Upload Document'
+                          onChange={(e) => setFile(e.target.files[0])}
                         />
                       </Form.Group>
                       </Col>
@@ -1252,7 +1282,7 @@ import axios from 'axios';
                       </Col>
                       
 
-                      {docRef === 'purchaseRequest' ?
+                      {/* {docRef === 'purchaseRequest' ?
 
                         <Col md={6}>
                           <Form.Group>
@@ -1283,7 +1313,19 @@ import axios from 'axios';
                             />
                           </Form.Group>
                         </Col>
-                      }
+                      } */}
+
+                      <Col md={6}>
+                        <Form.Group>
+                          <Form.Label>Requestor</Form.Label>
+                          <Form.Control
+                            value={requestor}
+                            onChange={(e)=> setRequestor(e.target.value)}
+                            disabled
+                            required
+                          />
+                        </Form.Group>
+                      </Col>
 
                       <Col md={6}>
                         <Form.Group controlId="formDepartment">
@@ -1316,7 +1358,7 @@ import axios from 'axios';
                             placeholder='Customer...'
                             isClearable
                             required
-                            isDisabled = {docRef === 'purchaseRequest'}
+                            isDisabled = {docRef === 'purchaseRequest' || !docRef}
                           />
                         </Form.Group>
                       </Col>
@@ -1553,8 +1595,8 @@ import axios from 'axios';
                                 <th>Total Price</th>
                                 <th>Type of VAT</th>
                                 <th>Tax PPN Type</th>
-                                <th>Tax PPN Rate</th>
-                                <th>Tax PPN Amount</th>
+                                <th>Tax PPN Rate %</th>
+                                {/* <th>Tax PPN Amount</th> */}
                                 <th>Tax Base</th>
                                 
                                 <th>Actions</th>
@@ -1679,9 +1721,9 @@ import axios from 'axios';
                                       />
                                     </td>
 
-                                    <td style={{textAlign: 'right'}}>
+                                    {/* <td style={{textAlign: 'right'}}>
                                       {item.tax_ppn_amount ? parseFloat(item.tax_ppn_amount).toLocaleString('en-US', { style: 'currency', currency: item.currency }) : 'IDR 0.00'}
-                                    </td>
+                                    </td> */}
 
                                     <td>
                                       <Form.Control
@@ -1709,28 +1751,101 @@ import axios from 'axios';
                             </tbody>
                             <tfoot>
                               <tr className='text-right'>
-                                <td colSpan="11">Subtotal Before Discount:</td>
-                                <td><strong>{calculateTotalAmount().subTotal.toLocaleString('en-US', { style: 'currency', currency: 'IDR' })}</strong></td>
+                                <td colSpan="10">Subtotal Before Discount:</td>
+                                <td>
+                                  <strong>
+                                    {items.length > 0 
+                                      ? calculateTotalAmount(items[0].currency).subTotal.toLocaleString('en-US', {
+                                        style: 'currency',
+                                        currency: items[0].currency || 'IDR'
+                                      })
+                                      : 'IDR 0.00'}
+                                  </strong>
+                                </td>
                               </tr>
-                              <tr>
-                                <td colSpan="11" className='text-right'>Discount:</td>
-                                <td colSpan="1" className='text-right'>
+                              <tr className='text-right'>
+                                <td colSpan="10">Discount:</td>
+                                <td>
                                   <Form.Control
-                                    type='number'
+                                    className='text-right'
+                                    type='text'
+                                    value={formattedDiscount}
+                                    onChange={(e) => {
+                                      // Remove any non-numeric characters for easy input
+                                      const newValue = e.target.value.replace(/[^\d.-]/g, '');
+                                      setDiscount(parseFloat(newValue) || 0); // Update the raw number state
+                                      setFormattedDiscount(e.target.value); // Keep the input as is for display
+                                    }}
+                                    onBlur={() => {
+                                      // When focus is lost, apply the currency format
+                                      const formattedValue = discount.toLocaleString('en-US', { 
+                                        style: 'currency', 
+                                        currency: items.length > 0 ? items[0].currency || 'IDR' : 'IDR' 
+                                      });
+                                      setFormattedDiscount(formattedValue); // Set the formatted value for display
+                                    }}
+                                    onFocus={(e) => {
+                                      // When the input is focused, remove currency formatting for easy editing
+                                      setFormattedDiscount(discount.toString().replace(/[^\d.-]/g, '')); // Display the raw number
+                                      setTimeout(() => {
+                                        // Select the text for easy overwriting
+                                        e.target.select();
+                                      }, 0);
+                                    }}
                                   />
                                 </td>
                               </tr>
                               <tr className='text-right'>
-                                <td colSpan="11">Subtotal:</td>
-                                <td>0.0</td>
+                                <td colSpan="10">Subtotal:</td>
+                                <td>
+                                  <strong>
+                                    {items.length > 0 ? 
+                                      calculateTotalAmount(items[0].currency).subtotalAfterDiscount.toLocaleString('en-US', { 
+                                        style: 'currency', 
+                                        currency: items[0].currency || 'IDR'
+                                      })
+                                    : 
+                                      'IDR 0.00'
+                                    }
+                                  </strong>
+                                </td>
                               </tr>
                               <tr className='text-right'>
-                                <td colSpan="11">Total PPN:</td>
-                                <td><strong>{calculateTotalAmount().totalPPNAmount.toLocaleString('en-US', { style: 'currency', currency: 'IDR' })}</strong></td>
+                                <td colSpan="10">Total PPN:</td>
+                                {/* <td><strong>{calculateTotalAmount().totalPPNAmount.toLocaleString('en-US', { style: 'currency', currency: 'IDR' })}</strong></td> */}
+                                <td>
+                                  <Form.Control
+                                    className='text-right'
+                                    type='text'
+                                    value={
+                                      calculateTotalAmount().totalPPNAmount
+                                    }
+                                    onChange={
+                                      (e) => {
+                                        const newItems = [...items];
+                                        const totalPPNAmount = e.target.value;
+                                        newItems.forEach((item)=>{
+                                          item.tax_ppn_amount= totalPPNAmount/newItems.length;
+                                        });
+                                     setItems(newItems); 
+                                    }}
+                                  />
+                                </td>
                               </tr>
                               <tr className="text-right">
-                                <td colSpan="11" >Total Amount:</td>
-                                <td><strong>{calculateTotalAmount().totalAmount.toLocaleString('en-US', { style: 'currency', currency: 'IDR' })} </strong></td>
+                                <td colSpan="10" >Total Amount:</td>
+                                <td>
+                                  <strong>
+                                    {items.length > 0 ?
+                                      calculateTotalAmount(items[0].currency).totalAmount.toLocaleString('en-US', { 
+                                        style: 'currency', 
+                                        currency: items[0].currency || 'IDR' 
+                                      })
+                                    :
+                                      'IDR 0.00'
+                                    } 
+                                  </strong>
+                                </td>
                               </tr>
                             </tfoot>
                           </table>
