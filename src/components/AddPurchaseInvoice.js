@@ -5,7 +5,7 @@ import Swal from "sweetalert2";
 import { messageAlertSwal } from "../config/Swal";
 import InsertDataService from "../service/InsertDataService";
 import { getBranch, getToken } from "../config/Constant";
-import { GENERATED_NUMBER } from "../config/ConfigUrl";
+import { FORM_SERVICE_UPDATE_DATA, GENERATED_NUMBER } from "../config/ConfigUrl";
 import { generateUniqueId } from "../service/GeneratedId";
 import Select from "react-select";
 import LookupParamService from "../service/LookupParamService";
@@ -75,6 +75,9 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, handleRefresh, inde
   const [selectedbothvendor, setSelectedBothVendor] = useState([]);
   const [doc_source, setDocSource] = useState("");
   const [doc_reff, setDocReff] = useState("");
+  const [endToEnd, setEndToEnd] = useState("");
+  const [idPr, setIdPr] = useState("");
+  const [idPo, setIdPo] = useState("");
   const authToken = headers;
 
   useEffect(() => {
@@ -244,6 +247,7 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, handleRefresh, inde
           paymentTerm: item.PAYMENT_TERM, // Include payment term in the options
           dueDate: item.DUE_DATE,
           vendor: item.VENDOR,
+          ENDTOENDID: item.ENDTOENDID,
         }));
         setPrNumberOptions(options);
       })
@@ -276,6 +280,7 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, handleRefresh, inde
           description: item.DESCRIPTION,
           title: item.TITLE,
           vendor: item.VENDOR,
+          ENDTOENDID: item.ENDTOENDID,
         }));
         setPoNumberOptions(options);
       })
@@ -546,6 +551,8 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, handleRefresh, inde
       setDescription(selectedOption.description); // Autofill description
       setPaymentTerm(selectedOption.paymentTerm);
       setVendor(selectedOption.vendor);
+      setEndToEnd(selectedOption.ENDTOENDID);
+      setIdPr(selectedOption.ID);
 
       const selectedPaymentTermOption = paymentTermOptions.find((option) => option.value === selectedOption.paymentTerm);
       if (!selectedPaymentTermOption) {
@@ -698,6 +705,8 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, handleRefresh, inde
       setTitle(selectedOption.title);
       setDescription(selectedOption.description); // Autofill description
       setVendor(selectedOption.vendor); // Autofill vendor
+      setEndToEnd(selectedOption.ENDTOENDID);
+      setIdPo(selectedOption.ID);
 
       // Autofill payment term
       const paymentTermOption = paymentTermOptions.find((option) => option.value === selectedOption.paymentTerm);
@@ -882,18 +891,18 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, handleRefresh, inde
 
     let pengkali2 = newItems[index].tax_pph_rate / 100;
 
-    if (field === "tax_pph_type" || field === "tax_pph_rate") {
-      if (newItems[index].vat_type === "include") {
-        newItems[index].new_unit_price = newItems[index].unit_price + newItems[index].unit_price * pengkali2;
-        newItems[index].tax_base = Math.round(newItems[index].unit_price / ((1 + newItems[index].tax_pph_rate / 100) * newItems[index].quantity));
-        newItems[index].tax_pph_amount = Math.round(newItems[index].tax_base * (newItems[index].tax_pph_rate / 100));
-        newItems[index].vat_included = true;
-      } else if (newItems[index].vat_type === "exclude") {
-        newItems[index].tax_pph_amount = Math.round(newItems[index].total_price * (newItems[index].tax_pph_rate / 100));
-        newItems[index].tax_base = Math.round(newItems[index].unit_price * newItems[index].quantity);
-      }
-      newItems[index].total_price = newItems[index].unit_price * newItems[index].quantity;
-    }
+    // if (field === "tax_pph_type" || field === "tax_pph_rate") {
+    //   if (newItems[index].vat_type === "include") {
+    //     newItems[index].new_unit_price = newItems[index].unit_price + newItems[index].unit_price * pengkali2;
+    //     newItems[index].tax_base = Math.round(newItems[index].unit_price / ((1 + newItems[index].tax_pph_rate / 100) * newItems[index].quantity));
+    //     newItems[index].tax_pph_amount = Math.round(newItems[index].tax_base * (newItems[index].tax_pph_rate / 100));
+    //     newItems[index].vat_included = true;
+    //   } else if (newItems[index].vat_type === "exclude") {
+    //     newItems[index].tax_pph_amount = Math.round(newItems[index].total_price * (newItems[index].tax_pph_rate / 100));
+    //     newItems[index].tax_base = Math.round(newItems[index].unit_price * newItems[index].quantity);
+    //   }
+    //   newItems[index].total_price = newItems[index].unit_price * newItems[index].quantity;
+    // }
 
     if (field === "vat_type") {
       newItems[index].tax_ppn_type = "";
@@ -908,6 +917,19 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, handleRefresh, inde
         newItems[index].vat_included = false;
       } else {
         newItems[index].new_unit_price = newItems[index].unit_price;
+      }
+      newItems[index].total_price = newItems[index].unit_price * newItems[index].quantity;
+    }
+
+    if (field === "tax_pph_type" || field === "tax_pph_rate") {
+      if (newItems[index].vat_type === "include") {
+        newItems[index].new_unit_price = newItems[index].unit_price + newItems[index].unit_price * pengkali2;
+        // newItems[index].tax_base = Math.round(newItems[index].unit_price / ((1 + newItems[index].tax_pph_rate / 100) * newItems[index].quantity));
+        newItems[index].tax_pph_amount = Math.round(((newItems[index].total_price / (1 + newItems[index].tax_ppn_rate / 100)) * newItems[index].tax_pph_rate) / 100);
+        newItems[index].vat_included = true;
+      } else if (newItems[index].vat_type === "exclude") {
+        newItems[index].tax_pph_amount = Math.round(newItems[index].total_price * (newItems[index].tax_pph_rate / 100));
+        // newItems[index].tax_base = Math.round(newItems[index].unit_price * newItems[index].quantity);
       }
       newItems[index].total_price = newItems[index].unit_price * newItems[index].quantity;
     }
@@ -990,6 +1012,7 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, handleRefresh, inde
     setSelectedItems([]);
   };
 
+  // perhitungan awal
   const calculateTotalAmount = () => {
     const subTotal = items.reduce((total, item) => {
       const taxBase = isNaN(item.tax_base) ? 0 : item.tax_base;
@@ -1046,6 +1069,17 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, handleRefresh, inde
     setSelectedCurrency(null);
   };
 
+  const generatePrNumber = async (code) => {
+    try {
+      const uniquePrNumber = await generateUniqueId(`${GENERATED_NUMBER}?code=${code}`, authToken);
+      setEndToEnd(uniquePrNumber); // Updates state, if needed elsewhere in your component
+      return uniquePrNumber; // Return the generated PR number for further use
+    } catch (error) {
+      console.error("Failed to generate PR Number:", error);
+      throw error; // Rethrow the error for proper handling in the calling function
+    }
+  };
+
   const handleSave = async (event) => {
     event.preventDefault();
 
@@ -1063,6 +1097,16 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, handleRefresh, inde
     if (result.isConfirmed) {
       setIsLoading(true);
       try {
+        let endToEndId;
+        // const endToEndId = await handleEndToEnd();
+        if (!endToEnd) {
+          // Call generate function if endtoendId is empty or null
+          endToEndId = await generatePrNumber("PURC");
+        } else {
+          // Do something else if endtoendId is not empty
+          endToEndId = endToEnd;
+          console.log("endtoendId is not empty");
+        }
         const { subTotal, totalPPNAmount, totalPPHAmount, total_amount } = calculateTotalAmount();
         // Save general information and description
         const createBy = sessionStorage.getItem("userId");
@@ -1088,6 +1132,7 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, handleRefresh, inde
           due_date,
           description,
           total_amount: total_amount,
+          endtoendid: endToEndId,
         };
 
         console.log("Master", generalInfo);
@@ -1167,6 +1212,16 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, handleRefresh, inde
     if (result.isConfirmed) {
       setIsLoading(true);
       try {
+        let endToEndId;
+        // const endToEndId = await handleEndToEnd();
+        if (!endToEnd) {
+          // Call generate function if endtoendId is empty or null
+          endToEndId = await generatePrNumber("PURC");
+        } else {
+          // Do something else if endtoendId is not empty
+          endToEndId = endToEnd;
+          console.log("endtoendId is not empty");
+        }
         const { subTotal, totalPPNAmount, totalPPHAmount, total_amount } = calculateTotalAmount();
         // Save general information and description
         const generalInfo = {
@@ -1191,6 +1246,7 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, handleRefresh, inde
           due_date,
           description,
           total_amount: total_amount,
+          endtoendid: endToEndId,
         };
 
         console.log("Master", generalInfo);
@@ -1198,6 +1254,35 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, handleRefresh, inde
 
         const response = await InsertDataService.postData(generalInfo, "PUINVC", authToken, branchId);
         console.log("Data posted successfully:", response);
+
+        // Update Status
+        if (idPr) {
+          const updatePRStatus = await axios.post(
+            `${FORM_SERVICE_UPDATE_DATA}?f=PUREQ&column=id&value=${idPr}&branchId=${branchId}`,
+            {
+              status_request: "INVOICE",
+            },
+            {
+              headers: {
+                Authorization: `Bearer ${authToken}`,
+              },
+            }
+          );
+          return updatePRStatus;
+        } else if (idPo) {
+          const updatePOStatus = await axios.post(
+            `${FORM_SERVICE_UPDATE_DATA}?f=PUOR&column=id&value=${idPo}&branchId=${branchId}`,
+            {
+              status_request: "INVOICE",
+            },
+            {
+              headers: {
+                Authorization: `Bearer ${authToken}`,
+              },
+            }
+          );
+          return updatePOStatus;
+        }
 
         if (response.message === "insert Data Successfully") {
           // Iterate over items array and post each item individually
@@ -1329,6 +1414,13 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, handleRefresh, inde
                     )} */}
 
                     <Col md={6}>
+                      <Form.Group controlId="formInternalMemo">
+                        <Form.Label>End To End Id</Form.Label>
+                        <Form.Control type="text" placeholder="Enter Internal Memo" value={endToEnd} onChange={(e) => setEndToEnd(e.target.value)} required />
+                      </Form.Group>
+                    </Col>
+
+                    <Col md={6}>
                       <Form.Group controlId="formDocReff">
                         <Form.Label>Document Reference</Form.Label>
                         <Form.Control as="select" placeholder="Enter Document Number" value={docRef} onChange={(e) => setDocRef(e.target.value)}>
@@ -1457,12 +1549,12 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, handleRefresh, inde
                       </Form.Group>
                     </Col> */}
 
-                    <Col md={6}>
+                    {/* <Col md={6}>
                       <Form.Group controlId="formInvoiceType">
                         <Form.Label>Invoice Type</Form.Label>
                         <Form.Control type="text" placeholder="Enter Invoice Type" value={invoice_type} onChange={(e) => setInvoiceType(e.target.value)} />
                       </Form.Group>
-                    </Col>
+                    </Col> */}
 
                     <Col md={6}>
                       <Form.Group controlId="formInvoiceDate">
@@ -1629,11 +1721,11 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, handleRefresh, inde
                               {/* <th>Tax PPN</th> */}
                               <th>Tax PPN</th>
                               <th>Tax PPN Rate</th>
-                              <th>Tax PPN Amount</th>
+                              {/* <th>Tax PPN Amount</th> */}
                               {/* <th>Tax PPh</th> */}
                               <th>Tax PPh</th>
                               <th>Tax PPh Rate</th>
-                              <th>Tax PPh Amount</th>
+                              {/* <th>Tax PPh Amount</th> */}
                               <th>Tax Base</th>
 
                               {/* <th>Total Price</th> */}
@@ -1643,7 +1735,7 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, handleRefresh, inde
                           <tbody>
                             {items.length === 0 ? (
                               <tr>
-                                <td colSpan="15" className="text-center">
+                                <td colSpan="13" className="text-center">
                                   No data available
                                 </td>
                               </tr>
@@ -1725,7 +1817,7 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, handleRefresh, inde
                                   </td> */}
                                   <td>
                                     <Select
-                                      value={taxPpnTypeOption.find((option) => option.value === item.tax_ppn_type)}
+                                      value={taxPpnTypeOption.find((option) => option.value === item.tax_ppn_type) || null}
                                       onChange={(selectedOption) => {
                                         // Update the tax_ppn_type for the specific item
                                         handleItemChange(index, "tax_ppn_type", selectedOption ? selectedOption.value : "");
@@ -1749,7 +1841,7 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, handleRefresh, inde
                                     <Form.Control type="number" value={item.tax_ppn_rate} onChange={(e) => handleItemChange(index, "tax_ppn_rate", parseFloat(e.target.value))} readOnly />
                                   </td>
 
-                                  <td style={{ textAlign: "right" }}>{item.tax_ppn_amount ? item.tax_ppn_amount.toLocaleString("en-US", { style: "currency", currency: item.currency }) : "IDR 0.00"}</td>
+                                  {/* <td style={{ textAlign: "right" }}>{item.tax_ppn_amount ? item.tax_ppn_amount.toLocaleString("en-US", { style: "currency", currency: item.currency }) : "IDR 0.00"}</td> */}
 
                                   {/* <td>
                                     <Form.Control type="number" value={item.tax_pph} onChange={(e) => handleItemChange(index, "tax_pph", parseFloat(e.target.value))} />
@@ -1794,7 +1886,7 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, handleRefresh, inde
 
                                   <td>
                                     <Select
-                                      value={tax_pph_type_option.find((option) => option.value === item.tax_pph_type)}
+                                      value={tax_pph_type_option.find((option) => option.value === item.tax_pph_type) || null}
                                       onChange={(selectedOption) => {
                                         // Update the tax_pph_type for the specific item
                                         handleItemChange(index, "tax_pph_type", selectedOption ? selectedOption.value : "");
@@ -1821,10 +1913,10 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, handleRefresh, inde
                                   {/* <td>
                                     <Form.Control type="text" value={item.tax_pph_type} onChange={(e) => handleItemChange(index, "tax_pph_type", e.target.value)} />
                                   </td> */}
-                                  <td style={{ textAlign: "right" }}>{item.tax_pph_amount ? item.tax_pph_amount.toLocaleString("en-US", { style: "currency", currency: item.currency }) : "IDR 0.00"}</td>
+                                  {/* <td style={{ textAlign: "right" }}>{item.tax_pph_amount ? item.tax_pph_amount.toLocaleString("en-US", { style: "currency", currency: item.currency }) : "IDR 0.00"}</td> */}
 
                                   <td>
-                                    <Form.Control type="number" value={item.tax_base} onChange={(e) => handleItemChange(index, "tax_base", parseFloat(e.target.value))} />
+                                    <Form.Control type="number" value={item.tax_base} onChange={(e) => handleItemChange(index, "tax_base", parseFloat(e.target.value))} readOnly />
                                   </td>
 
                                   {/* <td>
@@ -1842,25 +1934,25 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, handleRefresh, inde
                           </tbody>
                           <tfoot>
                             <tr className="text-right">
-                              <td colSpan="14">Subtotal:</td>
+                              <td colSpan="12">Subtotal:</td>
                               <td>
                                 <strong>{calculateTotalAmount().subTotal.toLocaleString("en-US", { style: "currency", currency: "IDR" })}</strong>
                               </td>
                             </tr>
                             <tr className="text-right">
-                              <td colSpan="14">Total Ppn Amount:</td>
+                              <td colSpan="12">Total Ppn Amount:</td>
                               <td>
                                 <strong>{calculateTotalAmount().totalPPNAmount.toLocaleString("en-US", { style: "currency", currency: "IDR" })}</strong>
                               </td>
                             </tr>
                             <tr className="text-right">
-                              <td colSpan="14">Total Pph Amount:</td>
+                              <td colSpan="12">Total Pph Amount:</td>
                               <td>
                                 <strong>{calculateTotalAmount().totalPPHAmount.toLocaleString("en-US", { style: "currency", currency: "IDR" })}</strong>
                               </td>
                             </tr>
                             <tr className="text-right">
-                              <td colSpan="14">Total Amount:</td>
+                              <td colSpan="12">Total Amount:</td>
                               <td>
                                 <strong>{calculateTotalAmount().totalAmount.toLocaleString("en-US", { style: "currency", currency: "IDR" })} </strong>
                               </td>

@@ -501,6 +501,7 @@ const PurchaseOrderTable = ({
                                             checked={selectedRows.size === dataTable.length && dataTable.length > 0}
                                         />
                                     </th>
+                                    <th>End To End Id</th>
                                     <th>PO Number</th>
                                     <th>Status PO</th>
                                     <th>Doc. Refference</th>
@@ -556,6 +557,7 @@ const PurchaseOrderTable = ({
                                                     onChange={(e) => handleCheckboxSelect(e, item.ID)}
                                                 />
                                             </td>
+                                            <td>{item.ENDTOENDID}</td>
                                             <td>{item.PO_NUMBER}</td>
                                             <td>{item.STATUS_PO}</td>
                                             <td>{item.DOC_REFF}</td>
@@ -628,6 +630,10 @@ const PurchaseOrderTable = ({
                         {selectedRowData ? (
                             <div>
                                 <div className="container">
+                                    <div className="row mb-3">
+                                        <div className="col-md-4 font-weight-bold">End To End Id:</div>
+                                        <div className="col-md-8">{selectedRowData.ENDTOENDID}</div>
+                                    </div>
                                     <div className="row mb-3">
                                         <div className="col-md-4 font-weight-bold">PO Number:</div>
                                         <div className="col-md-8">{selectedRowData.PO_NUMBER}</div>

@@ -5,12 +5,13 @@
   import { messageAlertSwal } from "../config/Swal";
   import InsertDataService from '../service/InsertDataService';
   import { getBranch, getToken, userLoggin } from '../config/Constant';
-  import { GENERATED_NUMBER } from '../config/ConfigUrl';
+  import { FORM_SERVICE_UPDATE_DATA, GENERATED_NUMBER } from '../config/ConfigUrl';
   import { generateUniqueId } from '../service/GeneratedId';
   import Select from 'react-select';
   import LookupParamService from '../service/LookupParamService';
   import LookupService from '../service/LookupService';
   import CreatableSelect from 'react-select/creatable';
+import axios from 'axios';
 
   const AddPurchaseOrder = ({ setIsAddingNewPurchaseOrder, handleRefresh,index, item  }) => {
     const headers = getToken();
@@ -35,7 +36,7 @@
     const [po_number, setPoNumber] = useState('');
     const [docRef,setDocRef] = useState(''); 
     const [request_date, setRequestDate] = useState(new Date().toISOString().slice(0, 10));
-    const [company, setCompany] = useState('');
+ 
     const [order_date, setOrderDate] = useState(new Date().toISOString().slice(0, 10));
     const [createdBy, setCreatedBy] = useState(userId);
     const [approveBy, setApproveBy] = useState('');
@@ -44,8 +45,8 @@
     const [billTo, setBillTo] = useState('PT. Abhihmata Persada');
     const [billToAddress, setBillToAddress] = useState('Menara Batavia, 5th Floor, DKI Jakarta, 10220, ID');
     const [termConditions, setTermConditions] = useState('');
-
-   
+    const [endToEnd,setEndToEnd] = useState('');
+    const [idPr, setIdPr] = useState(''); 
 
     // PO Lookup
     const [project, setProject] = useState('');
@@ -114,7 +115,9 @@
             PROJECT: item.PROJECT,
             CUSTOMER: item.CUSTOMER,
             REQUESTDATE: item.REQUEST_DATE,
-            VENDOR: item.VENDOR
+            VENDOR: item.VENDOR,
+            ENDTOENDID: item.ENDTOENDID,
+            ID: item.ID
           };
         }).filter(option => option !== null);
         setPROptions(options);
@@ -386,7 +389,7 @@
       if(selectedOption) {
         const customerProject = customerOptions.find((option) => option.value === selectedOption.customer);
         setSelectedCustomer(customerProject);
-        setCustomer(customerProject ? customerProject : null);
+        setCustomer(customerProject ? customerProject.value : null);
       } else {
         setSelectedCustomer(null);
         setCustomer('');
@@ -432,12 +435,13 @@
         setProject(selectedOption.PROJECT);
         setSelectedCustomer(customerOption ? customerOption : null);
         setCustomer(selectedOption.CUSTOMER);
-        setCompany(selectedOption.COMPANY ? selectedOption.COMPANY : '');
         setRequestDate(selectedOption.REQUESTDATE);
         setSelectedVendor(vendorOption ? vendorOption : null);
         setVendor(selectedOption.VENDOR);
         setSelectedTo(ToOption ? ToOption : null);
         setTo(selectedOption.VENDOR);
+        setEndToEnd(selectedOption.ENDTOENDID);
+        setIdPr(selectedOption.ID);
 
         if (vendorOption) {
           const toOption = toOptions.find((option) => option.value === vendorOption.value);
@@ -547,7 +551,6 @@
 
       } else {
         setRequestDate('');
-        setCompany('');
         setSelectedRequestor(null);
         setRequestor('')
         setSelectedDepartement(null);
@@ -567,7 +570,7 @@
         setToAddress('');
         setSelectedToAddress(null);
       }
-    }
+    };
 
     const handleOptionChange = (setter, stateSetter, selectedOption) => {
       setter(selectedOption);
@@ -817,7 +820,6 @@
       setRequestor('');
       setDepartement('');
       setSelectedPaymentTerm(null);
-      setCompany('');
       setOrderDate(order_date);
       setPaymentTerm('');
       setCreatedBy(createdBy);
@@ -842,9 +844,35 @@
       setSelectedVendor(null);
       setSelectedProject(null);
       setSelectedCurrency(null);
+      setEndToEnd('');
     };
 
+    // const handleEndToEnd = async () => {
+    //   console.log('end to end ',endToEnd);
+    //   if(docRef === 'purchaseRequest') {
+    //     setSelectedEndToEnd(endToEnd);
+    //   }else{
+    //     let uniquePrNumber;
+    //     try {
+    //       uniquePrNumber = await generateUniqueId(`${GENERATED_NUMBER}?code=PURC`, authToken);
+    //     } catch (error) {
+    //       console.error('Failed to generate End to end:', error);
+    //     }
+    //     setSelectedEndToEnd(uniquePrNumber);
+    //       return uniquePrNumber;
+    //   }
+    // }
 
+    const generatePrNumber = async (code) => {
+      try {
+        const uniquePrNumber = await generateUniqueId(`${GENERATED_NUMBER}?code=${code}`, authToken);
+        setEndToEnd(uniquePrNumber); // Updates state, if needed elsewhere in your component
+        return uniquePrNumber; // Return the generated PR number for further use
+      } catch (error) {
+        console.error('Failed to generate PR Number:', error);
+        throw error; // Rethrow the error for proper handling in the calling function
+      }
+    };
 
     // Handle Save
     const handleSave = async (event) => {
@@ -864,6 +892,19 @@
       if (result.isConfirmed) {
         setIsLoading(true);
         try {
+
+          let endToEndId;
+          // const endToEndId = await handleEndToEnd();
+          if (!endToEnd) {
+            // Call generate function if endtoendId is empty or null
+            endToEndId = await generatePrNumber("PURC");
+          } else {
+            // Do something else if endtoendId is not empty
+            endToEndId = endToEnd;
+            console.log("endtoendId is not empty");
+          }
+          
+
           const { subTotal, totalPPNAmount, totalAmount} = calculateTotalAmount();
           // Save general information and description
           const generalInfo = {
@@ -876,7 +917,6 @@
             customer,
             requestor,
             departement,
-            company,
             order_date, // Converts to date format
             request_date,
             created_by: createdBy,
@@ -892,6 +932,7 @@
             total_tax_base: subTotal,
             total_amount_ppn: totalPPNAmount,
             term_conditions: termConditions,
+            endtoendid: endToEndId,
           };
 
           console.log('Master', generalInfo);
@@ -962,6 +1003,19 @@
       if (result.isConfirmed) {
         setIsLoading(true);
         try {
+
+          let endToEndId;
+          // const endToEndId = await handleEndToEnd();
+          if (!endToEnd) {
+            // Call generate function if endtoendId is empty or null
+            endToEndId = await generatePrNumber("PURC");
+            
+          } else {
+            // Do something else if endtoendId is not empty
+            endToEndId = endToEnd;
+            console.log("endtoendId is not empty");
+          }
+
           const { subTotal, totalPPNAmount, totalAmount} = calculateTotalAmount();
           // Save general information and description
           const generalInfo = {
@@ -974,7 +1028,6 @@
             customer,
             requestor,
             departement,
-            company,
             order_date, // Converts to date format
             request_date,
             created_by: createdBy,
@@ -990,14 +1043,14 @@
             total_tax_base: subTotal,
             total_amount_ppn: totalPPNAmount,
             term_conditions: termConditions,
-            
+            endtoendid: endToEndId,
           };
 
           console.log('Master', generalInfo);
 
           const response = await InsertDataService.postData(generalInfo, "PUOR", authToken, branchId);
           console.log('Data posted successfully:', response);
-
+        
           if (response.message === "insert Data Successfully") {
             // Iterate over items array and post each item individually
             for (const item of items) {
@@ -1023,10 +1076,23 @@
               delete updatedItem.subTotal;
               
 
-
-
               const itemResponse = await InsertDataService.postData(updatedItem, "PUORD", authToken, branchId);
               console.log('Item posted successfully:', itemResponse);
+              // Update Status
+
+              const updatePrStatusData = {
+                status_request: "ORDERED",
+              }
+
+              if(idPr){
+                const updatePRStatus = await axios.post(`${FORM_SERVICE_UPDATE_DATA}?f=PUREQ&column=id&value=${idPr}&branchId=${branchId}`, updatePrStatusData, {
+                  headers: {
+                    Authorization: `Bearer ${authToken}`,
+                  }
+                });
+                await updatePRStatus;
+              };
+
             }
 
             messageAlertSwal('Success', response.message, 'success');
@@ -1044,19 +1110,13 @@
       }
     };
 
+    // Generate End to End code
+    
 
-    // useEffect(() => {
-    //   const generatePrNumber = async () => {
-    //     try {
-    //       const uniquePrNumber = await generateUniqueId(`${GENERATED_NUMBER}?code=PR`, authToken);
-    //       setPrNumber(uniquePrNumber);
-    //     } catch (error) {
-    //       console.error('Failed to generate PR Number:', error);
-    //     }
-    //   };
 
-    //   generatePrNumber();
-    // }, []);
+      
+
+    console.log('endtoed', endToEnd);
 
     return (
       <Fragment>
@@ -1090,7 +1150,7 @@
 
                 <Card.Body>
                   <Form>
-                    <Row>
+                    <Row>   
                       
                       <Col md={6}>
                         <Form.Group controlId='formPoNumber'>
@@ -1171,18 +1231,20 @@
                       </Form.Group>
                       </Col>
 
+
                       <Col md={6}>
-                        <Form.Group controlId='formCustomer'>
-                          <Form.Label>Customer</Form.Label>
+                        <Form.Group controlId="formProject">
+                          <Form.Label>Project</Form.Label>
                           <Select
-                            id='customer'
-                            value={selectedCustomer}
-                            onChange={(selectedOption) => {
-                              handleOptionChange(setSelectedCustomer, setCustomer, selectedOption)
-                            }}
-                            options={customerOptions}
-                            placeholder='Customer...'
-                            isClearable
+                            id="project"
+                            value={selectedProject}
+                            options={projectOptions}
+                            // onChange={(selectedOption) => {
+                            //   handleOptionChange(setSelectedProject, setProject, selectedOption);
+                            // }}
+                            onChange={handleProjectChange}
+                            placeholder="Project..."
+                            isClearable 
                             required
                             isDisabled = {docRef === 'purchaseRequest'}
                           />
@@ -1242,18 +1304,17 @@
                       </Col>
 
                       <Col md={6}>
-                        <Form.Group controlId="formProject">
-                          <Form.Label>Project</Form.Label>
+                        <Form.Group controlId='formCustomer'>
+                          <Form.Label>Customer</Form.Label>
                           <Select
-                            id="project"
-                            value={selectedProject}
-                            options={projectOptions}
-                            // onChange={(selectedOption) => {
-                            //   handleOptionChange(setSelectedProject, setProject, selectedOption);
-                            // }}
-                            onChange={handleProjectChange}
-                            placeholder="Project..."
-                            isClearable 
+                            id='customer'
+                            value={selectedCustomer}
+                            onChange={(selectedOption) => {
+                              handleOptionChange(setSelectedCustomer, setCustomer, selectedOption)
+                            }}
+                            options={customerOptions}
+                            placeholder='Customer...'
+                            isClearable
                             required
                             isDisabled = {docRef === 'purchaseRequest'}
                           />

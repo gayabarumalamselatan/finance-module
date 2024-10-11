@@ -566,7 +566,8 @@ const AddPurchaseRequest = ({ setIsAddingNewPurchaseRequest, handleRefresh, inde
           status_request: 'IN_PROCESS',
           project_contract_number,
           due_date,
-          endtoendid
+          endtoendid,
+          vendor
         };
 
         console.log('Master', generalInfo);
