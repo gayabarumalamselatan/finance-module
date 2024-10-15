@@ -235,7 +235,7 @@ const props = {
   },
 };
 
-const App = () => (
+const DropFileInput = () => (
   <Dragger {...props}>
     <p className="ant-upload-drag-icon">
       <InboxOutlined />
@@ -245,4 +245,4 @@ const App = () => (
   </Dragger>
 );
 
-export default App;
+export default DropFileInput;

@@ -1,16 +1,18 @@
 import React, { Fragment, useEffect, useState } from "react";
-import { getBranch, getToken } from "../config/Constant";
+import { getBranch, getToken, userLoggin } from "../config/Constant";
 import LookupParamService from "../service/LookupParamService";
 import axios from "axios";
 import { FORM_SERVICE_INSERT_DATA, FORM_SERVICE_LOAD_FIELD, FORM_SERVICE_REPORT_DATA_EXCEL, MM_SERVICE_LIST_FILE_TRADE, MM_SERVICE_LIST_JOURNAL } from "../config/ConfigUrl";
 import { HandleToUppercase } from "../utils/HandleToUpercase";
 import FormService from "../service/FormService";
-import InvoiceTable from "../table/InvoiceTable";
-import AddPurchaseRequest from "./AddPurchaseInvoice";
+import PurchaseInvoiceTable from "../table/PurchaseInvoiceTable";
+import AddPurchaseInvoice from "./AddPurchaseInvoice";
+import EditPurchaseInvoice from "./EditPurchaseInvoice";
 
 const PurchaseInvoice = () => {
   const headers = getToken();
   const branchId = getBranch();
+  const userId = userLoggin();
   const [formCode, setFormCode] = useState([]);
   const [formData, setFormData] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -28,9 +30,27 @@ const PurchaseInvoice = () => {
   const [filterOperation, setFilterOperation] = useState("");
 
   const [isAddingNewPurchaseInvoice, setIsAddingNewPurchaseInvoice] = useState(false);
+  const [isViewingPurchaseInvoice, setIsViewingPurchaseInvoice] = useState(false);
+  const [isEditingPurchaseInvoice, setIsEditingPurchaseInvoice] = useState(false);
+  const [selectedData, setSelectedData] = useState([]);
 
-  const handleAddNewPurchaseRequest = (value) => {
+  const permissionsString = sessionStorage.getItem("permisions");
+
+  // Parse the JSON string into a JavaScript object
+  const permissions = JSON.parse(permissionsString);
+
+  const handleEditPurchaseInvoice = (value) => {
+    setIsEditingPurchaseInvoice(value);
+  };
+  const handleViewPurchaseInvoice = (value) => {
+    setIsViewingPurchaseInvoice(value);
+  };
+  const handleAddNewPurchaseInvoice = (value) => {
     setIsAddingNewPurchaseInvoice(value);
+  };
+  const handleSelectData = (value) => {
+    setSelectedData(value);
+    console.log("Log", value);
   };
 
   const authToken = headers;
@@ -71,7 +91,7 @@ const PurchaseInvoice = () => {
       let filterOperationParam = filterOperation;
       let filterValueParam = filterValue;
 
-      // Check if URL parameter status is set
+      // Check if URL parameter `status` is set
       const statusParam = new URLSearchParams(window.location.search).get("status");
       if (statusParam) {
         filterColumnParam = "STATUS";
@@ -79,14 +99,26 @@ const PurchaseInvoice = () => {
         filterValueParam = statusParam;
       }
 
+      console.log("permissions", permissions.Purchase?.["Purchase Invoice"].verify);
+      const checker = permissions.Purchase?.["Purchase Invoice"].verify;
+      if (checker) {
+        // Do not apply any filter if checker is true
+        console.log("Checker is true, no filter will be applied.");
+      } else if (userId) {
+        // Apply filter if checker is false and userId is present
+        filterColumnParam = "CREATED_BY";
+        filterOperationParam = "EQUAL";
+        filterValueParam = userId;
+      }
+
       const fetchFormMmtData = FormService.fetchData("", filterColumnParam, filterOperationParam, filterValueParam, currentPage, pageSize, `PURC_FORM${formCode[0]}`, branchId, authToken, true)
         .then((response) => {
-          console.log("Form Purchase Invoice lookup data:", response);
+          console.log("Form Purchase Request lookup data:", response);
           formMmtData = HandleToUppercase(response.data);
           setTotalItems(response.totalAllData);
         })
         .catch((error) => {
-          console.error("Failed to fetch form Purchase Invoice lookup:", error);
+          console.error("Failed to fetch form Purchase Request lookup:", error);
         });
 
       fetchFormMmtData.then(() => {
@@ -151,10 +183,12 @@ const PurchaseInvoice = () => {
       <section className="content">
         {isAddingNewPurchaseInvoice ? (
           <div>
-            <AddPurchaseRequest setIsAddingNewPurchaseInvoice={setIsAddingNewPurchaseInvoice} handleRefresh={handleRefresh} />
+            <AddPurchaseInvoice setIsAddingNewPurchaseInvoice={setIsAddingNewPurchaseInvoice} handleRefresh={handleRefresh} />
           </div>
+        ) : isEditingPurchaseInvoice ? (
+          <EditPurchaseInvoice setIsEditingPurchaseInvoice={setIsEditingPurchaseInvoice} handleRefresh={handleRefresh} selectedData={selectedData} />
         ) : (
-          <InvoiceTable
+          <PurchaseInvoiceTable
             formCode={formCode}
             dataTable={dataTable}
             totalItems={totalItems}
@@ -168,7 +202,12 @@ const PurchaseInvoice = () => {
             handleResetFilter={handleResetFilters}
             branchId={branchId}
             authToken={authToken}
-            addingNewPurchaseRequest={handleAddNewPurchaseRequest}
+            handleSelectData={handleSelectData}
+            handleEditPurchaseInvoice={handleEditPurchaseInvoice}
+            isAddingNewPurchaseInvoice={handleAddNewPurchaseInvoice}
+            EditPurchaseInvoice={handleEditPurchaseInvoice}
+            selectedData={handleSelectData}
+            checker={permissions.Purchase?.["Purchase Invoice"].verify}
           />
         )}
 

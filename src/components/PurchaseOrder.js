@@ -57,6 +57,7 @@ const PurchaseOrder = () => {
 
     const handleSelectData = (value) => {
         setSelectedData(value);
+        console.log('selecteddata', selectedData);
     };
 
     const authToken = headers;
@@ -91,7 +92,7 @@ const PurchaseOrder = () => {
 
     useEffect(() => {
         if (formCode.length > 0) {
-            let formMmtData = [];
+            let     formMmtData = [];
 
             let filterColumnParam = filterColumn;
             let filterOperationParam = filterOperation;
@@ -233,7 +234,8 @@ const PurchaseOrder = () => {
                         authToken={authToken}
                         addingNewPurchaseOrder={handleAddNewPurchaseOrder}
                         handleEditPurchaseOrder={handleEditPurchaseOrder}
-                        handleSelectData={handleSelectData}
+                        selectedData={handleSelectData}
+                        EditPurchaseOrder={handleEditPurchaseOrder}
                         checker={permissions.Purchase?.["Purchase Order"].verify}
                     />
                 )}
