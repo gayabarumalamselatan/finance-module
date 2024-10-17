@@ -86,7 +86,8 @@ import axios from 'axios';
     const [fileInput, setFileInput] = useState(null);
     const [file, setFile] = useState(null);
 
-
+    // Dynamic Form Field Width
+    const [inputWidth, setInputWidth] = useState(100);
 
     const authToken = headers;
 
@@ -1139,11 +1140,13 @@ import axios from 'axios';
       }
     };
 
-    // Generate End to End code
-    
 
-
-      
+    //Dynamic Form With 
+    const dynamicFormWidth = (e) => {
+      const contentLength = e.target.value.length;
+      const newWidth = Math.max(100, contentLength * 12); // 8px per character, adjust as needed
+      setInputWidth(newWidth);
+    }
 
     console.log('endtoed', endToEnd);
 
@@ -1377,8 +1380,46 @@ import axios from 'axios';
                       </Col>
 
                       <Col md={6}>
+                        <Form.Group controlId="formOrderDate">
+                          <Form.Label>Order Date</Form.Label>
+                          <Form.Control
+                            type="date"
+                            value={order_date}
+                            onChange={(e) => setOrderDate(e.target.value)}
+                            required
+                          />
+                        </Form.Group>
+                      </Col>
+
+                      <Col md={6}>
+                        <Form.Group controlId="formCreatedBy">
+                          <Form.Label>Created By</Form.Label>
+                          <Form.Control
+                            type="text"
+                            placeholder='Insert Created By'
+                            value={createdBy}
+                            onChange={(e) => setCreatedBy(e.target.value)}
+                            disabled
+                          />
+                        </Form.Group>
+                      </Col>
+
+                      {/* <Col md={6}>
+                        <Form.Group controlId="formApprovedBy">
+                          <Form.Label>Approved By</Form.Label>
+                          <Form.Control
+                            type="text"
+                            placeholder='Insert Approved By'
+                            value={approveBy}
+                            onChange={(e) => setApproveBy(e.target.value)}
+                            required
+                          />
+                        </Form.Group>
+                      </Col> */}
+
+                      <Col md={6}>
                         <Form.Group controlId="formVendor">
-                          <Form.Label>Vendor</Form.Label>
+                          <Form.Label>To</Form.Label>
                           <Select
                             id='vendor'
                             value={selectedVendor}
@@ -1406,45 +1447,7 @@ import axios from 'axios';
                         </Form.Group>
                       </Col>
 
-                      <Col md={6}>
-                        <Form.Group controlId="formOrderDate">
-                          <Form.Label>Order Date</Form.Label>
-                          <Form.Control
-                            type="date"
-                            value={order_date}
-                            onChange={(e) => setOrderDate(e.target.value)}
-                            required
-                          />
-                        </Form.Group>
-                      </Col>
-
-                      <Col md={6}>
-                        <Form.Group controlId="formCreatedBy">
-                          <Form.Label>Created By</Form.Label>
-                          <Form.Control
-                            type="text"
-                            placeholder='Insert Created By'
-                            value={createdBy}
-                            onChange={(e) => setCreatedBy(e.target.value)}
-                            disabled
-                          />
-                        </Form.Group>
-                      </Col>
-
-                      <Col md={6}>
-                        <Form.Group controlId="formApprovedBy">
-                          <Form.Label>Approved By</Form.Label>
-                          <Form.Control
-                            type="text"
-                            placeholder='Insert Approved By'
-                            value={approveBy}
-                            onChange={(e) => setApproveBy(e.target.value)}
-                            required
-                          />
-                        </Form.Group>
-                      </Col>
-
-                      <Col md={6}>
+                      {/* <Col md={6}>
                         <Form.Group controlId='formTo'>
                           <Form.Label>To</Form.Label>
                           <Select
@@ -1457,7 +1460,7 @@ import axios from 'axios';
                             required
                           />
                         </Form.Group>
-                      </Col>
+                      </Col> */}
                       
                       <Col md={6}>
                         <Form.Group controlId='formToAddress'>
@@ -1588,7 +1591,7 @@ import axios from 'axios';
                                   />
                                 </th>
                                 <th>Product</th>
-                                <th>Notes</th>
+                                <th>Product Description</th>
                                 <th>Quantity</th>
                                 <th>Currency</th>
                                 <th>Unit Price</th>
@@ -1645,6 +1648,7 @@ import axios from 'axios';
                                         type="number"
                                         value={item.quantity}
                                         onChange={(e) => handleItemChange(index, 'quantity', Math.max(0, parseFloat(e.target.value) || 1))}
+                                        style={{width: '75px'}}
                                       />
                                     </td>
                                     
@@ -1660,43 +1664,49 @@ import axios from 'axios';
                                       />
                                     </td>
                                     
-                                    <td>{item.currency === 'IDR' ?
-                                      <Form.Control
-                                        className='text-right'
-                                        type="text"
-                                        value={item.unit_price !== undefined && item.unit_price !== null ? item.unit_price.toLocaleString('en-US') : 0}
-                                        onChange={(e) => {
-                                          const newPrice = parseFloat(e.target.value.replace(/[^\d.-]/g, '')) || 0;
-                                          handleItemChange(index, 'unit_price',  newPrice);
-                                        }}
-                                      />
-                                    : 
-                                      <Form.Control
-                                        className="text-right"
-                                        type="text"
-                                        value={
-                                          item.unit_price !== undefined && item.unit_price !== null
-                                            ? item.unit_price.toLocaleString('en-US', { minimumFractionDigits: 2, useGrouping: false })
-                                            : '0'
-                                        }
-                                        onChange={(e) => {
-                                          const input = e.target.value;
+                                    <td>
+                                      {item.currency === 'IDR' ?
+                                        <Form.Control
+                                          className='text-right'
+                                          type="text"
+                                          value={item.unit_price !== undefined && item.unit_price !== null ? item.unit_price.toLocaleString('en-US') : 0}
+                                          onChange={(e) => {
+                                            const newPrice = parseFloat(e.target.value.replace(/[^\d.-]/g, '')) || 0;
+                                            handleItemChange(index, 'unit_price',  newPrice);
+                                            dynamicFormWidth(e);
+                                            
+                                          }}
+                                          style={{
+                                            width: `${inputWidth}px`,
+                                          }}
+                                        />
+                                      : 
+                                        <Form.Control
+                                          className="text-right"
+                                          type="text"
+                                          value={
+                                            item.unit_price !== undefined && item.unit_price !== null
+                                              ? item.unit_price.toLocaleString('en-US', { minimumFractionDigits: 2, useGrouping: false })
+                                              : '0'
+                                          }
+                                          onChange={(e) => {
+                                            const input = e.target.value;
 
-                                          // Allow only numbers, periods, and remove unwanted characters
-                                          const sanitizedInput = input.replace(/[^0-9.]/g, '');
+                                            // Allow only numbers, periods, and remove unwanted characters
+                                            const sanitizedInput = input.replace(/[^0-9.]/g, '');
 
-                                          // Update the state with sanitized input
-                                          handleItemChange(index, 'unit_price', sanitizedInput);
+                                            // Update the state with sanitized input
+                                            handleItemChange(index, 'unit_price', sanitizedInput);
 
-                                          // Optional: You can maintain original price logic if needed
-                                          // handleItemChange(index, 'original_unit_price', sanitizedInput);
-                                        }}
-                                        onBlur={() => {
-                                          const price = parseFloat(item.unit_price) || 0;
-                                          handleItemChange(index, 'unit_price', price); // Convert back to number on blur
-                                        }}
-                                      />
-                                    }
+                                            // Optional: You can maintain original price logic if needed
+                                            // handleItemChange(index, 'original_unit_price', sanitizedInput);
+                                          }}
+                                          onBlur={() => {
+                                            const price = parseFloat(item.unit_price) || 0;
+                                            handleItemChange(index, 'unit_price', price); // Convert back to number on blur
+                                          }}
+                                        />
+                                      }
                                     </td>
 
                                     <td>{item.total_price.toLocaleString('en-US', { style: 'currency', currency: item.currency })}</td>
@@ -1741,6 +1751,7 @@ import axios from 'axios';
                                         type='text'
                                         value={item.tax_ppn_rate + '%'}
                                         disabled
+                                        style={{width: '80px'}}
                                       />
                                     </td>
 
@@ -1748,14 +1759,41 @@ import axios from 'axios';
                                       {item.tax_ppn_amount ? parseFloat(item.tax_ppn_amount).toLocaleString('en-US', { style: 'currency', currency: item.currency }) : 'IDR 0.00'}
                                     </td> */}
 
-                                    <td>
-                                      <Form.Control
-                                        type='text'
-                                        disabled
-                                        style={{textAlign: 'right'}}
-                                        value={item.tax_base !== undefined && item.tax_base !== null ? item.tax_base : 0}
-                                        onChange={(e) => handleItemChange(index, 'tax_base', Math.max(0, parseFloat(e.target.value) || 0))}
-                                      />
+                                    <td className=''>
+                                      {item.currency === 'IDR' ?
+                                        <Form.Control
+                                          type='text'
+                                          disabled
+                                          style={{
+                                            textAlign: 'right',
+                                            width: `${inputWidth}px`,
+                                            marginLeft: 'auto',  
+                                            display: 'flex',
+                                          }}
+                                          value={item.tax_base !== undefined && item.tax_base !== null ? item.tax_base.toLocaleString('en-US') : 0}
+                                          onChange={(e) => {
+                                            const newTaxBase = parseFloat(e.target.value.replace(/[^\d.-]/g, '')) || 0;
+                                            handleItemChange(index, 'tax_base', Math.max(0, newTaxBase));
+                                            dynamicFormWidth(e);
+                                          }}
+                                        />
+                                      :
+                                        <Form.Control
+                                          type='text'
+                                          disabled
+                                          style={{
+                                            textAlign: 'right',
+                                            width: `${inputWidth}px`,
+                                            marginLeft: 'auto',  
+                                            display: 'flex',
+                                          }}
+                                          value={item.tax_base !== undefined && item.tax_base !== null ? item.tax_base : 0}
+                                          onChange={(e) => {
+                                            handleItemChange(index, 'tax_base', Math.max(0, parseFloat(e.target.value) || 0))
+                                            dynamicFormWidth(e)
+                                          }}
+                                        />
+                                      }
                                     </td>
 
                                     
@@ -1795,6 +1833,7 @@ import axios from 'axios';
                                     value={formattedDiscount}
                                     onChange={(e) => {
                                       // Remove any non-numeric characters for easy input
+                                      dynamicFormWidth(e);
                                       const newValue = e.target.value.replace(/[^\d.-]/g, '');
                                       setDiscount(parseFloat(newValue) || 0); // Update the raw number state
                                       setFormattedDiscount(e.target.value); // Keep the input as is for display
@@ -1814,6 +1853,12 @@ import axios from 'axios';
                                         // Select the text for easy overwriting
                                         e.target.select();
                                       }, 0);
+                                    }}
+                                    style={{
+                                      textAlign: 'right',
+                                      width: `${inputWidth}px`,
+                                      marginLeft: 'auto',  
+                                      display: 'flex',
                                     }}
                                   />
                                 </td>
@@ -1845,12 +1890,19 @@ import axios from 'axios';
                                     }
                                     onChange={
                                       (e) => {
+                                        dynamicFormWidth(e);
                                         const newItems = [...items];
                                         const totalPPNAmount = e.target.value;
                                         newItems.forEach((item)=>{
                                           item.tax_ppn_amount= totalPPNAmount/newItems.length;
                                         });
                                      setItems(newItems); 
+                                    }}
+                                    style={{
+                                      textAlign: 'right',
+                                      width: `${inputWidth}px`,
+                                      marginLeft: 'auto',  
+                                      display: 'flex',
                                     }}
                                   />
                                 </td>
@@ -1907,11 +1959,11 @@ import axios from 'axios';
               <Card>
                 <Card.Body>
                   <Form.Group controlId="formDescription">
-                    <Form.Label>Description</Form.Label>
+                    <Form.Label>Notes</Form.Label>
                     <Form.Control
                       as="textarea"
                       rows={3}
-                      placeholder="Enter description"
+                      placeholder="Enter Notes"
                       value={description}
                       onChange={(e) => setDescription(e.target.value)}
 

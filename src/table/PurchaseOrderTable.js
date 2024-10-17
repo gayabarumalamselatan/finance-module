@@ -450,7 +450,7 @@ const PurchaseOrderTable = ({
                                     <option value="BILL_TO">Bill To</option>
                                     <option value="BILL_TO_ADDRESS">Bill To Address</option>
                                     <option value="TERM_CONDITIONS">Terms and Conditions</option>
-                                    <option value="DESCRIPTION">Description</option>
+                                    <option value="DESCRIPTION">Notes</option>
                                     <option value="DISCOUNT">Discount</option>
                                     <option value="SUB_TOTAL">Sub Total</option>
                                     <option value="TOTAL_PPN">Total PPN</option>
@@ -722,7 +722,7 @@ const PurchaseOrderTable = ({
                                         <div className="col-md-8">{selectedRowData.TERM_CONDITIONS}</div>
                                     </div>
                                     <div className="row mb-3">
-                                        <div className="col-md-4 font-weight-bold">Description:</div>
+                                        <div className="col-md-4 font-weight-bold">Notes:</div>
                                         <div className="col-md-8">{selectedRowData.DESCRIPTION}</div>
                                     </div>
                                     <div className="row mb-3">

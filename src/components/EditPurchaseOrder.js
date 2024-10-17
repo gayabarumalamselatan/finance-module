@@ -1370,36 +1370,6 @@ const EditPurchaseOrder = ({ setIsEditingPurchaseOrder, handleRefresh, index, it
                       </Col>
 
                       <Col md={6}>
-                        <Form.Group controlId="formVendor">
-                          <Form.Label>Vendor</Form.Label>
-                          <Select
-                            id='vendor'
-                            value={selectedVendor}
-                            options={vendorOptions}
-                            onChange={(selectedOption) => {
-                              handleOptionChange(setSelectedVendor, setVendor, selectedOption);
-                              if(selectedOption){
-                              const toOption = toOptions.find((option) => option.value === selectedOption.value);
-                              const addressTo = toAddressOptions.find((option) => option.value === selectedOption.vendAddress);
-                              setSelectedTo(toOption);
-                              setTo(toOption ? toOption.value : null);
-                              setSelectedToAddress(addressTo);
-                              setToAddress(addressTo ? addressTo.value : null);
-                              }else{
-                                setSelectedTo(null);
-                                setTo('');
-                                setSelectedToAddress(null);
-                                setToAddress('');
-                              }
-                            }}
-                            isClearable
-                            placeholder="Vendor..."
-                            required
-                          />
-                        </Form.Group>
-                      </Col>
-
-                      <Col md={6}>
                         <Form.Group controlId="formOrderDate">
                           <Form.Label>Order Date</Form.Label>
                           <Form.Control
@@ -1437,7 +1407,7 @@ const EditPurchaseOrder = ({ setIsEditingPurchaseOrder, handleRefresh, index, it
                         </Form.Group>
                       </Col>
 
-                      <Col md={6}>
+                      {/* <Col md={6}>
                         <Form.Group controlId='formTo'>
                           <Form.Label>To</Form.Label>
                           <Select
@@ -1447,6 +1417,36 @@ const EditPurchaseOrder = ({ setIsEditingPurchaseOrder, handleRefresh, index, it
                             onChange={handleToChange}
                             placeholder = "To..."
                             isClearable
+                            required
+                          />
+                        </Form.Group>
+                      </Col> */}
+
+                      <Col md={6}>
+                        <Form.Group controlId="formVendor">
+                          <Form.Label>To</Form.Label>
+                          <Select
+                            id='vendor'
+                            value={selectedVendor}
+                            options={vendorOptions}
+                            onChange={(selectedOption) => {
+                              handleOptionChange(setSelectedVendor, setVendor, selectedOption);
+                              if(selectedOption){
+                              const toOption = toOptions.find((option) => option.value === selectedOption.value);
+                              const addressTo = toAddressOptions.find((option) => option.value === selectedOption.vendAddress);
+                              setSelectedTo(toOption);
+                              setTo(toOption ? toOption.value : null);
+                              setSelectedToAddress(addressTo);
+                              setToAddress(addressTo ? addressTo.value : null);
+                              }else{
+                                setSelectedTo(null);
+                                setTo('');
+                                setSelectedToAddress(null);
+                                setToAddress('');
+                              }
+                            }}
+                            isClearable
+                            placeholder="Vendor..."
                             required
                           />
                         </Form.Group>
@@ -1574,7 +1574,7 @@ const EditPurchaseOrder = ({ setIsEditingPurchaseOrder, handleRefresh, index, it
                                                                 />
                                                             </th>
                                                             <th>Product</th>
-                                                            <th>Notes</th>
+                                                            <th>Product Description</th>
                                                             <th>Quantity</th>
                                                             <th>Currency</th>
                                                             <th>Unit Price</th>
@@ -1769,7 +1769,7 @@ const EditPurchaseOrder = ({ setIsEditingPurchaseOrder, handleRefresh, index, it
                         <Card>
                             <Card.Body>
                                 <Form.Group controlId="formDescription">
-                                    <Form.Label>Description</Form.Label>
+                                    <Form.Label>Notes</Form.Label>
                                     <Form.Control
                                         as="textarea"
                                         rows={3}
