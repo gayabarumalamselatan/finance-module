@@ -203,19 +203,18 @@ const PurchaseOrder = () => {
                 </div>
             </section>
             <section className="content">
-                {isAddingNewPurchaseOrder ? (
-                    <div>
-                        <AddPurchaseOrder
-                            setIsAddingNewPurchaseOrder={setIsAddingNewPurchaseOrder}
-                            handleRefresh={handleRefresh}
-                        />
-                    </div>
+                {isAddingNewPurchaseOrder ? (                    
+                    <AddPurchaseOrder
+                        setIsAddingNewPurchaseOrder={setIsAddingNewPurchaseOrder}
+                        handleRefresh={handleRefresh}
+
+                    />
                 ) : isEditingPurchaseOrder ? (
-                    <EditPurchaseOrder
-                        setIsEditingPurchaseOrder={setIsEditingPurchaseOrder}
+                    <AddPurchaseOrder
+                        setIsAddingNewPurchaseOrder={setIsEditingPurchaseOrder}
+                        // setIsEditingPurchaseOrder={setIsEditingPurchaseOrder}
                         handleRefresh={handleRefresh}
                         selectedData={selectedData}
-
                     />
                 ) : (
                     <PurchaseOrderTable

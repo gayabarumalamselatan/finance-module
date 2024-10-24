@@ -11,13 +11,19 @@
   import LookupParamService from '../service/LookupParamService';
   import LookupService from '../service/LookupService';
   import CreatableSelect from 'react-select/creatable';
-import axios from 'axios';
+  import axios from 'axios';
 
-  const AddPurchaseOrder = ({ setIsAddingNewPurchaseOrder, handleRefresh,index, item  }) => {
+  const AddPurchaseOrder = ({ 
+    setIsAddingNewPurchaseOrder, 
+    setIsEditingPurchaseOrder,
+    selectedData,
+    handleRefresh,
+    index, 
+    item  
+  }) => {
     const headers = getToken();
     const branchId = getBranch();
     const userId = userLoggin();
-
 
     const [schedule_date, setScheduleDate] = useState('');
     const [requestor, setRequestor] = useState(userId);
@@ -30,14 +36,13 @@ import axios from 'axios';
     const [currencyOptions, setCurrencyOptions] = useState([]);
     const [selectedCurrency, setSelectedCurrency] = useState(null);
 
-
     // PO Fields
     const [title, setTitle] = useState('');
     const [po_number, setPoNumber] = useState('');
     const [docRef,setDocRef] = useState(''); 
     const [request_date, setRequestDate] = useState(new Date().toISOString().slice(0, 10));
  
-    const [order_date, setOrderDate] = useState(new Date().toISOString().slice(0, 10));
+    const [order_date, setOrderDate] = useState(new Date().toISOString('en-GB').slice(0, 10));
     const [createdBy, setCreatedBy] = useState(userId);
     const [approveBy, setApproveBy] = useState('');
     const [shipTo, setShipTo] = useState('PT. Abhimata Persada');
@@ -83,6 +88,7 @@ import axios from 'axios';
     const [toAddress, setToAddress] = useState('');
     const [toAddressOptions, setToAddressOptions] = useState([]);
     const [selectedToAddress, setSelectedToAddress] = useState(null);
+    const [contractNumberOption, setContractNumberOptions]= useState([]);
     const [fileInput, setFileInput] = useState(null);
     const [file, setFile] = useState(null);
 
@@ -93,9 +99,125 @@ import axios from 'axios';
 
     // Lookup
     useEffect(() => {
+      
+      
+      if(selectedData) {
+        const { ID, PO_NUMBER } = selectedData[0];
+            // Set data awal dari selectedData
+            console.log('id and pr number', ID, PO_NUMBER);
+            setPoNumber(PO_NUMBER);
+
+            console.log('deda', selectedData[0]);
+
+            // Panggil API untuk mendapatkan data berdasarkan ID
+            LookupService.fetchLookupData(`PURC_FORMPUOR&filterBy=PO_NUMBER&filterValue=${PO_NUMBER}&operation=EQUAL`, authToken, branchId)
+              .then(response => {
+                  const data = response.data[0];
+                  console.log('Data:', data);
+                  setOrderDate(data.order_date);
+                  setCreatedBy(data.created_by);
+                  setDocRef(data.doc_reff);
+                  setShipTo(data.ship_to);
+                  setShipToAddress(data.ship_to_address);
+                  setBillTo(data.bill_to);
+                  setBillToAddress(data.bill_to_address);
+                  setDiscount(data.discount);
+              })
+              .catch(error => {
+                console.error('Failed to load purchase request data:', error);
+              });
+
+              // Lookup Puord
+              LookupService.fetchLookupData(`PURC_FORMPUORD&filterBy=PO_NUMBER&filterValue=${PO_NUMBER}&operation=EQUAL`, authToken, branchId)
+              .then(response => {
+                  const fetchedItems = response.data || [];
+                  console.log('Items fetchedda:', fetchedItems);
+                
+                  setItems(fetchedItems.map(item => ({
+                    ...item,
+                  })));
+                  
+                  })
+                .catch(error => {
+                    console.error('Failed to load items:', error);
+                });
+
+                LookupParamService.fetchLookupData("MSDT_FORMTAX", authToken, branchId)
+                  .then(data => {
+                  console.log('Currency lookup data:', data);
+
+                  // Transform keys to uppercase directly in the received data
+                  const transformedData = data.data.map(item =>
+                      Object.keys(item).reduce((acc, key) => {
+                      acc[key.toUpperCase()] = item[key];
+                      return acc;
+                      }, {})
+                  );
+                  //console.log('Transformed data:', transformedData);
+
+                  const options = transformedData.filter(item => item.TAX_TYPE === 'PPN').map(item => ({
+                      value: item.NAME,
+                      label: item.NAME,
+                      RATE: item.RATE
+                  }));
+                  setTaxTypeOptions(options);
+                  const selectedTaxTypeOption = options.find(option => option.value === selectedData[0].TAX_PPN);
+                  setSelectedTaxType(selectedTaxTypeOption || null);
+                  })
+                  .catch(error => {
+                  console.error('Failed to fetch currency lookup:', error);
+                  });
+
+                // Lookup vendor to dan to address
+                LookupParamService.fetchLookupData("MSDT_FORMCUST", authToken, branchId)
+                .then(data => {
+                  console.log('Currency lookup data:', data);
+
+                  // Transform keys to uppercase directly in the received data
+                  const transformedData = data.data.map(item =>
+                    Object.keys(item).reduce((acc, key) => {
+                      acc[key.toUpperCase()] = item[key];
+                      return acc;
+                    }, {})
+                  );
+                  //console.log('Transformed data:', transformedData);
+
+                  const options = transformedData.filter(item => item.ENTITY_TYPE === 'BOTH' || item.ENTITY_TYPE === 'Vendor').map(item => ({
+                    value: item.NAME,
+                    label: item.NAME,
+                    vendAddress: item.ADDRESS
+                  }));
+                  setVendorOptions(options);
+                  const selectedVendor = options.find(option => option.value === selectedData[0].FORM_TO);
+                          setSelectedVendor(selectedVendor || null);
+
+                  const optionForTo = transformedData.map(item => ({
+                    value: item.NAME,
+                    label: item.NAME,
+                    vendAddress: item.ADDRESS
+                  }));
+                  setToOptions(optionForTo);
+
+                  const uniqueAddress = [...new Set(transformedData.map(item => item.ADDRESS))];
+                  const optionsForToAddress = uniqueAddress.map(address => ({
+                    value: address,
+                    label: address
+                  }));
+                  setToAddressOptions(optionsForToAddress);
+                  const selectToAddress = optionsForToAddress.find(option => option.value === selectedData[0].TO_ADDRESS);
+                  setSelectedToAddress(selectToAddress || null);
+
+                })
+                .catch(error => {
+                  console.error('Failed to fetch currency lookup:', error);
+                });
+
+                
+      }
+
 
     // Lookup Purchase Request
-    LookupParamService.fetchLookupData("PURC_FORMPUREQ", authToken, branchId)
+    LookupParamService.fetchLookupData("PURC_FORMPUREQ&showAll=YES&filterBy=STATUS&filterValue=APPROVED&operation=EQUAL&&filterBy=STATUS_REQUEST&filterValue=IN_PROCESS&operation=EQUAL", authToken, branchId)
       .then(data => {
         console.log('Currency lookup data:', data);
 
@@ -110,9 +232,9 @@ import axios from 'axios';
 
         const options = transformedData.map(item => {
           const label = item.PR_NUMBER;
-          if (label.startsWith('DRAFT')) {
-            return null; // or you can return an empty object {}
-          }
+          // if (label.startsWith('DRAFT')) {
+          //   return null; // or you can return an empty object {}
+          // }
           return {
             value: item.PR_NUMBER,
             label: label.replace('DRAFT ', ''), // remove 'DRAFT ' from the label
@@ -124,7 +246,8 @@ import axios from 'axios';
             REQUESTDATE: item.REQUEST_DATE,
             VENDOR: item.VENDOR,
             ENDTOENDID: item.ENDTOENDID,
-            ID: item.ID
+            ID: item.ID,
+            REQUESTOR: item.REQUESTOR,
           };
         }).filter(option => option !== null);
         setPROptions(options);
@@ -303,6 +426,12 @@ import axios from 'axios';
             label: item.CUSTOMER
           }))
 
+          const contractNumOptions = transformedData.map(item=> ({
+            value: item.CONTRACT_NUMBER,
+            label: item.CONTRACT_NUMBER,
+          }));
+
+          setContractNumberOptions(contractNumOptions);
           setProjectOptions(options);
           setCustomerOptions(optionsCustomer);
         })
@@ -404,108 +533,220 @@ import axios from 'axios';
     }
     
     // To Handler untuk autofill address
-    const handleToChange = (selectedOption) => {
-      setSelectedTo(selectedOption);
-      setTo(selectedOption ? selectedOption.value : '');
+    // const handleToChange = (selectedOption) => {
+    //   setSelectedTo(selectedOption);
+    //   setTo(selectedOption ? selectedOption.value : '');
       
-      // Autofill
-      if(selectedOption) {
-        const toAddressOption = toAddressOptions.find((option) => option.value === selectedOption.vendAddress);
-        setSelectedToAddress(toAddressOption);
-        setToAddress(toAddressOption ? toAddressOption.value : '');
-      }else{
-        setSelectedToAddress(null);
-        setToAddress('');
-      }
-    }
+    //   // Autofill
+    //   if(selectedOption) {
+    //     const toAddressOption = toAddressOptions.find((option) => option.value === selectedOption.vendAddress);
+    //     setSelectedToAddress(toAddressOption);
+    //     setToAddress(toAddressOption ? toAddressOption.value : '');
+    //   }else{
+    //     setSelectedToAddress(null);
+    //     setToAddress('');
+    //   }
+    // }
 
     // Pr handler 
-    const handlePRChange = (selectedOption) => {
-      setSelectedDocRefNum(selectedOption);
-      setDocRefNumber(selectedOption ? selectedOption.value : '');
+    // const handlePRChange = (selectedOption) => {
+    //   // setSelectedDocRefNum(selectedOption);
+    //   // setDocRefNumber(selectedOption ? selectedOption.value : '');
 
       
-      if (selectedOption) {
+    //   if (selectedOption) {
 
-        // const requestorOption = requestorOptions.find((option) => option.value === selectedOption.REQUESTOR);
-        const departementOption = departementOptions.find((option) => option.value === selectedOption.DEPARTEMENT);
-        const projectOption = projectOptions.find((option) => option.value === selectedOption.PROJECT);
-        const customerOption = customerOptions.find((option) => option.value === selectedOption.CUSTOMER);
-        const vendorOption = vendorOptions.find((option) => option.value === selectedOption.VENDOR);
-        const ToOption = toOptions.find((option) => option.value === selectedOption.VENDOR);
+    //     // const requestorOption = requestorOptions.find((option) => option.value === selectedOption.REQUESTOR);
+    //     const departementOption = departementOptions.find((option) => option.value === selectedOption.DEPARTEMENT);
+    //     const projectOption = projectOptions.find((option) => option.value === selectedOption.PROJECT);
+    //     const customerOption = customerOptions.find((option) => option.value === selectedOption.CUSTOMER);
+    //     const vendorOption = vendorOptions.find((option) => option.value === selectedOption.VENDOR);
+    //     const ToOption = toOptions.find((option) => option.value === selectedOption.VENDOR);
 
-        // setSelectedRequestor(requestorOption ? requestorOption : null);
-        // setRequestor(selectedOption.REQUESTOR);
-        setSelectedDepartement(departementOption ? departementOption : null);
-        setDepartement(selectedOption.DEPARTEMENT);
-        setSelectedProject(projectOption ? projectOption : null);
-        setProject(selectedOption.PROJECT);
-        setSelectedCustomer(customerOption ? customerOption : null);
-        setCustomer(selectedOption.CUSTOMER);
-        setRequestDate(selectedOption.REQUESTDATE);
-        setSelectedVendor(vendorOption ? vendorOption : null);
-        setVendor(selectedOption.VENDOR);
-        setSelectedTo(ToOption ? ToOption : null);
-        setTo(selectedOption.VENDOR);
-        setEndToEnd(selectedOption.ENDTOENDID);
-        setIdPr(selectedOption.ID);
+    //     // setSelectedRequestor(requestorOption ? requestorOption : null);
+    //     // setRequestor(selectedOption.REQUESTOR);
+    //     setSelectedDepartement(departementOption ? departementOption : null);
+    //     setDepartement(selectedOption.DEPARTEMENT);
+    //     setSelectedProject(projectOption ? projectOption : null);
+    //     setProject(selectedOption.PROJECT);
+    //     setSelectedCustomer(customerOption ? customerOption : null);
+    //     setCustomer(selectedOption.CUSTOMER);
+    //     setRequestDate(selectedOption.REQUESTDATE);
+    //     setSelectedVendor(vendorOption ? vendorOption : null);
+    //     setVendor(selectedOption.VENDOR);
+    //     setSelectedTo(ToOption ? ToOption : null);
+    //     setTo(selectedOption.VENDOR);
+    //     setEndToEnd(selectedOption.ENDTOENDID);
+    //     setIdPr(selectedOption.ID);
 
-        if (vendorOption) {
-          const toOption = toOptions.find((option) => option.value === vendorOption.value);
-          const toAddressOption = toAddressOptions.find((option) => option.value === vendorOption.vendAddress);
+    //     if (vendorOption) {
+    //       const toOption = toOptions.find((option) => option.value === vendorOption.value);
+    //       const toAddressOption = toAddressOptions.find((option) => option.value === vendorOption.vendAddress);
     
-          setSelectedTo(toOption);
-          setTo(toOption ? toOption.value : '');
-          setSelectedToAddress(toAddressOption);
-          setToAddress(toAddressOption ? toAddressOption.value : '');
-        }
-        // setShipTo(selectedOption.CUSTOMER ? selectedOption.CUSTOMER : '');
-        // setShipToAddress(selectedOption.ADDRESS);
+    //       setSelectedTo(toOption);
+    //       setTo(toOption ? toOption.value : '');
+    //       setSelectedToAddress(toAddressOption);
+    //       setToAddress(toAddressOption ? toAddressOption.value : '');
+    //     }
+    //     // setShipTo(selectedOption.CUSTOMER ? selectedOption.CUSTOMER : '');
+    //     // setShipToAddress(selectedOption.ADDRESS);
 
-        // if (selectedOption.CUSTOMER) {
-        //   const customer = customerOptions.find((option) => option.value === selectedOption.CUSTOMER);
-        //   setShipToAddress(customer ? customer.address : '');
-        // }
+    //     // if (selectedOption.CUSTOMER) {
+    //     //   const customer = customerOptions.find((option) => option.value === selectedOption.CUSTOMER);
+    //     //   setShipToAddress(customer ? customer.address : '');
+    //     // }
 
-        // Lookup Purchase Request Item List
-        LookupService.fetchLookupData(`PURC_FORMPUREQD&filterBy=PR_NUMBER&filterValue=${selectedOption.value}&operation=EQUAL`, authToken, branchId)
-        .then(response => {
-          const fetchedItems = response.data || [];
-          console.log('Items fetched:', fetchedItems);
+    //     // Lookup Purchase Request Item List
+    //     LookupService.fetchLookupData(`PURC_FORMPUREQD&filterBy=PR_NUMBER&filterValue=${selectedOption.value}&operation=EQUAL`, authToken, branchId)
+    //     .then(response => {
+    //       const fetchedItems = response.data || [];
+    //       console.log('Items fetched:', fetchedItems);
 
 
-          const resetItems = fetchedItems.map(item => ({
-            ...item,
-            original_unit_price: item.unit_price || 0,
-            vat_included: false
+    //       const resetItems = fetchedItems.map(item => ({
+    //         ...item,
+    //         original_unit_price: item.unit_price || 0,
+    //         vat_included: false
 
-          }));
-          // Set fetched items to state
-          setItems(resetItems);
+    //       }));
+    //       // Set fetched items to state
+    //       setItems(resetItems);
 
-          // Fetch product lookup data
-          LookupParamService.fetchLookupData("MSDT_FORMPRDT", authToken, branchId)
-              .then(productData => {
-                  console.log('Product lookup data:', productData);
+    //       // Fetch product lookup data
+    //       LookupParamService.fetchLookupData("MSDT_FORMPRDT", authToken, branchId)
+    //           .then(productData => {
+    //               console.log('Product lookup data:', productData);
 
-                  // Transform and map product data to options
-                  const transformedProductData = productData.data.map(item =>
-                      Object.keys(item).reduce((acc, key) => {
-                          acc[key.toUpperCase()] = item[key];
-                          return acc;
-                      }, {})
-                  );
+    //               // Transform and map product data to options
+    //               const transformedProductData = productData.data.map(item =>
+    //                   Object.keys(item).reduce((acc, key) => {
+    //                       acc[key.toUpperCase()] = item[key];
+    //                       return acc;
+    //                   }, {})
+    //               );
 
-                  const productOptions = transformedProductData.map(item => ({
-                      value: item.NAME,
-                      label: item.NAME
-                  }));
+    //               const productOptions = transformedProductData.map(item => ({
+    //                   value: item.NAME,
+    //                   label: item.NAME
+    //               }));
 
-                  setProductOptions(productOptions); // Set product options to state
+    //               setProductOptions(productOptions); // Set product options to state
 
-                  // Fetch currency lookup data
-                  LookupParamService.fetchLookupData("MSDT_FORMCCY", authToken, branchId)
-                      .then(currencyData => {
+    //               // Fetch currency lookup data
+    //               LookupParamService.fetchLookupData("MSDT_FORMCCY", authToken, branchId)
+    //                   .then(currencyData => {
+    //                       console.log('Currency lookup data:', currencyData);
+
+    //                       // Transform and map currency data to options
+    //                       const transformedCurrencyData = currencyData.data.map(item =>
+    //                           Object.keys(item).reduce((acc, key) => {
+    //                               acc[key.toUpperCase()] = item[key];
+    //                               return acc;
+    //                           }, {})
+    //                       );
+
+    //                       const currencyOptions = transformedCurrencyData.map(item => ({
+    //                           value: item.CODE,
+    //                           label: item.CODE
+    //                       }));
+
+    //                       setCurrencyOptions(currencyOptions); // Set currency options to state
+
+    //                       // Update fetched items with selected options
+    //                       const updatedItems = fetchedItems.map(item => {
+    //                           const selectedProductOption = productOptions.find(option =>
+    //                               option.value === item.product
+    //                           );
+
+    //                           console.log('Selected product option:', selectedProductOption);
+
+    //                           const selectedCurrencyOption = currencyOptions.find(option =>
+    //                               option.value === item.currency
+    //                           );
+
+    //                           console.log('Selected currency option:', selectedCurrencyOption);
+    //                           setSelectedCurrency(selectedCurrencyOption);
+    //                           setSelectedProduct(selectedProductOption);
+    //                       });
+
+    //                       // Set the updated items with selected product and currency options to state
+    //                       setItems(fetchedItems);
+    //                   })
+    //                   .catch(error => {
+    //                       console.error('Failed to fetch currency lookup:', error);
+    //                   });
+    //           })
+    //           .catch(error => {
+    //               console.error('Failed to fetch product lookup:', error);
+    //           });
+    //   })
+    //   .catch(error => {
+    //       console.error('Failed to load items:', error);
+    //   });
+
+
+    //   } else {
+    //     setRequestDate('');
+    //     // setSelectedRequestor(null);
+    //     // setRequestor('')
+    //     setSelectedDepartement(null);
+    //     setDepartement('');
+    //     setSelectedProject(null);
+    //     setProject('')
+    //     setSelectedCustomer(null);
+    //     setCustomer('');
+    //     setSelectedProduct(null);
+    //     setSelectedCurrency(null);
+    //     setItems([]);
+    //     setSelectedTaxType(null);
+    //     setVendor('');
+    //     setSelectedVendor(null);
+    //     setTo('')
+    //     setSelectedTo(null);
+    //     setToAddress('');
+    //     setSelectedToAddress(null);
+    //   }
+    // };
+
+
+    // New Item List PR Handle
+      const handlePRChange = (index, selectedOption) => {
+        if (selectedOption) {
+          // Fetch lookup data based on the selected option
+          LookupService.fetchLookupData(`PURC_FORMPUREQD&filterBy=PR_NUMBER&filterValue=${selectedOption.value}&operation=EQUAL`, authToken, branchId)
+            .then(response => {
+              const fetchedItems = response.data || [];
+              console.log('Items fetched:', fetchedItems);
+
+              LookupService.fetchLookupData(`PURC_FORMPUREQ&filterBy=PR_NUMBER&filterValue=${selectedOption.value}&operation=EQUAL`, authToken, branchId)
+                .then(response => {
+                  const fetchedDatas = response.data || [];
+                  console.log('Items fetched:', fetchedDatas);
+              
+
+              // Fetch product lookup data
+              LookupParamService.fetchLookupData("MSDT_FORMPRDT", authToken, branchId)
+                  .then(productData => {
+                      console.log('Product lookup data:', productData);
+
+                      // Transform and map product data to options
+                      const transformedProductData = productData.data.map(item =>
+                          Object.keys(item).reduce((acc, key) => {
+                              acc[key.toUpperCase()] = item[key];
+                              return acc;
+                          }, {})
+                      );
+
+                      const productOptions = transformedProductData.map(item => ({
+                          value: item.NAME,
+                          label: item.NAME
+                      }));
+
+                      setProductOptions(productOptions); // Set product options to state
+
+                      // Fetch currency lookup data
+                      LookupParamService.fetchLookupData("MSDT_FORMCCY", authToken, branchId)
+                        .then(currencyData => {
                           console.log('Currency lookup data:', currencyData);
 
                           // Transform and map currency data to options
@@ -522,62 +763,92 @@ import axios from 'axios';
                           }));
 
                           setCurrencyOptions(currencyOptions); // Set currency options to state
-
+                          
+                          const newItems = [...items];
                           // Update fetched items with selected options
-                          const updatedItems = fetchedItems.map(item => {
-                              const selectedProductOption = productOptions.find(option =>
-                                  option.value === item.product
-                              );
-
-                              console.log('Selected product option:', selectedProductOption);
-
-                              const selectedCurrencyOption = currencyOptions.find(option =>
-                                  option.value === item.currency
-                              );
-
-                              console.log('Selected currency option:', selectedCurrencyOption);
-                              setSelectedCurrency(selectedCurrencyOption);
-                              setSelectedProduct(selectedProductOption);
+                          const updatedFetchedItems = fetchedItems.map(item => {
+                            return {
+                                ...item,
+                                doc_reff_no: item.pr_number,
+                                doc_source: item.doc_source,
+                            };
                           });
 
-                          // Set the updated items with selected product and currency options to state
-                          setItems(fetchedItems);
-                      })
-                      .catch(error => {
-                          console.error('Failed to fetch currency lookup:', error);
-                      });
-              })
+                          updatedFetchedItems.forEach((fetchedItem, i) => {
+                            // Either update the existing index or add new items for each fetched object
+                            newItems[index + i] = {
+                                ...newItems[index + i],
+                                ...fetchedItem,
+                            };
+                          });
+
+                          fetchedDatas.forEach((fetchedData) => {
+                            newItems.forEach((item, i) => {
+                              if (item.doc_reff_no === fetchedData.pr_number) {
+                                newItems[i] = {
+                                    ...newItems[i],
+                                    requestor: fetchedData.requestor,
+                                };
+                              }
+                            });
+                          });
+
+                          const companyValue = 'PT. Abhimata Persada'; // Replace with the actual company value if different
+                          newItems.forEach((item, i) => {
+                              if (item.doc_reff_no === selectedOption.value) {
+                                  newItems[i].company = companyValue; // Set company for matching items
+                              }
+                          });
+
+                          // Set the updated items to state
+                          setItems(newItems);
+                        })
+                        .catch(error => {
+                            console.error('Failed to fetch currency lookup:', error);
+                        });
+                    })
+                  .catch(error => {
+                      console.error('Failed to fetch product lookup:', error);
+                  });
+                })
+                })
               .catch(error => {
-                  console.error('Failed to fetch product lookup:', error);
+                  console.error('Failed to load items:', error);
               });
-      })
-      .catch(error => {
-          console.error('Failed to load items:', error);
-      });
+          }else{
+            
+            const newItems = [...items];
+            newItems[index] = {
+              ...newItems[index],
+              product: '', 
+              product_note: '', 
+              quantity: 1, 
+              currency: 'IDR', 
+              unit_price: 0, 
+              original_unit_price: 0, 
+              total_price: 0, 
+              vat_type: '',
+              tax_ppn_type: '', 
+              tax_ppn_rate: 0, 
+              tax_ppn_amount: 0 , 
+              tax_base: 0, 
+              discount: 0,
+              subTotal: 0,
+              vat_included: false,
+              new_unit_price: 0,
+              doc_reff_no: '',
+              vendor: '',
+              project: '',
+              customer: '',
+              departement: '',
+              project_contract_number: '',
+              company:'PT. Abhimata Persada',
+              requestor: '',
+            };
+            setItems(newItems); // Update state with reset selections
+          }
+      };
 
-
-      } else {
-        setRequestDate('');
-        // setSelectedRequestor(null);
-        // setRequestor('')
-        setSelectedDepartement(null);
-        setDepartement('');
-        setSelectedProject(null);
-        setProject('')
-        setSelectedCustomer(null);
-        setCustomer('');
-        setSelectedProduct(null);
-        setSelectedCurrency(null);
-        setItems([]);
-        setSelectedTaxType(null);
-        setVendor('');
-        setSelectedVendor(null);
-        setTo('')
-        setSelectedTo(null);
-        setToAddress('');
-        setSelectedToAddress(null);
-      }
-    };
 
     const handleOptionChange = (setter, stateSetter, selectedOption) => {
       setter(selectedOption);
@@ -603,6 +874,15 @@ import axios from 'axios';
         subTotal: 0,
         vat_included: false,
         new_unit_price: 0,
+        doc_reff_no: '',
+        vendor: '',
+        project: '',
+        customer: '',
+        departement: '',
+        project_contract_number: '',
+        company:'PT. Abhimata Persada',
+        requestor: '',
+        doc_source: '',
       }]);
     };
 
@@ -666,8 +946,6 @@ import axios from 'axios';
       // Itungan Baru
 
       // Reset field vat type dan ppn type ketika mengubah unit price dan quantity
-
-      
 
       if( field === 'unit_price' || field === 'quantity') {
         newItems[index].vat_type = '';
@@ -754,6 +1032,7 @@ import axios from 'axios';
       console.log('vatinc', newItems[index].vat_included);
       console.log('base', newItems[index].tax_base);
       console.log('vat', newItems[index].vat_type);
+      console.log('docref', newItems[index].doc_reff_no)
 
       // if (field === 'tax_type') {
       //   const selectedTaxType = taxTypeOptions.find(option => option.value === value);
@@ -797,6 +1076,8 @@ import axios from 'axios';
         return total + taxBase;
       }, 0);
 
+      const subtotalBeforeDiscount = subTotal
+
       const subtotalAfterDiscount = subTotal - discount;
 
       const totalPPNAmount = items.reduce((total, item) => {
@@ -806,7 +1087,14 @@ import axios from 'axios';
 
       const totalAmount  =  subtotalAfterDiscount + totalPPNAmount;
       const validTotalAmount = isNaN(totalAmount) ? 0 : parseFloat(totalAmount);
-      return { subTotal, currency, subtotalAfterDiscount, totalPPNAmount, totalAmount: validTotalAmount };
+      return { 
+        subTotal, 
+        currency,
+        subtotalBeforeDiscount,  
+        subtotalAfterDiscount, 
+        totalPPNAmount, 
+        totalAmount: validTotalAmount 
+      };
     };
 
     const handleOnDragEnd = (result) => {
@@ -821,35 +1109,21 @@ import axios from 'axios';
       setPoNumber('');
       setDocRef('');
       setDocRefNumber('');
-      setProject('');
-      setVendor('');
-      setTitle('');
-      setCustomer('');
-      setSelectedCustomer(null);
-      setDepartement('');
-      setSelectedPaymentTerm(null);
       setOrderDate(order_date);
       setPaymentTerm('');
       setCreatedBy(createdBy);
       setDescription('');
-      setApproveBy('');
-      setShipTo('');
-      setShipToAddress('');
-      setBillTo('');
-      setBillToAddress('');
-      setRequestDate('');
-      setScheduleDate('');
+      setShipTo('PT. Abhimata Persada');
+      setShipToAddress('Menara Batavia, 5th Floor, DKI Jakarta, 10220, ID');
+      setBillTo('PT. Abhimata Persada');
+      setBillToAddress('Menara Batavia, 5th Floor, DKI Jakarta, 10220, ID');
       setTo('');
       setSelectedTo(null);
       setToAddress('');
+      setTermConditions('');
       setSelectedToAddress(null);
       setItems([]);
       setSelectedItems([]);
-      setSelectedRequestor(null);
-      setSelectedDepartement(null);
-      setSelectedVendor(null);
-      setSelectedProject(null);
-      setSelectedCurrency(null);
       setEndToEnd('');
     };
 
@@ -902,7 +1176,7 @@ import axios from 'axios';
           }
           
 
-          const { subTotal, totalPPNAmount, totalAmount} = calculateTotalAmount();
+          const { subtotalAfterDiscount, totalPPNAmount, totalAmount} = calculateTotalAmount();
           // Save general information and description
           const generalInfo = {
             po_number,
@@ -926,7 +1200,7 @@ import axios from 'axios';
             ship_to_address: shipToAddress,
             bill_to: billTo,
             bill_to_address: billToAddress,
-            total_tax_base: subTotal,
+            total_tax_base: subtotalAfterDiscount,
             total_amount_ppn: totalPPNAmount,
             term_conditions: termConditions,
             endtoendid: endToEndId,
@@ -969,6 +1243,7 @@ import axios from 'axios';
               
               // const file = fileInput.files[0];
 
+              // Upload  File Logic
               const request = {
                 idTrx: endToEndId,
                 code: 'PUOR',
@@ -976,7 +1251,7 @@ import axios from 'axios';
               
               const formData = new FormData();
               formData.append('request', JSON.stringify(request));
-              formData.append('file', file); // Use the file variable directly
+              formData.append('file', file); 
               
               const uploadResponse = await axios.post(UPLOAD_FILES, formData, {
                 headers: {
@@ -1045,18 +1320,12 @@ import axios from 'axios';
             console.log("endtoendId is not empty");
           }
 
-          const { subtotalAfterDiscount, totalPPNAmount, totalAmount} = calculateTotalAmount();
+          const { subtotalAfterDiscount, subtotalBeforeDiscount, totalPPNAmount, totalAmount} = calculateTotalAmount();
           // Save general information and description
           const generalInfo = {
             po_number,
             doc_reff: docRef,
-            doc_reff_no: docRefNumber,
-            project,
-            vendor,
             status_po: 'IN_PROCESS',
-            customer,
-            requestor,
-            departement,
             order_date, // Converts to date format
             request_date,
             created_by: createdBy,
@@ -1069,7 +1338,8 @@ import axios from 'axios';
             ship_to_address: shipToAddress,
             bill_to: billTo,
             bill_to_address: billToAddress,
-            total_tax_base: subtotalAfterDiscount,
+            total_after_discount: subtotalAfterDiscount,
+            total_before_discount: subtotalBeforeDiscount,
             total_amount_ppn: totalPPNAmount,
             term_conditions: termConditions,
             endtoendid: endToEndId,
@@ -1084,9 +1354,9 @@ import axios from 'axios';
           if (response.message === "insert Data Successfully") {
             // Iterate over items array and post each item individually
             for (const item of items) {
-              const { rwnum, ID, status, id_trx, ...rest } = item;
+              const { rwnum, ID, status, id_trx, id_upload, ...rest } = item;
               const updatedItem = {
-                ...item,
+                ...rest,
                 po_number,
                 tax_ppn: item.tax_ppn_type,
                 type_of_vat: item.vat_type
@@ -1104,6 +1374,7 @@ import axios from 'axios';
               delete updatedItem.discount;
               delete updatedItem.vat_included;
               delete updatedItem.subTotal;
+              
               
 
               const itemResponse = await InsertDataService.postData(updatedItem, "PUORD", authToken, branchId);
@@ -1146,6 +1417,12 @@ import axios from 'axios';
       const contentLength = e.target.value.length;
       const newWidth = Math.max(100, contentLength * 12); // 8px per character, adjust as needed
       setInputWidth(newWidth);
+    }
+
+    const [isAddFile, setIsAddFile] = useState(false);
+
+    const handleAddFile = () => {
+      setIsAddFile(true);
     }
 
     console.log('endtoed', endToEnd);
@@ -1203,7 +1480,9 @@ import axios from 'axios';
                           <Form.Select
                             placeholder="Enter Document Number"
                             value={docRef}
-                            onChange={(e) => setDocRef(e.target.value)}
+                            onChange={(e) => {
+                              setDocRef(e.target.value)
+                            }}
                           >
                             <option value="">Select Document Reference</option>
                             {/* Add more options here */}
@@ -1215,45 +1494,7 @@ import axios from 'axios';
                         </Form.Group>
                       </Col>
 
-                      { docRef === '' ? 
-                        <></>
-                      :
-                        docRef === "purchaseRequest" ? 
-                        <Col md={6}>
-                          <Form.Group>
-                            <Form.Label>Purchase Request Number</Form.Label>
-                            <Select 
-                            value={selectedDocRefNum}
-                            options={PROptions}
-                            onChange={handlePRChange}
-                            placeholder='Purhcase Request...'
-                            isClearable
-                            required
-                          />
-                          </Form.Group>
-                        </Col>
-                        : 
-                         docRef === "internalMemo" ?
-                          <Col md={6}>
-                            <Form.Group>
-                              <Form.Label>Intrnal Memo Number</Form.Label>
-                              <Form.Control
-                                type='text'
-                              />
-                            </Form.Group>
-                          </Col> 
-                          :
-                          <Col md={6}>
-                            <Form.Group>
-                              <Form.Label>Customer Contract Number</Form.Label>
-                              <Form.Control
-                                type='text'
-                              />
-                            </Form.Group>
-                          </Col>
-                      }
-
-                      <Col md={6}>
+                      {/* <Col md={6}>
                       <Form.Group controlId='formFile'>
                         <Form.Label>File Document</Form.Label>
                         <Form.Control
@@ -1262,10 +1503,10 @@ import axios from 'axios';
                           onChange={(e) => setFile(e.target.files[0])}
                         />
                       </Form.Group>
-                      </Col>
+                      </Col> */}
 
 
-                      <Col md={6}>
+                      {/* <Col md={6}>
                         <Form.Group controlId="formProject">
                           <Form.Label>Project</Form.Label>
                           <Select
@@ -1282,7 +1523,7 @@ import axios from 'axios';
                             isDisabled = {docRef === 'purchaseRequest'}
                           />
                         </Form.Group>
-                      </Col>
+                      </Col> */}
                       
 
                       {/* {docRef === 'purchaseRequest' ?
@@ -1318,7 +1559,7 @@ import axios from 'axios';
                         </Col>
                       } */}
 
-                      <Col md={6}>
+                      {/* <Col md={6}>
                         <Form.Group>
                           <Form.Label>Requestor</Form.Label>
                           <Form.Control
@@ -1328,8 +1569,21 @@ import axios from 'axios';
                             required
                           />
                         </Form.Group>
-                      </Col>
+                      </Col> */}
 
+                       <Col md={6}>
+                          <Form.Group controlId="formCreatedBy">
+                            <Form.Label>Created By</Form.Label>
+                            <Form.Control
+                              type="text"
+                              placeholder='Insert Created By'
+                              value={createdBy}
+                              onChange={(e) => setCreatedBy(e.target.value)}
+                              disabled
+                            />
+                          </Form.Group>
+                        </Col>
+                    {/* 
                       <Col md={6}>
                         <Form.Group controlId="formDepartment">
                           <Form.Label>Department</Form.Label>
@@ -1346,9 +1600,9 @@ import axios from 'axios';
                             isDisabled = {docRef === 'purchaseRequest'}
                           />
                         </Form.Group>
-                      </Col>
+                      </Col> */}
 
-                      <Col md={6}>
+                      {/* <Col md={6}>
                         <Form.Group controlId='formCustomer'>
                           <Form.Label>Customer</Form.Label>
                           <Select
@@ -1364,9 +1618,9 @@ import axios from 'axios';
                             isDisabled = {docRef === 'purchaseRequest' || !docRef}
                           />
                         </Form.Group>
-                      </Col>
+                      </Col> */}
 
-                      <Col md={6}>
+                      {/* <Col md={6}>
                         <Form.Group controlId="formRequestDate">
                           <Form.Label>Request Date</Form.Label>
                           <Form.Control
@@ -1377,7 +1631,7 @@ import axios from 'axios';
                             disabled
                           />
                         </Form.Group>
-                      </Col>
+                      </Col> */}
 
                       <Col md={6}>
                         <Form.Group controlId="formOrderDate">
@@ -1387,19 +1641,6 @@ import axios from 'axios';
                             value={order_date}
                             onChange={(e) => setOrderDate(e.target.value)}
                             required
-                          />
-                        </Form.Group>
-                      </Col>
-
-                      <Col md={6}>
-                        <Form.Group controlId="formCreatedBy">
-                          <Form.Label>Created By</Form.Label>
-                          <Form.Control
-                            type="text"
-                            placeholder='Insert Created By'
-                            value={createdBy}
-                            onChange={(e) => setCreatedBy(e.target.value)}
-                            disabled
                           />
                         </Form.Group>
                       </Col>
@@ -1441,7 +1682,7 @@ import axios from 'axios';
                               }
                             }}
                             isClearable
-                            placeholder="Vendor..."
+                            placeholder="To..."
                             required
                           />
                         </Form.Group>
@@ -1532,11 +1773,6 @@ import axios from 'axios';
                         </Form.Group>
                       </Col>
 
-
-                      {
-
-                      }
-
                     </Row>
                   </Form>
                 </Card.Body>
@@ -1590,6 +1826,25 @@ import axios from 'axios';
                                     checked={selectedItems.length === items.length && items.length > 0}
                                   />
                                 </th>
+                                {docRef === 'internalMemo' ? 
+                                    <th>Internal Memo Number</th>
+                                  :
+                                    docRef === 'customerContract' ? 
+                                      <th>Customer Contract Number</th>
+                                    :
+                                      docRef === 'purchaseRequest' ?
+                                        <th>Purchase Request Number</th>
+                                      :
+                                        <th>Select Doc Ref</th>
+                                }
+                                <th>Document Source</th>
+                                <th>Vendor</th>
+                                <th>Company</th>
+                                <th>Project</th>
+                                <th>Project Contract Number</th>
+                                <th>Requestor</th>
+                                <th>Customer</th>
+                                <th>Department</th>
                                 <th>Product</th>
                                 <th>Product Description</th>
                                 <th>Quantity</th>
@@ -1608,7 +1863,7 @@ import axios from 'axios';
                             <tbody>
                               {items.length === 0 ? (
                                 <tr>
-                                  <td colSpan="13" className="text-center">No data available</td>
+                                  <td colSpan="21" className="text-center">No data available</td>
                                 </tr>
                               ) : (
                                 items.map((item, index) => (
@@ -1621,10 +1876,194 @@ import axios from 'axios';
                                         onChange={() => handleSelectItem(index)}
                                       />
                                     </td>
+
+                                    <td>
+                                      <Select 
+                                        value={PROptions.find(option => option.value === item.doc_reff_no)}
+                                        options={PROptions}
+                                        onChange={(selectedOption) => {
+                                          handleItemChange(index, 'doc_reff_no', selectedOption ? selectedOption.value : null);
+                                          handlePRChange(index, selectedOption)
+                                        }} 
+                                        isClearable
+                                        required
+                                        placeholder={
+                                          docRef === 'customerContract' ? 
+                                            'Customer Contract...'
+                                          :
+                                            docRef === 'internalMemo' ?
+                                              'Internal Memo...'
+                                            : 
+                                              docRef === 'purchaseRequest' ?
+                                                'Purchase Request...'
+                                              :
+                                                'Please Select Doc Reference'
+                                        }
+                                        isDisabled={docRef === ''}
+                                      />
+                                    </td>
+
+                                    {/* <td>
+                                      <Form.Control
+                                        type='file'
+                                        placeholder='Upload Document'
+                                        onChange={(e) => setFile(e.target.files[0])}
+                                      />
+                                    </td> */}
+
+                                    <td>
+                                        { isAddFile ? 
+                                        <div className='d-flex'>
+                                          <Form.Control
+                                            type='file'
+                                            placeholder='Upload Document'
+                                            onChange={(e) => setFile(e.target.files[0])}
+                                          />
+                                          <button className='btn btn-danger ms-2' onClick={() => setIsAddFile(false)}>
+                                            <i className='fa fa-times'/>
+                                          </button>
+                                        </div>
+                                         
+                                        :
+                                        <div>
+                                          {item.doc_source ?
+                                            <a 
+                                              href='#' 
+                                              className='me-2' 
+                                            >
+                                              {item.doc_source}
+                                            </a>
+                                            :
+                                            <span className='me-2'>No Data</span>
+                                          }
+                                          <button className='btn btn-success'onClick={() => setIsAddFile(true)}>
+                                            <i className='fa fa-edit'/>
+                                          </button>
+                                        </div>
+                                        }
+                                    </td>
+
+                                    <td>
+                                      <Select
+                                        id='vendor'
+                                        value={
+                                          items[index].vendor ?
+                                            vendorOptions.find(option => option.value === item.vendor)
+                                          :
+                                            null
+                                        }
+                                        options={vendorOptions}
+                                        onChange={(selectedOption) => {
+                                          handleItemChange(index, 'vendor', selectedOption ? selectedOption.value : null)
+                                        }}
+                                        isClearable
+                                        placeholder="Vendor..."
+                                        required
+                                      />
+                                    </td>
+
+                                    <td>
+                                      <Form.Control
+                                        id='company'
+                                        value={item.company}
+                                        placeholder='Company'
+                                        onChange={(e)=>handleItemChange(index, 'company', e.target.value)}
+                                      />
+                                    </td>
+
+                                    <td>
+                                      <Select
+                                        id="project"
+                                        value={
+                                          items[index].project ?
+                                            projectOptions.find(option => option.value === item.project)
+                                          :
+                                            null
+                                        }
+                                        options={projectOptions}
+                                        onChange={(selectedOption) => {
+                                          handleItemChange(index, 'project', selectedOption ? selectedOption.value : null)
+                                        }}
+                                        placeholder="Project..."
+                                        isClearable 
+                                        required
+                                      />
+                                    </td>
+
+                                    <td>
+                                      <Select
+                                        id='projectContractNumber'
+                                        value={
+                                          items[index].project_contract_number ?
+                                            contractNumberOption.find(option => option.value === item.project_contract_number)
+                                          :
+                                            null  
+                                        }
+                                        options={contractNumberOption}
+                                        onChange={(selectedOption) => {
+                                          handleItemChange(index, 'project_contract_number', selectedOption ? selectedOption.value : null);
+                                        }}
+                                        placeholder='Project Contract Number...'
+                                        isClearable
+                                        required
+                                      />
+                                    </td>
+
+                                    <td>
+                                      <Form.Control
+                                        id='requestor'
+                                        placeholder='Requestor'
+                                        value={item.requestor}
+                                        onChange={(e) => handleItemChange(index, 'requestor', e.target.value)}
+                                      />
+                                    </td>
+
+                                    <td>
+                                      <Select
+                                        id='customer'
+                                        value={
+                                          items[index].customer ?
+                                              customerOptions.find(option => option.value === item.customer)
+                                            : 
+                                              null
+                                          }
+                                            onChange={(selectedOption) => {
+                                          handleItemChange(index, 'customer', selectedOption ? selectedOption.value : null)
+                                        }}
+                                        options={customerOptions}
+                                        placeholder='Customer...'
+                                        isClearable
+                                        required
+                                      />
+                                    </td>
+
+                                    <td>
+                                      <Select
+                                        id='department'
+                                        value={
+                                          items[index].departement ?
+                                            departementOptions.find(option => option.value === items[index].departement)
+                                          :
+                                            null
+                                        }
+                                        onChange={(selectedOption)  => {
+                                          handleItemChange(index, 'departement', selectedOption ? selectedOption.value : null)
+                                        }}
+                                        options={departementOptions}
+                                        placeholder='Department...'
+                                        isClearable
+                                        required
+                                      />
+                                    </td>
                                     
                                     <td>
                                       <Select
-                                          value={productOptions.find(option => option.value === item.product)}
+                                          value={
+                                            items[index].product ? 
+                                              productOptions.find(option => option.value === items[index].product) 
+                                            : 
+                                              null
+                                          }
                                           onChange={(selectedOption) => {
                                             setSelectedProduct(selectedOption);
                                             handleItemChange(index, 'product', selectedOption ? selectedOption.value : null);
@@ -1690,6 +2129,7 @@ import axios from 'axios';
                                               : '0'
                                           }
                                           onChange={(e) => {
+                                            dynamicFormWidth(e);
                                             const input = e.target.value;
 
                                             // Allow only numbers, periods, and remove unwanted characters
@@ -1705,6 +2145,9 @@ import axios from 'axios';
                                             const price = parseFloat(item.unit_price) || 0;
                                             handleItemChange(index, 'unit_price', price); // Convert back to number on blur
                                           }}
+                                          style={{
+                                            width: `${inputWidth}px`,
+                                          }}
                                         />
                                       }
                                     </td>
@@ -1713,7 +2156,12 @@ import axios from 'axios';
                                    
                                     <td>
                                       <Form.Select
-                                        value={item.vat_type || ''}
+                                        value={
+                                          selectedData ?
+                                          items[index].type_of_vat
+                                          :
+                                          item.vat_type || ''
+                                        }
                                         onChange={(selectedOption) => {
                                           handleItemChange(index, 'vat_type', selectedOption.target.value);
                                         }}
@@ -1727,7 +2175,11 @@ import axios from 'axios';
 
                                     <td>
                                       <Select
-                                        value={taxTypeOptions.find(option => option.value === item.tax_ppn_type) || null}
+                                        value={
+                                          selectedData ?
+                                            taxTypeOptions.find(option => option.value === items[index].tax_ppn)
+                                          :
+                                            taxTypeOptions.find(option => option.value === item.tax_ppn_type) || null}
                                         options={taxTypeOptions}
                                         placeholder="Select Tax Type"
                                         isClearable
@@ -1740,7 +2192,7 @@ import axios from 'axios';
                                             // setPPNRate(''); 
                                             handleItemChange(index, 'tax_ppn_rate', 0);
                                           }
-                                          handleItemChange(index, 'tax_ppn_type', selectedOption ? selectedOption.value : '');
+                                          handleItemChange(index, 'tax_ppn_type', selectedOption ? selectedOption.value : ''  );
                                           
                                         }}
                                       />
@@ -1812,7 +2264,7 @@ import axios from 'axios';
                             </tbody>
                             <tfoot>
                               <tr className='text-right'>
-                                <td colSpan="10">Subtotal Before Discount:</td>
+                                <td colSpan="19">Subtotal Before Discount:</td>
                                 <td>
                                   <strong>
                                     {items.length > 0 
@@ -1825,7 +2277,7 @@ import axios from 'axios';
                                 </td>
                               </tr>
                               <tr className='text-right'>
-                                <td colSpan="10">Discount:</td>
+                                <td colSpan="19">Discount:</td>
                                 <td>
                                   <Form.Control
                                     className='text-right'
@@ -1864,7 +2316,7 @@ import axios from 'axios';
                                 </td>
                               </tr>
                               <tr className='text-right'>
-                                <td colSpan="10">Subtotal:</td>
+                                <td colSpan="19">Subtotal:</td>
                                 <td>
                                   <strong>
                                     {items.length > 0 ? 
@@ -1879,7 +2331,7 @@ import axios from 'axios';
                                 </td>
                               </tr>
                               <tr className='text-right'>
-                                <td colSpan="10">Total PPN:</td>
+                                <td colSpan="19">Total PPN:</td>
                                 {/* <td><strong>{calculateTotalAmount().totalPPNAmount.toLocaleString('en-US', { style: 'currency', currency: 'IDR' })}</strong></td> */}
                                 <td>
                                   <Form.Control
@@ -1908,7 +2360,7 @@ import axios from 'axios';
                                 </td>
                               </tr>
                               <tr className="text-right">
-                                <td colSpan="10" >Total Amount:</td>
+                                <td colSpan="19" >Total Amount:</td>
                                 <td>
                                   <strong>
                                     {items.length > 0 ?
@@ -1945,6 +2397,7 @@ import axios from 'axios';
                     <Form.Control
                       as='textarea'
                       rows={3}
+                      value={termConditions}
                       placeholder='Enter Terms & Conditions'
                       onChange={(e)=>setTermConditions(e.target.value)}
                     />

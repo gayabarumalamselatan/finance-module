@@ -63,6 +63,7 @@ module.exports = {
                 './PurchaseOrder': './src/components/PurchaseOrder',
                 './PurchaseInvoice': './src/components/PurchaseInvoice',
                 './AddPurchaseOrder': './src/components/AddPurchaseOrder',
+                
             },
             shared: {
                 react: { 
