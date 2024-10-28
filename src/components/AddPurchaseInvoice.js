@@ -4,12 +4,12 @@ import { DragDropContext, Droppable, Draggable } from "react-beautiful-dnd";
 import Swal from "sweetalert2";
 import { messageAlertSwal } from "../config/Swal";
 import InsertDataService from "../service/InsertDataService";
-import { getBranch, getToken } from "../config/Constant";
+import { getBranch, getToken, token } from "../config/Constant";
 import { FORM_SERVICE_UPDATE_DATA, GENERATED_NUMBER } from "../config/ConfigUrl";
 import { generateUniqueId } from "../service/GeneratedId";
 import Select from "react-select";
 import LookupParamService from "../service/LookupParamService";
-import { GENERATED_DUE_DATE } from "../config/ConfigUrl";
+import { GENERATED_DUE_DATE, UPLOAD_FILES } from "../config/ConfigUrl";
 import axios from "axios";
 
 const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, handleRefresh, index, item }) => {
@@ -78,6 +78,10 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, handleRefresh, inde
   const [endToEnd, setEndToEnd] = useState("");
   const [idPr, setIdPr] = useState("");
   const [idPo, setIdPo] = useState("");
+  const [cod_cor_skb, SetCodCorSkb] = useState("");
+  const [tax_exchange_rate, setTaxExchangeRate] = useState("");
+  const [customer_contract, setCustomerContract] = useState("");
+  const [file, setFile] = useState("");
   const authToken = headers;
 
   useEffect(() => {
@@ -845,26 +849,214 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, handleRefresh, inde
     ]);
   };
 
+  // Backup perhitungan
+  // const handleItemChange = (index, field, value) => {
+  //   const newItems = [...items];
+  //   newItems[index][field] = value;
+  //   // newItems[index].original_unit_price = newItems[index].unit_price || 0;
+
+  //   console.log(index, field, value);
+
+  //   // Itungan Baru
+
+  //   // Reset field vat type dan ppn type ketika mengubah unit price dan quantity
+
+  //   if (field === "unit_price" || field === "quantity") {
+  //     newItems[index].vat_type = "";
+  //     newItems[index].tax_ppn_rate = 0;
+  //     newItems[index].tax_ppn_type = "";
+  //     newItems[index].tax_pph_rate = 0;
+  //     newItems[index].tax_pph_type = "";
+  //     newItems[index].tax_base = 0;
+  //     newItems[index].tax_ppn_amount = 0;
+  //     newItems[index].tax_pph_amount = 0;
+  //     if (newItems[index].vat_included !== undefined) {
+  //       newItems[index].vat_included = false;
+  //     }
+  //   }
+  //   if (field === "quantity" || field === "unit_price") {
+  //     newItems[index].total_price = newItems[index].quantity * newItems[index].unit_price;
+  //   }
+
+  //   // Itungan New Unit Price
+  //   let pengkali = newItems[index].tax_ppn_rate / 100;
+
+  //   if (field === "tax_ppn_type" || field === "tax_ppn_rate") {
+  //     if (newItems[index].vat_type === "include" && newItems[index].type_of_pph === "gross") {
+  //       newItems[index].tax_base = Math.round(newItems[index].unit_price / ((1 + newItems[index].tax_ppn_rate / 100) * newItems[index].quantity));
+  //       newItems[index].tax_ppn_amount = Math.round((newItems[index].tax_base / (1 - newItems[index].tax_ppn_rate / 100)) * (newItems[index].tax_ppn_rate / 100));
+  //     } else if (newItems[index].vat_type === "include" && newItems[index].type_of_pph === "nett") {
+  //       let tax_base = Math.round(newItems[index].unit_price * newItems[index].quantity);
+
+  //       // Perhitungan tax_ppn_amount sesuai formula case 2
+  //       let base_with_ppn = tax_base / (1 + newItems[index].tax_ppn_rate / 100); // tax base / (1 + tax_ppn_rate)
+  //       let base_after_pph = base_with_ppn / ((100 - newItems[index].tax_pph_rate) / 100); // base_with_ppn / (100% - tax_pph_rate)
+  //       let tax_ppn_amount = Math.round(base_after_pph * (newItems[index].tax_ppn_rate / 100)); // base_after_pph * tax_ppn_rate
+  //       newItems[index].tax_ppn_amount = tax_ppn_amount;
+  //     } else if (newItems[index].vat_type === "include") {
+  //       newItems[index].tax_base = Math.round(newItems[index].unit_price / ((1 + newItems[index].tax_ppn_rate / 100) * newItems[index].quantity));
+  //       newItems[index].tax_ppn_amount = Math.floor(newItems[index].tax_base * (newItems[index].tax_ppn_rate / 100));
+  //     } else if (newItems[index].vat_type === "exclude") {
+  //       newItems[index].tax_ppn_amount = Math.floor(newItems[index].total_price * (newItems[index].tax_ppn_rate / 100));
+  //       newItems[index].tax_base = Math.round(newItems[index].unit_price * newItems[index].quantity);
+  //     }
+
+  //     // Hitung total amount PPN
+  //     let total_ppn = newItems.reduce((sum, item) => sum + item.tax_ppn_amount, 0);
+
+  //     // Assign the calculated total amount PPN
+  //     newItems[index].total_ppn_amount = total_ppn;
+  //   }
+
+  //   let pengkali2 = newItems[index].tax_pph_rate / 100;
+
+  //   // if (field === "tax_pph_type" || field === "tax_pph_rate") {
+  //   //   if (newItems[index].vat_type === "include") {
+  //   //     newItems[index].new_unit_price = newItems[index].unit_price + newItems[index].unit_price * pengkali2;
+  //   //     newItems[index].tax_base = Math.round(newItems[index].unit_price / ((1 + newItems[index].tax_pph_rate / 100) * newItems[index].quantity));
+  //   //     newItems[index].tax_pph_amount = Math.round(newItems[index].tax_base * (newItems[index].tax_pph_rate / 100));
+  //   //     newItems[index].vat_included = true;
+  //   //   } else if (newItems[index].vat_type === "exclude") {
+  //   //     newItems[index].tax_pph_amount = Math.round(newItems[index].total_price * (newItems[index].tax_pph_rate / 100));
+  //   //     newItems[index].tax_base = Math.round(newItems[index].unit_price * newItems[index].quantity);
+  //   //   }
+  //   //   newItems[index].total_price = newItems[index].unit_price * newItems[index].quantity;
+  //   // }
+
+  //   if (field === "vat_type") {
+  //     newItems[index].tax_ppn_type = "";
+  //     newItems[index].tax_ppn_rate = 0;
+  //     newItems[index].tax_pph_type = "";
+  //     newItems[index].tax_pph_rate = 0;
+  //     newItems[index].tax_base = 0;
+  //     newItems[index].tax_ppn_amount = 0;
+  //     newItems[index].tax_pph_amount = 0;
+  //     if (newItems[index].vat_type === "exclude" && newItems[index].vat_included === true) {
+  //       newItems[index].new_unit_price = newItems[index].new_unit_price - newItems[index].unit_price * pengkali;
+  //       newItems[index].vat_included = false;
+  //     } else {
+  //       newItems[index].new_unit_price = newItems[index].unit_price;
+  //     }
+  //     newItems[index].total_price = newItems[index].unit_price * newItems[index].quantity;
+  //   }
+
+  //   if (field === "type_of_pph") {
+  //     newItems[index].tax_pph_type = "";
+  //     newItems[index].tax_pph_rate = 0;
+  //     // newItems[index].tax_base = 0;
+  //     newItems[index].tax_pph_amount = 0;
+  //   }
+
+  //   // hitungan pph lama
+  //   // if (field === "tax_pph_type" || field === "tax_pph_rate") {
+  //   //   if (newItems[index].vat_type === "include") {
+  //   //     newItems[index].new_unit_price = newItems[index].unit_price + newItems[index].unit_price * pengkali2;
+  //   //     // newItems[index].tax_base = Math.round(newItems[index].unit_price / ((1 + newItems[index].tax_pph_rate / 100) * newItems[index].quantity));
+  //   //     newItems[index].tax_pph_amount = Math.round(((newItems[index].total_price / (1 + newItems[index].tax_ppn_rate / 100)) * newItems[index].tax_pph_rate) / 100);
+  //   //     newItems[index].vat_included = true;
+  //   //   } else if (newItems[index].vat_type === "exclude") {
+  //   //     newItems[index].tax_pph_amount = Math.round(newItems[index].total_price * (newItems[index].tax_pph_rate / 100));
+  //   //     // newItems[index].tax_base = Math.round(newItems[index].unit_price * newItems[index].quantity);
+  //   //   }
+  //   //   newItems[index].total_price = newItems[index].unit_price * newItems[index].quantity;
+  //   // }
+
+  //   // Itungan Original Unit Price
+
+  //   // let pengkali = newItems[index].tax_ppn_rate/100;
+
+  //   // if (field === 'tax_ppn_type' || field === 'tax_ppn_rate') {
+  //   //   if (newItems[index].vat_type === 'include'){
+  //   //     newItems[index].unit_price = newItems[index].original_unit_price + (newItems[index].original_unit_price * (pengkali));
+  //   //     newItems[index].tax_base = newItems[index].unit_price / ((1 + (newItems[index].tax_ppn_rate / 100)) * newItems[index].quantity);
+  //   //     newItems[index].tax_ppn_amount = newItems[index].tax_base * (newItems[index].tax_ppn_rate / 100);
+  //   //     newItems[index].vat_included = true;
+  //   //   } else if (newItems[index].vat_type === "exclude"){
+  //   //     newItems[index].tax_ppn_amount = newItems[index].total_price * (newItems[index].tax_ppn_rate/100);
+  //   //     newItems[index].tax_base = newItems[index].unit_price * newItems[index].quantity;
+  //   //   }
+  //   //   newItems[index].total_price = newItems[index].unit_price * newItems[index].quantity;
+  //   // }
+
+  //   // if (field === 'vat_type') {
+  //   //   newItems[index].tax_ppn_type = '';
+  //   //   newItems[index].tax_ppn_rate = 0;
+  //   //   newItems[index].tax_base = 0;
+  //   //   newItems[index].tax_ppn_amount = 0;
+  //   //   if (newItems[index].vat_type === 'exclude' && newItems[index].vat_included === true) {
+  //   //     newItems[index].unit_price = newItems[index].unit_price - (newItems[index].original_unit_price * (pengkali));
+  //   //     newItems[index].vat_included = false;
+
+  //   //   }else{
+  //   //     newItems[index].new_unit_price = newItems[index].unit_price;
+
+  //   //   }
+  //   //   newItems[index].total_price = newItems[index].unit_price * newItems[index].quantity;
+  //   // }
+
+  //   // hitungan pph baru
+  //   if (field === "tax_pph_type" || field === "tax_pph_rate") {
+  //     if (newItems[index].vat_type === "include" && newItems[index].type_of_pph === "nett") {
+  //       newItems[index].tax_base = Math.round(newItems[index].unit_price / ((1 + newItems[index].tax_ppn_rate / 100) * newItems[index].quantity));
+  //       newItems[index].tax_pph_amount = Math.round((newItems[index].tax_base / (1 - newItems[index].tax_pph_rate / 100)) * newItems[index].tax_pph_rate);
+  //     } else if (newItems[index].vat_type === "include" && newItems[index].type_of_pph === "gross") {
+  //       newItems[index].tax_base = Math.round(newItems[index].unit_price / ((1 + newItems[index].tax_ppn_rate / 100) * newItems[index].quantity));
+  //       newItems[index].tax_pph_amount = Math.round(newItems[index].tax_base * (newItems[index].tax_pph_rate / 100));
+  //     } else if (newItems[index].vat_type === "include") {
+  //       newItems[index].new_unit_price = newItems[index].unit_price + newItems[index].unit_price * pengkali2;
+  //       newItems[index].tax_pph_amount = Math.round(((newItems[index].total_price / (1 + newItems[index].tax_ppn_rate / 100)) * newItems[index].tax_ppn_rate) / 100);
+  //       newItems[index].vat_included = true;
+  //     } else if (newItems[index].vat_type === "exclude" && newItems[index].type_of_pph === "gross") {
+  //       newItems[index].tax_pph_amount = Math.round((newItems[index].total_price * newItems[index].tax_pph_rate) / 100);
+  //     } else if (newItems[index].vat_type === "exclude") {
+  //       newItems[index].tax_pph_amount = Math.round(newItems[index].total_price * (newItems[index].tax_pph_rate / 100));
+  //     }
+  //     newItems[index].total_price = newItems[index].unit_price * newItems[index].quantity;
+  //   }
+
+  //   //backup itungan pph
+  //   // if (field === "tax_pph_type" || field === "tax_pph_rate") {
+  //   //   if (newItems[index].vat_type === "include" && newItems[index].type_of_pph === "nett") {
+  //   //     newItems[index].tax_pph_amount = Math.round((newItems[index].total_price / (1 + newItems[index].tax_ppn_rate / 100) / (1 - newItems[index].tax_ppn_rate / 100)) * newItems[index].tax_ppn_rate);
+  //   //     newItems[index].tax_base = Math.round(newItems[index].unit_price / ((1 + newItems[index].tax_ppn_rate / 100) * newItems[index].quantity));
+  //   //   } else if (newItems[index].vat_type === "include") {
+  //   //     newItems[index].new_unit_price = newItems[index].unit_price + newItems[index].unit_price * pengkali2;
+  //   //     newItems[index].tax_pph_amount = Math.round(((newItems[index].total_price / (1 + newItems[index].tax_ppn_rate / 100)) * newItems[index].tax_ppn_rate) / 100);
+  //   //     newItems[index].vat_included = true;
+  //   //   } else if (newItems[index].vat_type === "exclude" && newItems[index].type_of_pph === "gross") {
+  //   //     newItems[index].tax_pph_amount = Math.round((newItems[index].total_price * newItems[index].tax_pph_rate) / 100);
+  //   //   } else if (newItems[index].vat_type === "exclude") {
+  //   //     newItems[index].tax_pph_amount = Math.round(newItems[index].total_price * (newItems[index].tax_pph_rate / 100));
+  //   //   }
+  //   //   newItems[index].total_price = newItems[index].unit_price * newItems[index].quantity;
+  //   // }
+
+  //   console.log("new unit price", newItems[index].new_unit_price);
+  //   console.log("original", newItems[index].original_unit_price);
+  //   console.log("unit", newItems[index].unit_price);
+  //   console.log("pengkali", pengkali);
+  //   console.log("vatinc", newItems[index].vat_included);
+  //   console.log("base", newItems[index].tax_base);
+  //   console.log("vat", newItems[index].vat_type);
+  //   console.log("pengkali2", pengkali2);
+
+  //   // if (field === 'tax_type') {
+  //   //   const selectedTaxType = taxTypeOptions.find(option => option.value === value);
+  //   //   setPPNRate(selectedTaxType ? selectedTaxType.RATE : '');
+  //   // }
+
+  //   setItems(newItems);
+  // };
+
+  //yg baru
   const handleItemChange = (index, field, value) => {
     const newItems = [...items];
     newItems[index][field] = value;
-    // newItems[index].original_unit_price = newItems[index].unit_price || 0;
-
-    console.log(index, field, value);
-
-    // Itungan Baru
-
-    // Reset field vat type dan ppn type ketika mengubah unit price dan quantity
-
     if (field === "unit_price" || field === "quantity") {
       newItems[index].vat_type = "";
-      newItems[index].tax_ppn_rate = 0;
       newItems[index].tax_ppn_type = "";
-      newItems[index].tax_pph_rate = 0;
-      newItems[index].tax_pph_type = "";
       newItems[index].tax_base = 0;
       newItems[index].tax_ppn_amount = 0;
-      newItems[index].tax_pph_amount = 0;
       if (newItems[index].vat_included !== undefined) {
         newItems[index].vat_included = false;
       }
@@ -880,38 +1072,41 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, handleRefresh, inde
       if (newItems[index].vat_type === "include") {
         newItems[index].new_unit_price = newItems[index].unit_price + newItems[index].unit_price * pengkali;
         newItems[index].tax_base = Math.round(newItems[index].unit_price / ((1 + newItems[index].tax_ppn_rate / 100) * newItems[index].quantity));
-        newItems[index].tax_ppn_amount = Math.round(newItems[index].tax_base * (newItems[index].tax_ppn_rate / 100));
+        newItems[index].tax_ppn_amount = newItems[index].tax_base * (newItems[index].tax_ppn_rate / 100);
         newItems[index].vat_included = true;
       } else if (newItems[index].vat_type === "exclude") {
-        newItems[index].tax_ppn_amount = Math.round(newItems[index].total_price * (newItems[index].tax_ppn_rate / 100));
-        newItems[index].tax_base = Math.round(newItems[index].unit_price * newItems[index].quantity);
+        newItems[index].tax_ppn_amount = newItems[index].total_price * (newItems[index].tax_ppn_rate / 100);
+        newItems[index].tax_base = newItems[index].unit_price * newItems[index].quantity;
       }
       newItems[index].total_price = newItems[index].unit_price * newItems[index].quantity;
     }
 
-    let pengkali2 = newItems[index].tax_pph_rate / 100;
-
-    // if (field === "tax_pph_type" || field === "tax_pph_rate") {
-    //   if (newItems[index].vat_type === "include") {
-    //     newItems[index].new_unit_price = newItems[index].unit_price + newItems[index].unit_price * pengkali2;
-    //     newItems[index].tax_base = Math.round(newItems[index].unit_price / ((1 + newItems[index].tax_pph_rate / 100) * newItems[index].quantity));
-    //     newItems[index].tax_pph_amount = Math.round(newItems[index].tax_base * (newItems[index].tax_pph_rate / 100));
-    //     newItems[index].vat_included = true;
-    //   } else if (newItems[index].vat_type === "exclude") {
-    //     newItems[index].tax_pph_amount = Math.round(newItems[index].total_price * (newItems[index].tax_pph_rate / 100));
-    //     newItems[index].tax_base = Math.round(newItems[index].unit_price * newItems[index].quantity);
-    //   }
-    //   newItems[index].total_price = newItems[index].unit_price * newItems[index].quantity;
-    // }
+    if (field === "tax_pph_type" || field === "tax_pph_rate") {
+      if (newItems[index].type_of_pph === "gross") {
+        if (newItems[index].vat_type === "exclude") {
+          newItems[index].tax_pph_amount = newItems[index].unit_price * (newItems[index].tax_pph_rate / 100);
+        } else {
+          newItems[index].tax_pph_amount = newItems[index].tax_base * (newItems[index].tax_pph_rate / 100);
+          console.log("asdsad", newItems[index].tax_pph_amount);
+        }
+      } else if (newItems[index].type_of_pph === "nett") {
+        if (newItems[index].vat_type === "include") {
+          let taxWithPPh = newItems[index].tax_base / (1 - newItems[index].tax_pph_rate / 100);
+          newItems[index].tax_pph_amount = taxWithPPh * (newItems[index].tax_pph_rate / 100);
+          newItems[index].tax_ppn_amount = taxWithPPh * (newItems[index].tax_ppn_rate / 100);
+        } else if (newItems[index].vat_type === "exclude") {
+          let taxWithPPh = newItems[index].unit_price / (1 - newItems[index].tax_pph_rate / 100);
+          newItems[index].tax_pph_amount = taxWithPPh * (newItems[index].tax_pph_rate / 100);
+          newItems[index].tax_ppn_amount = taxWithPPh * (newItems[index].tax_ppn_rate / 100);
+        }
+      }
+    }
 
     if (field === "vat_type") {
       newItems[index].tax_ppn_type = "";
       newItems[index].tax_ppn_rate = 0;
-      newItems[index].tax_pph_type = "";
-      newItems[index].tax_pph_rate = 0;
       newItems[index].tax_base = 0;
       newItems[index].tax_ppn_amount = 0;
-      newItems[index].tax_pph_amount = 0;
       if (newItems[index].vat_type === "exclude" && newItems[index].vat_included === true) {
         newItems[index].new_unit_price = newItems[index].new_unit_price - newItems[index].unit_price * pengkali;
         newItems[index].vat_included = false;
@@ -920,67 +1115,9 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, handleRefresh, inde
       }
       newItems[index].total_price = newItems[index].unit_price * newItems[index].quantity;
     }
-
-    if (field === "tax_pph_type" || field === "tax_pph_rate") {
-      if (newItems[index].vat_type === "include") {
-        newItems[index].new_unit_price = newItems[index].unit_price + newItems[index].unit_price * pengkali2;
-        // newItems[index].tax_base = Math.round(newItems[index].unit_price / ((1 + newItems[index].tax_pph_rate / 100) * newItems[index].quantity));
-        newItems[index].tax_pph_amount = Math.round(((newItems[index].total_price / (1 + newItems[index].tax_ppn_rate / 100)) * newItems[index].tax_pph_rate) / 100);
-        newItems[index].vat_included = true;
-      } else if (newItems[index].vat_type === "exclude") {
-        newItems[index].tax_pph_amount = Math.round(newItems[index].total_price * (newItems[index].tax_pph_rate / 100));
-        // newItems[index].tax_base = Math.round(newItems[index].unit_price * newItems[index].quantity);
-      }
-      newItems[index].total_price = newItems[index].unit_price * newItems[index].quantity;
-    }
-
-    // Itungan Original Unit Price
-
-    // let pengkali = newItems[index].tax_ppn_rate/100;
-
-    // if (field === 'tax_ppn_type' || field === 'tax_ppn_rate') {
-    //   if (newItems[index].vat_type === 'include'){
-    //     newItems[index].unit_price = newItems[index].original_unit_price + (newItems[index].original_unit_price * (pengkali));
-    //     newItems[index].tax_base = newItems[index].unit_price / ((1 + (newItems[index].tax_ppn_rate / 100)) * newItems[index].quantity);
-    //     newItems[index].tax_ppn_amount = newItems[index].tax_base * (newItems[index].tax_ppn_rate / 100);
-    //     newItems[index].vat_included = true;
-    //   } else if (newItems[index].vat_type === "exclude"){
-    //     newItems[index].tax_ppn_amount = newItems[index].total_price * (newItems[index].tax_ppn_rate/100);
-    //     newItems[index].tax_base = newItems[index].unit_price * newItems[index].quantity;
-    //   }
-    //   newItems[index].total_price = newItems[index].unit_price * newItems[index].quantity;
-    // }
-
-    // if (field === 'vat_type') {
-    //   newItems[index].tax_ppn_type = '';
-    //   newItems[index].tax_ppn_rate = 0;
-    //   newItems[index].tax_base = 0;
-    //   newItems[index].tax_ppn_amount = 0;
-    //   if (newItems[index].vat_type === 'exclude' && newItems[index].vat_included === true) {
-    //     newItems[index].unit_price = newItems[index].unit_price - (newItems[index].original_unit_price * (pengkali));
-    //     newItems[index].vat_included = false;
-
-    //   }else{
-    //     newItems[index].new_unit_price = newItems[index].unit_price;
-
-    //   }
-    //   newItems[index].total_price = newItems[index].unit_price * newItems[index].quantity;
-    // }
-
-    console.log("new unit price", newItems[index].new_unit_price);
-    console.log("original", newItems[index].original_unit_price);
-    console.log("unit", newItems[index].unit_price);
-    console.log("pengkali", pengkali);
-    console.log("vatinc", newItems[index].vat_included);
-    console.log("base", newItems[index].tax_base);
-    console.log("vat", newItems[index].vat_type);
-    console.log("pengkali2", pengkali2);
-
-    // if (field === 'tax_type') {
-    //   const selectedTaxType = taxTypeOptions.find(option => option.value === value);
-    //   setPPNRate(selectedTaxType ? selectedTaxType.RATE : '');
-    // }
-
+    console.log("pphtype", newItems[index].type_of_pph);
+    console.log("pphrate", newItems[index].tax_pph_rate);
+    console.log("ppham", newItems[index].tax_pph_amount);
     setItems(newItems);
   };
 
@@ -1013,10 +1150,43 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, handleRefresh, inde
   };
 
   // perhitungan awal
+  // const calculateTotalAmount = () => {
+  //   const subTotal = items.reduce((total, item) => {
+  //     const taxBase = isNaN(item.tax_base) ? 0 : item.tax_base;
+  //     return total + taxBase;
+  //   }, 0);
+
+  //   const totalPPNAmount = items.reduce((total, item) => {
+  //     const taxPPNAmount = isNaN(item.tax_ppn_amount) ? 0 : item.tax_ppn_amount;
+  //     return total + taxPPNAmount;
+  //   }, 0);
+
+  //   const totalPPHAmount = items.reduce((total, item) => {
+  //     const taxPPHAmount = isNaN(item.tax_pph_amount) ? 0 : item.tax_pph_amount;
+  //     return total + taxPPHAmount;
+  //   }, 0);
+
+  //   const total_amount = subTotal - totalPPHAmount + totalPPNAmount;
+  //   const validTotalAmount = isNaN(total_amount) ? 0 : total_amount;
+  //   return { subTotal, totalPPNAmount, totalPPHAmount, totalAmount: validTotalAmount };
+  // };
+
   const calculateTotalAmount = () => {
     const subTotal = items.reduce((total, item) => {
       const taxBase = isNaN(item.tax_base) ? 0 : item.tax_base;
       return total + taxBase;
+    }, 0);
+
+    const taxbasePPH = items.reduce((total, item) => {
+      if (item.vat_type === "include" && item.type_of_pph === "nett") {
+        const taxBase = isNaN(item.tax_base) ? 0 : item.tax_base;
+        const taxPphRate = isNaN(item.tax_pph_rate) ? 0 : item.tax_pph_rate;
+        return total + taxBase / (1 - taxPphRate / 100);
+      } else if (item.vat_type === "exclude") {
+        return total + item.unit_price / (1 - item.tax_pph_rate / 100);
+      } else {
+        return total + (isNaN(item.tax_base) ? 0 : item.tax_base);
+      }
     }, 0);
 
     const totalPPNAmount = items.reduce((total, item) => {
@@ -1029,9 +1199,45 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, handleRefresh, inde
       return total + taxPPHAmount;
     }, 0);
 
-    const total_amount = subTotal + totalPPNAmount + totalPPHAmount;
+    // Calculate total_amount based on vat_type and type_of_pph
+    let total_amount;
+
+    // Case 1: PPN Include, PPH Gross
+    const case1 = items.filter((item) => item.vat_type === "include" && item.type_of_pph === "gross");
+    if (case1.length > 0) {
+      total_amount = subTotal + totalPPNAmount - totalPPHAmount;
+    }
+
+    // Case 2: PPN Include, PPH Nett (using the new formula)
+    const case2 = items.filter((item) => item.vat_type === "include" && item.type_of_pph === "nett");
+    if (case2.length > 0) {
+      const taxBasePPNAF = Math.round(taxbasePPH);
+      // const taxPphRate = totalPPHAmount / taxBase; // Example PPh rate from total PPH amount
+      total_amount = taxBasePPNAF - totalPPHAmount + totalPPNAmount;
+      console.log("taxppsdsd", taxBasePPNAF);
+      console.log("pphamisnada", totalPPHAmount);
+      console.log("ppnamkd", totalPPNAmount);
+      console.log("totalamaos", total_amount);
+    }
+
+    // Case 3: PPN Exclude, PPH Gross
+    const case3 = items.filter((item) => item.vat_type === "exclude" && item.type_of_pph === "gross");
+    if (case3.length > 0) {
+      total_amount = subTotal + totalPPNAmount - totalPPHAmount;
+    }
+
+    // Case 4: PPN Exclude, PPH Nett (using the new formula)
+    const case4 = items.filter((item) => item.vat_type === "exclude" && item.type_of_pph === "nett");
+    if (case4.length > 0) {
+      const taxBase = taxbasePPH;
+      const taxPphRate = totalPPHAmount / taxBase; // Example PPh rate from total PPH amount
+      total_amount = taxBase - totalPPNAmount + totalPPHAmount;
+    }
+
+    // Ensure valid total amount
     const validTotalAmount = isNaN(total_amount) ? 0 : total_amount;
-    return { subTotal, totalPPNAmount, totalPPHAmount, totalAmount: validTotalAmount };
+
+    return { subTotal, taxbasePPH, totalPPNAmount, totalPPHAmount, totalAmount: validTotalAmount };
   };
 
   const handleOnDragEnd = (result) => {
@@ -1046,15 +1252,18 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, handleRefresh, inde
     setPrNumber("");
     setTitle("");
     setInternalMemo("");
+    setCustomerContract("");
     setID(null);
     setInvoiceNumber("");
     setInvoiceType("");
     setInvoiceDate("");
-    setVendor("");
-    setPaymentTerm("");
+    setVendor(null);
+    setPaymentTerm(null);
     setDueDate("");
     setTaxRate("");
     setTaxInvoiceNumber("");
+    setTaxExchangeRate("");
+    SetCodCorSkb("");
     setInvoiceStatus("");
     setBiMiddleRate("");
     setTypeOfPayment("");
@@ -1067,6 +1276,10 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, handleRefresh, inde
     setSelectedPoNumber(null);
     setSelectedProject(null);
     setSelectedCurrency(null);
+    setDocSource(null);
+    setAllVendorOptions(null);
+    setVendorOptions(null);
+    setPaymentTermOptions(null);
   };
 
   const generatePrNumber = async (code) => {
@@ -1082,6 +1295,11 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, handleRefresh, inde
 
   const handleSave = async (event) => {
     event.preventDefault();
+
+    if (!invoice_number) {
+      messageAlertSwal("Error", "Invoice Number cannot be empty.", "error");
+      return; // Prevent form submission
+    }
 
     // Show SweetAlert2 confirmation
     const result = await Swal.fire({
@@ -1117,14 +1335,16 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, handleRefresh, inde
           title,
           payment_term, // Converts to date format
           invoice_number,
-          invoice_type,
+          // invoice_type,
           invoice_date,
           invoice_status: "Draft",
           vendor,
-          tax_rate,
+          // tax_rate,
+          tax_exchange_rate,
           tax_invoice_number,
           term_of_payment,
-          bi_middle_rate,
+          // bi_middle_rate,
+          cod_cor_skb,
           total_tax_base: subTotal,
           total_amount_ppn: totalPPNAmount,
           total_amount_pph: totalPPHAmount,
@@ -1143,7 +1363,9 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, handleRefresh, inde
 
         if (response.message === "insert Data Successfully") {
           // Iterate over items array and post each item individually
+          console.log(response.message);
           for (const item of items) {
+            console.log(item.vat_type);
             const updatedItem = {
               ...item,
               invoice_number,
@@ -1164,6 +1386,7 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, handleRefresh, inde
             delete updatedItem.total_tax_base;
             delete updatedItem.total_amount_pph;
             delete updatedItem.total_amount_ppn;
+            delete updatedItem.total_ppn_amount;
             delete updatedItem.rwnum;
             delete updatedItem.pr_number;
             delete updatedItem.id_trx;
@@ -1173,6 +1396,30 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, handleRefresh, inde
 
             const itemResponse = await InsertDataService.postData(updatedItem, "PUINVCD", authToken, branchId);
             console.log("Item posted successfully:", itemResponse);
+          }
+
+          if (doc_source) {
+            const request = {
+              idTrx: endToEndId,
+              code: "PUINVC",
+            };
+
+            const formData = new FormData();
+            formData.append("request", JSON.stringify(request));
+            formData.append("file", doc_source); // Use the file variable directly
+
+            const uploadResponse = await axios.post(`${UPLOAD_FILES}`, formData, {
+              headers: {
+                Authorization: `Bearer ${authToken}`,
+                "Content-Type": "multipart/form-data",
+              },
+            });
+
+            if (uploadResponse.ok) {
+              console.log("File uploaded successfully");
+            } else {
+              console.error("Error uploading file:", uploadResponse.status);
+            }
           }
 
           messageAlertSwal("Success", response.message, "success");
@@ -1192,6 +1439,11 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, handleRefresh, inde
 
   const handleSubmit = async (event) => {
     event.preventDefault();
+
+    if (!invoice_number) {
+      messageAlertSwal("Error", "Invoice Number cannot be empty.", "error");
+      return; // Prevent form submission
+    }
 
     // if (!title) {
     //   messageAlertSwal("Error", "Title cannot be empty", "error");
@@ -1231,14 +1483,14 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, handleRefresh, inde
           title,
           payment_term, // Converts to date format
           invoice_number,
-          invoice_type,
+          // invoice_type,
           invoice_date,
           invoice_status: "IN_PROCESS",
           vendor,
-          tax_rate,
+          // tax_rate,
           tax_invoice_number,
           term_of_payment,
-          bi_middle_rate,
+          // bi_middle_rate,
           total_tax_base: subTotal,
           total_amount_ppn: totalPPNAmount,
           total_amount_pph: totalPPHAmount,
@@ -1254,6 +1506,30 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, handleRefresh, inde
 
         const response = await InsertDataService.postData(generalInfo, "PUINVC", authToken, branchId);
         console.log("Data posted successfully:", response);
+
+        if (doc_source) {
+          const request = {
+            idTrx: endToEndId,
+            code: "PUINVC",
+          };
+
+          const formData = new FormData();
+          formData.append("request", JSON.stringify(request));
+          formData.append("file", doc_source); // Use the file variable directly
+
+          const uploadResponse = await axios.post(`${UPLOAD_FILES}`, formData, {
+            headers: {
+              Authorization: `Bearer ${authToken}`,
+              "Content-Type": "multipart/form-data",
+            },
+          });
+
+          if (uploadResponse.ok) {
+            console.log("File uploaded successfully");
+          } else {
+            console.error("Error uploading file:", uploadResponse.status);
+          }
+        }
 
         // Update Status
         if (idPr) {
@@ -1307,6 +1583,7 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, handleRefresh, inde
             delete updatedItem.total_tax_base;
             delete updatedItem.total_amount_pph;
             delete updatedItem.total_amount_ppn;
+            delete updatedItem.total_ppn_amount;
             delete updatedItem.rwnum;
             delete updatedItem.pr_number;
             delete updatedItem.id_trx;
@@ -1413,7 +1690,7 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, handleRefresh, inde
                       </Col>
                     )} */}
 
-                    <Col md={6}>
+                    <Col md={6} hidden>
                       <Form.Group controlId="formInternalMemo">
                         <Form.Label>End To End Id</Form.Label>
                         <Form.Control type="text" placeholder="Enter Internal Memo" value={endToEnd} onChange={(e) => setEndToEnd(e.target.value)} required />
@@ -1428,6 +1705,7 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, handleRefresh, inde
                           <option value="purchaseRequest">Purchase Request</option>
                           <option value="internalMemo">Internal Memo</option>
                           <option value="purchaseOrder">Purchase Order</option>
+                          <option value="customerContract">Customer Contract</option>
                         </Form.Control>
                       </Form.Group>
                     </Col>
@@ -1455,6 +1733,15 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, handleRefresh, inde
                         <Form.Group controlId="formInternalMemo">
                           <Form.Label>Internal Memo</Form.Label>
                           <Form.Control type="text" placeholder="Enter Internal Memo" value={internalmemo} onChange={(e) => setInternalMemo(e.target.value)} required />
+                        </Form.Group>
+                      </Col>
+                    )}
+
+                    {docRef === "customerContract" && (
+                      <Col md={6}>
+                        <Form.Group controlId="formInternalMemo">
+                          <Form.Label>Customer Contract</Form.Label>
+                          <Form.Control type="text" placeholder="Enter Document Contract" value={customer_contract} onChange={(e) => setCustomerContract(e.target.value)} required />
                         </Form.Group>
                       </Col>
                     )}
@@ -1524,7 +1811,7 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, handleRefresh, inde
                     <Col md={6}>
                       <Form.Group controlId="formInvoiceNumber">
                         <Form.Label>Invoice Number</Form.Label>
-                        <Form.Control type="text" placeholder="Enter Invoice Number" value={invoice_number} onChange={(e) => setInvoiceNumber(e.target.value)} />
+                        <Form.Control type="text" placeholder="Enter Invoice Number" value={invoice_number} onChange={(e) => setInvoiceNumber(e.target.value)} required />
                       </Form.Group>
                     </Col>
 
@@ -1650,22 +1937,22 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, handleRefresh, inde
 
                     <Col md={6}>
                       <Form.Group controlId="formTaxRate">
-                        <Form.Label>Tax Rate</Form.Label>
-                        <Form.Control type="text" placeholder="Enter Tax Rate" value={tax_rate} onChange={(e) => setTaxRate(e.target.value)} />
+                        <Form.Label>Tax Exchange Rate (Amount)</Form.Label>
+                        <Form.Control type="text" placeholder="Enter Tax Exchange Rate" value={tax_exchange_rate} onChange={(e) => setTaxExchangeRate(e.target.value)} />
                       </Form.Group>
                     </Col>
 
                     <Col md={6}>
                       <Form.Group controlId="formTaxInvoiceNumber">
                         <Form.Label>Tax Invoice Number</Form.Label>
-                        <Form.Control type="number" min="0" placeholder="Enter Tax Invoice Number" value={tax_invoice_number} onChange={(e) => setTaxInvoiceNumber(e.target.value)} required />
+                        <Form.Control type="text" placeholder="Enter Tax Invoice Number" value={tax_invoice_number} onChange={(e) => setTaxInvoiceNumber(e.target.value)} required />
                       </Form.Group>
                     </Col>
 
                     <Col md={6}>
-                      <Form.Group controlId="formBiMiddleRate">
-                        <Form.Label>BI Middle Rate</Form.Label>
-                        <Form.Control type="text" placeholder="Enter BI Middle" value={bi_middle_rate} onChange={(e) => setBiMiddleRate(e.target.value)} />
+                      <Form.Group controlId="formCodCorSkb">
+                        <Form.Label>COD/COR, SKB</Form.Label>
+                        <Form.Control type="text" placeholder="Enter COD/COR, SKB" value={cod_cor_skb} onChange={(e) => SetCodCorSkb(e.target.value)} />
                       </Form.Group>
                     </Col>
 
@@ -1714,20 +2001,21 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, handleRefresh, inde
                               <th>Product</th>
                               <th>Product Note</th>
                               <th>Currency</th>
+                              <th hidden={items.length > 0 && items[0].currency === "IDR"}>Tax Exchange Rate</th>
                               <th>Quantity</th>
                               <th>Unit Price</th>
                               <th>Total Price</th>
                               <th>Type Of VAT</th>
                               {/* <th>Tax PPN</th> */}
                               <th>Tax PPN</th>
-                              <th>Tax PPN Rate</th>
+                              <th>Tax PPN Rate %</th>
                               {/* <th>Tax PPN Amount</th> */}
                               {/* <th>Tax PPh</th> */}
+                              <th>Tax PPh Type</th>
                               <th>Tax PPh</th>
-                              <th>Tax PPh Rate</th>
+                              <th>Tax PPh Rate %</th>
                               {/* <th>Tax PPh Amount</th> */}
                               <th>Tax Base</th>
-
                               {/* <th>Total Price</th> */}
                               <th>Actions</th>
                             </tr>
@@ -1735,7 +2023,7 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, handleRefresh, inde
                           <tbody>
                             {items.length === 0 ? (
                               <tr>
-                                <td colSpan="13" className="text-center">
+                                <td colSpan="15" className="text-center">
                                   No data available
                                 </td>
                               </tr>
@@ -1793,6 +2081,10 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, handleRefresh, inde
                                       placeholder="Select Currency"
                                       defaultValue={currencyOptions.find((option) => option.value === (item.currency || "USD"))} // Set default value to USD if item.currency is not set
                                     />
+                                  </td>
+
+                                  <td hidden={item.currency === "IDR"}>
+                                    <Form.Control type="number" value={tax_exchange_rate || 0} min="0" onChange={(e) => handleItemChange(index, "tax_exchange_rate", parseFloat(e.target.value))} disabled />
                                   </td>
 
                                   <td>
@@ -1885,6 +2177,14 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, handleRefresh, inde
                                   </td> */}
 
                                   <td>
+                                    <Form.Control as="select" value={item.type_of_pph} onChange={(e) => handleItemChange(index, "type_of_pph", e.target.value)}>
+                                      <option value="Select an Option">Select an Option</option>
+                                      <option value="gross">Gross</option>
+                                      <option value="nett">Nett</option>
+                                    </Form.Control>
+                                  </td>
+
+                                  <td>
                                     <Select
                                       value={tax_pph_type_option.find((option) => option.value === item.tax_pph_type) || null}
                                       onChange={(selectedOption) => {
@@ -1934,25 +2234,60 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, handleRefresh, inde
                           </tbody>
                           <tfoot>
                             <tr className="text-right">
-                              <td colSpan="12">Subtotal:</td>
+                              <td colSpan="14">Subtotal:</td>
                               <td>
-                                <strong>{calculateTotalAmount().subTotal.toLocaleString("en-US", { style: "currency", currency: "IDR" })}</strong>
+                                <strong>
+                                  {items.length > 0
+                                    ? calculateTotalAmount().subTotal.toLocaleString("en-US", {
+                                        style: "currency",
+                                        currency: (item && item[0].currency) || "IDR",
+                                      })
+                                    : "IDR 0.00"}
+                                </strong>
+                              </td>
+                            </tr>
+                            <tr className="text-right" hidden>
+                              <td colSpan="14">taxbase with pph:</td>
+                              <td>
+                                <strong>{calculateTotalAmount().taxbasePPH.toLocaleString("en-US", { style: "currency", currency: "IDR" })}</strong>
                               </td>
                             </tr>
                             <tr className="text-right">
-                              <td colSpan="12">Total Ppn Amount:</td>
+                              <td colSpan="14">Total PPN Amount:</td>
                               <td>
-                                <strong>{calculateTotalAmount().totalPPNAmount.toLocaleString("en-US", { style: "currency", currency: "IDR" })}</strong>
+                                <Form.Control
+                                  type="number"
+                                  value={calculateTotalAmount().totalPPNAmount}
+                                  onChange={(e) => {
+                                    const newItems = [...items];
+                                    const totalPPNAmount = e.target.value;
+                                    newItems.forEach((item) => {
+                                      item.tax_ppn_amount = totalPPNAmount / newItems.length;
+                                    });
+                                    setItems(newItems);
+                                  }}
+                                />
                               </td>
                             </tr>
                             <tr className="text-right">
-                              <td colSpan="12">Total Pph Amount:</td>
+                              <td colSpan="14">Total PPh Amount:</td>
                               <td>
-                                <strong>{calculateTotalAmount().totalPPHAmount.toLocaleString("en-US", { style: "currency", currency: "IDR" })}</strong>
+                                <Form.Control
+                                  type="number"
+                                  value={calculateTotalAmount().totalPPHAmount}
+                                  onChange={(e) => {
+                                    const newItems = [...items];
+                                    const totalPPHAmount = e.target.value;
+                                    newItems.forEach((item) => {
+                                      item.tax_pph_amount = totalPPHAmount / newItems.length;
+                                    });
+                                    setItems(newItems);
+                                  }}
+                                />
                               </td>
                             </tr>
                             <tr className="text-right">
-                              <td colSpan="12">Total Amount:</td>
+                              <td colSpan="14">Total Amount:</td>
                               <td>
                                 <strong>{calculateTotalAmount().totalAmount.toLocaleString("en-US", { style: "currency", currency: "IDR" })} </strong>
                               </td>

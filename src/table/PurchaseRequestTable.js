@@ -123,9 +123,12 @@ const PurchaseRequestTable = ({
 
         // Get the current user's userId
         const userId = sessionStorage.getItem('userId');
+        console.log('checker:', checker);
 
         // Check if status_request is 'IN_PROCESS' and userId matches created_by
-        if (!checker && dataSelected[0].STATUS_REQUEST === 'IN_PROCESS' && userId === dataSelected[0].REQUESTOR) {
+        if (
+            dataSelected[0].STATUS_REQUEST === 'IN_PROCESS' &&
+            (!checker || userId !== dataSelected[0].REQUESTOR || dataSelected[0].STATUS === 'APPROVED')) {
             Swal.fire({
                 icon: 'warning',
                 title: 'Edit Restricted',
@@ -487,19 +490,14 @@ const PurchaseRequestTable = ({
                                             checked={selectedRows.size === dataTable.length && dataTable.length > 0}
                                         />
                                     </th>
-                                    <th>End to End ID</th>
+
                                     <th>PR Number</th>
+                                    <th>Requestor</th>
                                     <th>Request Date</th>
                                     <th>Schedule Date</th>
-                                    <th>Document Number</th>
-                                    <th>Document Reference</th>
-                                    <th>Requestor</th>
-                                    <th>Department</th>
-                                    <th>Company</th>
-                                    <th>Project</th>
-                                    <th>Customer</th>
-                                    <th>Total Amount</th>
                                     <th>Description</th>
+                                    <th>Total Amount</th>
+                                    <th>End to End ID</th>
                                     <th>Status Request</th>
                                 </tr>
                             </thead>
@@ -531,20 +529,15 @@ const PurchaseRequestTable = ({
                                                     onChange={(e) => handleCheckboxSelect(e, item.ID)}
                                                 />
                                             </td>
-                                            <td>{item.ENDTOENDID}</td>
+
                                             <td>{item.PR_NUMBER}</td>
+                                            <td>{item.REQUESTOR}</td>
                                             <td>{item.REQUEST_DATE}</td>
                                             <td>{item.SCHEDULE_DATE}</td>
-                                            <td>{item.DOC_NO}</td>
-                                            <td>{item.DOC_REFF}</td>
-                                            <td>{item.REQUESTOR}</td>
-                                            <td>{item.DEPARTEMENT}</td>
-                                            <td>{item.COMPANY}</td>
-                                            <td>{item.PROJECT}</td>
-                                            <td>{item.CUSTOMER}</td>
                                             <td style={{ textAlign: "right" }}>{DisplayFormat(item.TOTAL_AMOUNT)}
                                             </td>
                                             <td>{item.DESCRIPTION}</td>
+                                            <td>{item.ENDTOENDID}</td>
                                             <td>{item.STATUS_REQUEST}</td>
                                         </tr>
                                     ))

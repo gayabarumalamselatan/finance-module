@@ -517,16 +517,17 @@ const PurchaseInvoiceTable = ({
               <div className="col-md-4 mb-3">
                 <select className="form-control" value={filterColumn} onChange={(e) => setFilterColumn(e.target.value)}>
                   <option value="">Select a column</option>
+                  <option value="ENDTOENDID">End To End Id</option>
                   <option value="INVOICE_NUMBER">Invoice Number</option>
                   {/* <option value="TITLE">Title</option> */}
                   <option value="DOC_REFF">Doc Reference</option>
                   <option value="DOC_REFF_NO">Doc Reference Number</option>
-                  <option value="INVOICE_TYPE">Invoice type</option>
+                  {/* <option value="INVOICE_TYPE">Invoice type</option> */}
                   <option value="INVOICE_DATE">Invoice Date</option>
                   <option value="INVOICE_STATUS">Invoice Status</option>
                   <option value="Vendor">Vendor</option>
                   <option value="PROJECT">Project</option>
-                  <option value="TOTAL_AMOUNT">Total Amount</option>
+                  {/* <option value="TOTAL_AMOUNT">Total Amount</option> */}
                   <option value="DESCRIPTION">Description</option>
                   <option value="PAYMENT_TERM">Payment Term</option>
                   <option value="DUE_DATE">Due Date</option>
@@ -570,16 +571,17 @@ const PurchaseInvoiceTable = ({
                   <th>
                     <input type="checkbox" onChange={handleSelectAll} checked={selectedRows.size === dataTable.length && dataTable.length > 0} />
                   </th>
+                  <th>End To End Id</th>
                   <th>Invoice Number</th>
                   {/* <th>Title</th> */}
                   <th>Doc Reference</th>
                   <th>Doc Reference Number</th>
-                  <th>Invoice Type</th>
+                  {/* <th>Invoice Type</th> */}
                   <th>Invoice Date</th>
                   <th>Invoice Status</th>
                   <th>Vendor</th>
                   <th>Project</th>
-                  <th>Total Amount</th>
+                  {/* <th>Total Amount</th> */}
                   <th>Description</th>
                   <th>Payment Term</th>
                   <th>Due Date</th>
@@ -616,18 +618,19 @@ const PurchaseInvoiceTable = ({
                       <td onClick={(e) => handleCheckboxSelect(e, item.ID)}>
                         <input type="checkbox" checked={selectedRows.has(item.ID)} onChange={(e) => handleCheckboxSelect(e, item.ID)} />
                       </td>
+                      <td>{item.ENDTOENDID}</td>
                       <td>{item.INVOICE_NUMBER}</td>
                       {/* <td>{item.TITLE}</td> */}
                       <td>{item.DOC_REFF}</td>
                       <td>{item.DOC_REFF_NO}</td>
-                      <td>{item.INVOICE_TYPE}</td>
+                      {/* <td>{item.INVOICE_TYPE}</td> */}
                       <td>{item.INVOICE_DATE}</td>
                       <td>{item.INVOICE_STATUS}</td>
                       <td>{item.VENDOR}</td>
                       <td>{item.PROJECT}</td>
-                      <td>
+                      {/* <td>
                         <NumericFormat value={item.TOTAL_AMOUNT} displayType="text" thousandSeparator="," prefix="Rp " />
-                      </td>
+                      </td> */}
                       <td>{item.DESCRIPTION}</td>
                       <td>{item.PAYMENT_TERM}</td>
                       <td>{item.DUE_DATE}</td>
@@ -661,6 +664,10 @@ const PurchaseInvoiceTable = ({
               <div>
                 <div className="container">
                   <div className="row mb-3">
+                    <div className="col-md-4 font-weight-bold">End To End Id:</div>
+                    <div className="col-md-8">{selectedRowData.ENDTOENDID}</div>
+                  </div>
+                  <div className="row mb-3">
                     <div className="col-md-4 font-weight-bold">Invoice Number:</div>
                     <div className="col-md-8">{selectedRowData.INVOICE_NUMBER}</div>
                   </div>
@@ -676,10 +683,10 @@ const PurchaseInvoiceTable = ({
                     <div className="col-md-4 font-weight-bold">Doc Reference Number:</div>
                     <div className="col-md-8">{selectedRowData.DOC_REFF_NO}</div>
                   </div>
-                  <div className="row mb-3">
+                  {/* <div className="row mb-3">
                     <div className="col-md-4 font-weight-bold">Invoice Type:</div>
                     <div className="col-md-8">{selectedRowData.INVOICE_TYPE}</div>
-                  </div>
+                  </div> */}
                   <div className="row mb-3">
                     <div className="col-md-4 font-weight-bold">Invoice Date:</div>
                     <div className="col-md-8">{selectedRowData.INVOICE_DATE}</div>
@@ -737,10 +744,10 @@ const PurchaseInvoiceTable = ({
                     <div className="col-md-4 font-weight-bold">Description:</div>
                     <div className="col-md-8">{selectedRowData.DESCRIPTION}</div>
                   </div>
-                  <div className="row mb-3">
+                  {/* <div className="row mb-3">
                     <div className="col-md-4 font-weight-bold">Total Amount:</div>
                     <div className="col-md-8">{DisplayFormat(selectedRowData.TOTAL_AMOUNT)}</div>
-                  </div>
+                  </div> */}
                 </div>
                 {/* Add more fields as needed */}
                 <div className="table-responsive" style={{ overflowX: "auto" }}>

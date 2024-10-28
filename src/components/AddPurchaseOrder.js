@@ -1644,7 +1644,7 @@ import axios from 'axios';
                                       <Form.Control
                                         type="number"
                                         value={item.quantity}
-                                        onChange={(e) => handleItemChange(index, 'quantity', Math.max(0, parseFloat(e.target.value) || 0))}
+                                        onChange={(e) => handleItemChange(index, 'quantity', Math.max(0, parseFloat(e.target.value) || 1))}
                                       />
                                     </td>
                                     
@@ -1662,10 +1662,11 @@ import axios from 'axios';
                                     
                                     <td>
                                       <Form.Control
-                                        type="Number"
-                                        value={item.unit_price !== undefined && item.unit_price !== null ? item.unit_price : 0}
+                                        className='text-right'
+                                        type="text"
+                                        value={item.unit_price !== undefined && item.unit_price !== null ? item.unit_price.toLocaleString() : 0}
                                         onChange={(e) => {
-                                          const newPrice = parseFloat(e.target.value) || 0;
+                                          const newPrice = parseFloat(e.target.value.replace(/[^\d.-]/g, '')) || 0;
                                           handleItemChange(index, 'unit_price',  newPrice);
                                           // if (item.unit_price !== undefined && item.unit_price !== null) {
                                           //   handleItemChange(index, 'original_unit_price', newPrice);
@@ -1716,7 +1717,7 @@ import axios from 'axios';
                                     <td>
                                       <Form.Control
                                         type='text'
-                                        value={item.tax_ppn_rate}
+                                        value={item.tax_ppn_rate + '%'}
                                         disabled
                                       />
                                     </td>

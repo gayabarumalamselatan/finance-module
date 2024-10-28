@@ -15,4 +15,5 @@ export const ACCOUNTING_SERVICE_BASE = process.env.REACT_APP_API_ACCOUNTING_SERV
 
     export const GENERATED_NUMBER = `${ACCOUNTING_SERVICE_BASE}/accounting-service/generate`;
     export const GENERATED_DUE_DATE = `${ACCOUNTING_SERVICE_BASE}/accounting-service/get-due-date`;
+    export const UPLOAD_FILES = `${ACCOUNTING_SERVICE_BASE}/accounting-service/upload/save`;
 

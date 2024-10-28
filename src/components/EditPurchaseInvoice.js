@@ -73,7 +73,7 @@ const EditPurchaseInvoice = ({ setIsEditingPurchaseInvoice, handleRefresh, index
   const [poNumberOptions, setPoNumberOptions] = useState([]);
   const [selectedPoNumber, setSelectedPoNumber] = useState(null);
   const [invoice_type, setInvoiceType] = useState("");
-  const [tax_pph_type_option, setTax_Pph_Type_Option] = useState([]);
+  const [tax_pph_option, setTax_Pph_Option] = useState([]);
   const [PphRate, setPphRate] = useState("");
   const [PpnRate, setPpnRate] = useState("");
   const [selectedTaxPphType, setSelectedTaxPphType] = useState(null);
@@ -191,7 +191,7 @@ const EditPurchaseInvoice = ({ setIsEditingPurchaseInvoice, handleRefresh, index
                   label: item.NAME,
                   RATE: item.RATE,
                 }));
-              setTax_Pph_Type_Option(options);
+              setTax_Pph_Option(options);
 
               const optionsPpn = transformedData
                 .filter((item) => item.TAX_TYPE === "PPN")
@@ -538,8 +538,8 @@ const EditPurchaseInvoice = ({ setIsEditingPurchaseInvoice, handleRefresh, index
         quantity: 1,
         currency: "IDR",
         unit_price: 0,
-        vat: "Select an Option",
-        tax_ppn: 0,
+        type_of_vat: "",
+        tax_ppn: "",
         tax_ppn_type: "",
         tax_ppn_rate: "",
         tax_ppn_amount: 0,
@@ -552,6 +552,8 @@ const EditPurchaseInvoice = ({ setIsEditingPurchaseInvoice, handleRefresh, index
         total_amount_ppn: 0,
         total_amount_pph: 0,
         total_price: 0,
+        vat_included: false,
+        new_unit_price: 0,
       },
     ]);
   };
@@ -568,11 +570,11 @@ const EditPurchaseInvoice = ({ setIsEditingPurchaseInvoice, handleRefresh, index
     // Reset field vat type dan ppn type ketika mengubah unit price dan quantity
 
     if (field === "unit_price" || field === "quantity") {
-      newItems[index].vat_type = "";
+      newItems[index].type_of_vat = "";
       newItems[index].tax_ppn_rate = 0;
-      newItems[index].tax_ppn_type = "";
+      newItems[index].tax_ppn = "";
       newItems[index].tax_pph_rate = 0;
-      newItems[index].tax_pph_type = "";
+      newItems[index].tax_pph = "";
       newItems[index].tax_base = 0;
       newItems[index].tax_ppn_amount = 0;
       newItems[index].tax_pph_amount = 0;
@@ -587,13 +589,13 @@ const EditPurchaseInvoice = ({ setIsEditingPurchaseInvoice, handleRefresh, index
     // Itungan New Unit Price
     let pengkali = newItems[index].tax_ppn_rate / 100;
 
-    if (field === "tax_ppn_type" || field === "tax_ppn_rate") {
-      if (newItems[index].vat_type === "include") {
+    if (field === "tax_ppn" || field === "tax_ppn_rate") {
+      if (newItems[index].type_of_vat === "include") {
         newItems[index].new_unit_price = newItems[index].unit_price + newItems[index].unit_price * pengkali;
         newItems[index].tax_base = Math.round(newItems[index].unit_price / ((1 + newItems[index].tax_ppn_rate / 100) * newItems[index].quantity));
         newItems[index].tax_ppn_amount = Math.round(newItems[index].tax_base * (newItems[index].tax_ppn_rate / 100));
         newItems[index].vat_included = true;
-      } else if (newItems[index].vat_type === "exclude") {
+      } else if (newItems[index].type_of_vat === "exclude") {
         newItems[index].tax_ppn_amount = Math.round(newItems[index].total_price * (newItems[index].tax_ppn_rate / 100));
         newItems[index].tax_base = Math.round(newItems[index].unit_price * newItems[index].quantity);
       }
@@ -602,32 +604,45 @@ const EditPurchaseInvoice = ({ setIsEditingPurchaseInvoice, handleRefresh, index
 
     let pengkali2 = newItems[index].tax_pph_rate / 100;
 
-    if (field === "tax_pph_type" || field === "tax_pph_rate") {
-      if (newItems[index].vat_type === "include") {
-        newItems[index].new_unit_price = newItems[index].unit_price + newItems[index].unit_price * pengkali2;
-        newItems[index].tax_base = Math.round(newItems[index].unit_price / ((1 + newItems[index].tax_pph_rate / 100) * newItems[index].quantity));
-        newItems[index].tax_pph_amount = Math.round(newItems[index].tax_base * (newItems[index].tax_pph_rate / 100));
-        newItems[index].vat_included = true;
-      } else if (newItems[index].vat_type === "exclude") {
-        newItems[index].tax_pph_amount = Math.round(newItems[index].total_price * (newItems[index].tax_pph_rate / 100));
-        newItems[index].tax_base = Math.round(newItems[index].unit_price * newItems[index].quantity);
-      }
-      newItems[index].total_price = newItems[index].unit_price * newItems[index].quantity;
-    }
+    // if (field === "tax_pph_type" || field === "tax_pph_rate") {
+    //   if (newItems[index].vat_type === "include") {
+    //     newItems[index].new_unit_price = newItems[index].unit_price + newItems[index].unit_price * pengkali2;
+    //     newItems[index].tax_base = Math.round(newItems[index].unit_price / ((1 + newItems[index].tax_pph_rate / 100) * newItems[index].quantity));
+    //     newItems[index].tax_pph_amount = Math.round(newItems[index].tax_base * (newItems[index].tax_pph_rate / 100));
+    //     newItems[index].vat_included = true;
+    //   } else if (newItems[index].vat_type === "exclude") {
+    //     newItems[index].tax_pph_amount = Math.round(newItems[index].total_price * (newItems[index].tax_pph_rate / 100));
+    //     newItems[index].tax_base = Math.round(newItems[index].unit_price * newItems[index].quantity);
+    //   }
+    //   newItems[index].total_price = newItems[index].unit_price * newItems[index].quantity;
+    // }
 
-    if (field === "vat_type") {
-      newItems[index].tax_ppn_type = "";
+    if (field === "type_of_vat") {
+      newItems[index].tax_ppn = "";
       newItems[index].tax_ppn_rate = 0;
-      newItems[index].tax_pph_type = "";
+      newItems[index].tax_pph = "";
       newItems[index].tax_pph_rate = 0;
       newItems[index].tax_base = 0;
       newItems[index].tax_ppn_amount = 0;
       newItems[index].tax_pph_amount = 0;
-      if (newItems[index].vat_type === "exclude" && newItems[index].vat_included === true) {
+      if (newItems[index].type_of_vat === "exclude" && newItems[index].vat_included === true) {
         newItems[index].new_unit_price = newItems[index].new_unit_price - newItems[index].unit_price * pengkali;
         newItems[index].vat_included = false;
       } else {
         newItems[index].new_unit_price = newItems[index].unit_price;
+      }
+      newItems[index].total_price = newItems[index].unit_price * newItems[index].quantity;
+    }
+
+    if (field === "tax_pph" || field === "tax_pph_rate") {
+      if (newItems[index].type_of_vat === "include") {
+        newItems[index].new_unit_price = newItems[index].unit_price + newItems[index].unit_price * pengkali2;
+        // newItems[index].tax_base = Math.round(newItems[index].unit_price / ((1 + newItems[index].tax_pph_rate / 100) * newItems[index].quantity));
+        newItems[index].tax_pph_amount = Math.round(((newItems[index].total_price / (1 + newItems[index].tax_ppn_rate / 100)) * newItems[index].tax_pph_rate) / 100);
+        newItems[index].vat_included = true;
+      } else if (newItems[index].type_of_vat === "exclude") {
+        newItems[index].tax_pph_amount = Math.round(newItems[index].total_price * (newItems[index].tax_pph_rate / 100));
+        // newItems[index].tax_base = Math.round(newItems[index].unit_price * newItems[index].quantity);
       }
       newItems[index].total_price = newItems[index].unit_price * newItems[index].quantity;
     }
@@ -671,7 +686,7 @@ const EditPurchaseInvoice = ({ setIsEditingPurchaseInvoice, handleRefresh, index
     console.log("pengkali", pengkali);
     console.log("vatinc", newItems[index].vat_included);
     console.log("base", newItems[index].tax_base);
-    console.log("vat", newItems[index].vat_type);
+    console.log("vat", newItems[index].type_of_vat);
     console.log("pengkali2", pengkali2);
 
     // if (field === 'tax_type') {
@@ -879,6 +894,18 @@ const EditPurchaseInvoice = ({ setIsEditingPurchaseInvoice, handleRefresh, index
               ...rest,
               invoice_number,
             };
+            delete updatedItem.ID;
+            delete updatedItem.id;
+            delete updatedItem.vat;
+            delete updatedItem.total_tax_base;
+            delete updatedItem.total_amount_pph;
+            delete updatedItem.total_amount_ppn;
+            delete updatedItem.rwnum;
+            delete updatedItem.pr_number;
+            delete updatedItem.id_trx;
+            delete updatedItem.status;
+            delete updatedItem.new_unit_price;
+            delete updatedItem.vat_included;
 
             try {
               const itemResponse = await InsertDataService.postData(updatedItem, "PUINVCD", authToken, branchId);
@@ -992,6 +1019,18 @@ const EditPurchaseInvoice = ({ setIsEditingPurchaseInvoice, handleRefresh, index
               ...rest,
               invoice_number,
             };
+            delete updatedItem.ID;
+            delete updatedItem.id;
+            delete updatedItem.vat;
+            delete updatedItem.total_tax_base;
+            delete updatedItem.total_amount_pph;
+            delete updatedItem.total_amount_ppn;
+            delete updatedItem.rwnum;
+            delete updatedItem.pr_number;
+            delete updatedItem.id_trx;
+            delete updatedItem.status;
+            delete updatedItem.new_unit_price;
+            delete updatedItem.vat_included;
 
             try {
               const itemResponse = await InsertDataService.postData(updatedItem, "PUINVCD", authToken, branchId);
@@ -1206,12 +1245,12 @@ const EditPurchaseInvoice = ({ setIsEditingPurchaseInvoice, handleRefresh, index
                       </Form.Group>
                     </Col> */}
 
-                    <Col md={6}>
+                    {/* <Col md={6}>
                       <Form.Group controlId="formInvoiceType">
                         <Form.Label>Invoice Type</Form.Label>
                         <Form.Control type="text" placeholder="Enter Invoice Type" value={invoice_type} onChange={(e) => setInvoiceType(e.target.value)} />
                       </Form.Group>
-                    </Col>
+                    </Col> */}
 
                     <Col md={6}>
                       <Form.Group controlId="formInvoiceDate">
@@ -1371,11 +1410,11 @@ const EditPurchaseInvoice = ({ setIsEditingPurchaseInvoice, handleRefresh, index
                               {/* <th>Tax PPN</th> */}
                               <th>Tax PPN</th>
                               <th>Tax PPN Rate</th>
-                              <th>Tax PPN Amount</th>
+                              {/* <th>Tax PPN Amount</th> */}
                               <th>Tax PPH</th>
                               {/* <th>Tax PPh</th> */}
                               <th>Tax PPh Rate</th>
-                              <th>Tax PPh Amount</th>
+                              {/* <th>Tax PPh Amount</th> */}
                               {/* <th>Tax PPh Amount</th> */}
                               <th>Total Tax Base</th>
 
@@ -1454,7 +1493,7 @@ const EditPurchaseInvoice = ({ setIsEditingPurchaseInvoice, handleRefresh, index
                                   <td>{item.total_price.toLocaleString("en-US", { style: "currency", currency: item.currency || 0 })}</td>
 
                                   <td>
-                                    <Form.Control as="select" value={item.type_of_vat} onChange={(e) => handleItemChange(index, "vat", e.target.value)}>
+                                    <Form.Control as="select" value={item.type_of_vat} onChange={(e) => handleItemChange(index, "type_of_vat", e.target.value)}>
                                       <option value="Select an Option">Select an Option</option>
                                       <option value="include">Include</option>
                                       <option value="exclude">Exclude</option>
@@ -1468,10 +1507,10 @@ const EditPurchaseInvoice = ({ setIsEditingPurchaseInvoice, handleRefresh, index
                                   </td> */}
                                   <td>
                                     <Select
-                                      value={taxPpnTypeOption.find((option) => option.value === item.tax_ppn)}
+                                      value={taxPpnTypeOption.find((option) => option.value === item.tax_ppn) || null}
                                       onChange={(selectedOption) => {
                                         // Update the tax_ppn_type for the specific item
-                                        handleItemChange(index, "tax_ppn_type", selectedOption ? selectedOption.value : "");
+                                        handleItemChange(index, "tax_ppn", selectedOption ? selectedOption.value : "");
 
                                         // Update the PpnRate for the specific item
                                         if (selectedOption) {
@@ -1492,7 +1531,7 @@ const EditPurchaseInvoice = ({ setIsEditingPurchaseInvoice, handleRefresh, index
                                     <Form.Control type="number" value={item.tax_ppn_rate} onChange={(e) => handleItemChange(index, "tax_ppn_rate", parseFloat(e.target.value))} readOnly />
                                   </td>
 
-                                  <td style={{ textAlign: "right" }}>{item.tax_ppn_amount ? item.tax_ppn_amount.toLocaleString("en-US", { style: "currency", currency: item.currency }) : "IDR 0.00"}</td>
+                                  {/* <td style={{ textAlign: "right" }}>{item.tax_ppn_amount ? item.tax_ppn_amount.toLocaleString("en-US", { style: "currency", currency: item.currency }) : "IDR 0.00"}</td> */}
 
                                   {/* <td>
                                     <Form.Control type="number" value={item.tax_pph} onChange={(e) => handleItemChange(index, "tax_pph", parseFloat(e.target.value))} />
@@ -1537,10 +1576,10 @@ const EditPurchaseInvoice = ({ setIsEditingPurchaseInvoice, handleRefresh, index
 
                                   <td>
                                     <Select
-                                      value={tax_pph_type_option.find((option) => option.value === item.tax_pph)}
+                                      value={tax_pph_option.find((option) => option.value === item.tax_pph) || null}
                                       onChange={(selectedOption) => {
                                         // Update the tax_pph_type for the specific item
-                                        handleItemChange(index, "tax_pph_type", selectedOption ? selectedOption.value : "");
+                                        handleItemChange(index, "tax_pph", selectedOption ? selectedOption.value : "");
 
                                         // Update the PphRate for the specific item
                                         if (selectedOption) {
@@ -1551,7 +1590,7 @@ const EditPurchaseInvoice = ({ setIsEditingPurchaseInvoice, handleRefresh, index
                                           setPphRate(null); // Menghapus RATE jika tidak ada selectedOption
                                         }
                                       }}
-                                      options={tax_pph_type_option}
+                                      options={tax_pph_option}
                                       isClearable
                                       placeholder="Select Tax PPH Type..."
                                     />
@@ -1564,7 +1603,7 @@ const EditPurchaseInvoice = ({ setIsEditingPurchaseInvoice, handleRefresh, index
                                   {/* <td>
                                     <Form.Control type="text" value={item.tax_pph_type} onChange={(e) => handleItemChange(index, "tax_pph_type", e.target.value)} />
                                   </td> */}
-                                  <td style={{ textAlign: "right" }}>{item.tax_pph_amount ? item.tax_pph_amount.toLocaleString("en-US", { style: "currency", currency: item.currency }) : "IDR 0.00"}</td>
+                                  {/* <td style={{ textAlign: "right" }}>{item.tax_pph_amount ? item.tax_pph_amount.toLocaleString("en-US", { style: "currency", currency: item.currency }) : "IDR 0.00"}</td> */}
 
                                   <td>
                                     <Form.Control type="number" value={item.tax_base} onChange={(e) => handleItemChange(index, "total_tax_base", parseFloat(e.target.value))} readOnly />
@@ -1585,25 +1624,47 @@ const EditPurchaseInvoice = ({ setIsEditingPurchaseInvoice, handleRefresh, index
                           </tbody>
                           <tfoot>
                             <tr className="text-right">
-                              <td colSpan="14">Subtotal:</td>
+                              <td colSpan="12">Subtotal:</td>
                               <td>
                                 <strong>{calculateTotalAmount().subTotal.toLocaleString("en-US", { style: "currency", currency: "IDR" })}</strong>
                               </td>
                             </tr>
                             <tr className="text-right">
-                              <td colSpan="14">Total Ppn Amount:</td>
+                              <td colSpan="12">Total Ppn Amount:</td>
                               <td>
-                                <strong>{calculateTotalAmount().totalPPNAmount.toLocaleString("en-US", { style: "currency", currency: "IDR" })}</strong>
+                                <Form.Control
+                                  type="number"
+                                  value={calculateTotalAmount().totalPPNAmount}
+                                  onChange={(e) => {
+                                    const newItems = [...items];
+                                    const totalPPNAmount = e.target.value;
+                                    newItems.forEach((item) => {
+                                      item.tax_ppn_amount = totalPPNAmount / newItems.length;
+                                    });
+                                    setItems(newItems);
+                                  }}
+                                />
                               </td>
                             </tr>
                             <tr className="text-right">
-                              <td colSpan="14">Total Pph Amount:</td>
+                              <td colSpan="12">Total Pph Amount:</td>
                               <td>
-                                <strong>{calculateTotalAmount().totalPPHAmount.toLocaleString("en-US", { style: "currency", currency: "IDR" })}</strong>
+                                <Form.Control
+                                  type="number"
+                                  value={calculateTotalAmount().totalPPHAmount}
+                                  onChange={(e) => {
+                                    const newItems = [...items];
+                                    const totalPPHAmount = e.target.value;
+                                    newItems.forEach((item) => {
+                                      item.tax_pph_amount = totalPPHAmount / newItems.length;
+                                    });
+                                    setItems(newItems);
+                                  }}
+                                />
                               </td>
                             </tr>
                             <tr className="text-right">
-                              <td colSpan="14">Total Amount:</td>
+                              <td colSpan="12">Total Amount:</td>
                               <td>
                                 <strong>{calculateTotalAmount().totalAmount.toLocaleString("en-US", { style: "currency", currency: "IDR" })} </strong>
                               </td>

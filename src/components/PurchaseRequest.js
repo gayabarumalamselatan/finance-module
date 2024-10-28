@@ -209,7 +209,7 @@ const PurchaseRequest = () => {
                         />
                     </div>
                 ) : isEditingPurchaseRequest ? (
-                    <EditPurchaseRequest
+                    <AddPurchaseRequest
                         setIsEditingPurchaseRequest={setIsEditingPurchaseRequest}
                         handleRefresh={handleRefresh}
                         selectedData={selectedData}
