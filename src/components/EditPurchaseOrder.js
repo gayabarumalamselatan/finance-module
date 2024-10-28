@@ -32,13 +32,11 @@ const EditPurchaseOrder = ({ setIsEditingPurchaseOrder, handleRefresh, index, it
     const [selectedRequestor, setSelectedRequestor] = useState(null);
     const [currencyOptions, setCurrencyOptions] = useState([]);
     const [selectedCurrency, setSelectedCurrency] = useState(null);
-    const [companyOptions, setCompanyOptions] = useState([]);
     const [selectedCompany, setSelectedCompany] = useState(null);
 
 
 
        // PO Fields
-       const [title, setTitle] = useState('');
        const [po_number, setPoNumber] = useState('');
        const [docRef,setDocRef] = useState(''); 
        const [request_date, setRequestDate] = useState('');
@@ -88,7 +86,6 @@ const EditPurchaseOrder = ({ setIsEditingPurchaseOrder, handleRefresh, index, it
         const [toAddressOptions, setToAddressOptions] = useState([]);
         const [selectedToAddress, setSelectedToAddress] = useState(null);
 
-       const [vatIncluded, setVatIncluded] = useState(false);
 
     const authToken = headers;
     useEffect(() => {

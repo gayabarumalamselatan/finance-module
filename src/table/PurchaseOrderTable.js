@@ -279,8 +279,13 @@ const PurchaseOrderTable = ({
         });
     };
 
-
-
+    const dateFormat = (dateString) => {
+        const date = new Date(dateString);
+        const day = String(date.getDate()).padStart(2, '0');
+        const month = String(date.getMonth()+1).padStart(2, '0');
+        const year = date.getFullYear();
+        return `${day}-${month}-${year}`;
+    }
 
     const handleResetFilters = () => {
         setFilterColumn('');
@@ -505,26 +510,20 @@ const PurchaseOrderTable = ({
                                     <th>PO Number</th>
                                     <th>Status PO</th>
                                     <th>Doc. Refference</th>
-                                    <th>Doc. Refference Number</th>
-                                    <th>Customer</th>
-                                    <th>Requestor</th>
-                                    <th>Department</th>
-                                    <th>Project</th>
-                                    <th>Request Date</th>
-                                    <th>Vendor</th>
                                     <th>Order Date</th>
+                                    <th>Request Date</th>
                                     <th>Created By</th>
-                                    <th>Approved By</th>
                                     <th>To</th>
                                     <th>To Address</th>
                                     <th>Ship To</th>
                                     <th>Ship To Address</th>
                                     <th>Bill To</th>
                                     <th>Bill To Address</th>
-                                    <th>Terms and Conditions</th>
-                                    <th>Description</th>
+                                    <th>Terms & Conditions</th>
+                                    <th>Notes</th>
+                                    <th>Subtotal</th>
                                     <th>Discount</th>
-                                    <th>Sub Total</th>
+                                    <th>Subtotal After Discount</th>
                                     <th>Total PPN</th>
                                     <th>Total Amount</th>
                                 </tr>
@@ -561,24 +560,25 @@ const PurchaseOrderTable = ({
                                             <td>{item.PO_NUMBER}</td>
                                             <td>{item.STATUS_PO}</td>
                                             <td>{item.DOC_REFF}</td>
-                                            <td>{item.DOC_REFF_NO}</td>
-                                            <td>{item.CUSTOMER}</td>
-                                            <td>{item.REQUESTOR}</td>
-                                            <td>{item.DEPARTEMENT}</td>
-                                            <td>{item.PROJECT}</td>
-                                            <td>{item.REQUEST_DATE}</td>
-                                            <td>{item.VENDOR}</td>
-                                            <td>{item.ORDER_DATE}</td>
+                                            <td>{dateFormat(item.ORDER_DATE)}</td> 
+                                            <td>{dateFormat(item.REQUEST_DATE)}</td> 
                                             <td>{item.CREATED_BY}</td>
-                                            <td>{item.APPROVED_BY}</td>
-                                            <td>{item.FORM_TO}</td>
-                                            <td>{item.TO_ADDRESS}</td>
-                                            <td>{item.SHIP_TO}</td>
-                                            <td>{item.SHIP_TO_ADDRESS}</td>
-                                            <td>{item.BILL_TO}</td>
-                                            <td>{item.BILL_TO_ADDRESS}</td>
-                                            <td>{item.TERM_CONDITIONS}</td>
-                                            <td>{item.DESCRIPTION}</td>
+                                            <td>{item.FORM_TO}</td> 
+                                            <td>{item.TO_ADDRESS}</td> 
+                                            <td>{item.SHIP_TO}</td> 
+                                            <td>{item.SHIP_TO_ADDRESS}</td> 
+                                            <td>{item.BILL_TO}</td> 
+                                            <td>{item.BILL_TO_ADDRESS}</td> 
+                                            <td>{item.TERM_CONDITIONS}</td> 
+                                            <td>{item.DESCRIPTION}</td> 
+                                            <td>
+                                                <NumericFormat
+                                                    value={item.TOTAL_BEFORE_DISCOUNT}
+                                                    displayType="text"
+                                                    thousandSeparator=","
+                                                    prefix="Rp "
+                                                />
+                                            </td>
                                             <td>
                                                 <NumericFormat
                                                     value={item.DISCOUNT}
@@ -589,7 +589,7 @@ const PurchaseOrderTable = ({
                                             </td>
                                             <td>
                                                 <NumericFormat
-                                                    value={item.TOTAL_TAX_BASE}
+                                                    value={item.TOTAL_AFTER_DISCOUNT}
                                                     displayType="text"
                                                     thousandSeparator=","
                                                     prefix="Rp "
@@ -654,44 +654,16 @@ const PurchaseOrderTable = ({
                                         <div className="col-md-8">{selectedRowData.DOC_REFF}</div>
                                     </div>
                                     <div className="row mb-3">
-                                        <div className="col-md-4 font-weight-bold">Doc. Refference Number:</div>
-                                        <div className="col-md-8">{selectedRowData.DOC_REFF_NO}</div>
-                                    </div>
-                                    <div className="row mb-3">
-                                        <div className="col-md-4 font-weight-bold">Customer:</div>
-                                        <div className="col-md-8">{selectedRowData.CUSTOMER}</div>
-                                    </div>
-                                    <div className="row mb-3">
-                                        <div className="col-md-4 font-weight-bold">Requestor:</div>
-                                        <div className="col-md-8">{selectedRowData.REQUESTOR}</div>
-                                    </div>
-                                    <div className="row mb-3">
-                                        <div className="col-md-4 font-weight-bold">Department:</div>
-                                        <div className="col-md-8">{selectedRowData.DEPARTEMENT}</div>
-                                    </div>
-                                    <div className="row mb-3">
-                                        <div className="col-md-4 font-weight-bold">Project:</div>
-                                        <div className="col-md-8">{selectedRowData.PROJECT}</div>
-                                    </div>
-                                    <div className="row mb-3">
                                         <div className="col-md-4 font-weight-bold">Request Date:</div>
-                                        <div className="col-md-8">{selectedRowData.REQUEST_DATE}</div>
-                                    </div>
-                                    <div className="row mb-3">
-                                        <div className="col-md-4 font-weight-bold">Vendor:</div>
-                                        <div className="col-md-8">{selectedRowData.VENDOR}</div>
+                                        <div className="col-md-8">{dateFormat(selectedRowData.REQUEST_DATE)}</div>
                                     </div>
                                     <div className="row mb-3">
                                         <div className="col-md-4 font-weight-bold">Order Date:</div>
-                                        <div className="col-md-8">{selectedRowData.ORDER_DATE}</div>
+                                        <div className="col-md-8">{dateFormat(selectedRowData.ORDER_DATE)}</div>
                                     </div>
                                     <div className="row mb-3">
                                         <div className="col-md-4 font-weight-bold">Created By:</div>
                                         <div className="col-md-8">{selectedRowData.CREATED_BY}</div>
-                                    </div>
-                                    <div className="row mb-3">
-                                        <div className="col-md-4 font-weight-bold">Approved By:</div>
-                                        <div className="col-md-8">{selectedRowData.APPROVED_BY}</div>
                                     </div>
                                     <div className="row mb-3">
                                         <div className="col-md-4 font-weight-bold">To:</div>
@@ -726,6 +698,17 @@ const PurchaseOrderTable = ({
                                         <div className="col-md-8">{selectedRowData.DESCRIPTION}</div>
                                     </div>
                                     <div className="row mb-3">
+                                        <div className="col-md-4 font-weight-bold">Subtotal:</div>
+                                        <div className="col-md-8">
+                                            <NumericFormat
+                                                value={selectedRowData.TOTAL_BEFORE_DISCOUNT}
+                                                displayType="text"
+                                                thousandSeparator=","
+                                                prefix="Rp "
+                                            />
+                                        </div>
+                                    </div>
+                                    <div className="row mb-3">
                                         <div className="col-md-4 font-weight-bold">Discount:</div>
                                         <div className="col-md-8">
                                             <NumericFormat
@@ -737,10 +720,10 @@ const PurchaseOrderTable = ({
                                         </div>
                                     </div>
                                     <div className="row mb-3">
-                                        <div className="col-md-4 font-weight-bold">Subtotal:</div>
+                                        <div className="col-md-4 font-weight-bold">Subtotal After Discount:</div>
                                         <div className="col-md-8">
                                             <NumericFormat
-                                                value={selectedRowData.TOTAL_TAX_BASE}
+                                                value={selectedRowData.TOTAL_AFTER_DISCOUNT}
                                                 displayType="text"
                                                 thousandSeparator=","
                                                 prefix="Rp "
@@ -749,7 +732,7 @@ const PurchaseOrderTable = ({
                                     </div>
                                     <div className="row mb-3">
                                         <div className="col-md-4 font-weight-bold">Total PPN:</div>
-                                        <div className="col-md-8">  
+                                        <div className="col-md-8">
                                             <NumericFormat
                                                 value={selectedRowData.TOTAL_AMOUNT_PPN}
                                                 displayType="text"
@@ -766,7 +749,7 @@ const PurchaseOrderTable = ({
                                                 displayType="text"
                                                 thousandSeparator=","
                                                 prefix="Rp "
-                                            />    
+                                            />
                                         </div>
                                     </div>
                                 </div>
@@ -775,17 +758,26 @@ const PurchaseOrderTable = ({
                                     <Table striped bordered hover>
                                         <thead>
                                             <tr>
-                                                <th>Product</th>
-                                                <th>Product Description</th>
-                                                <th>Currency</th>
-                                                <th>Quantity</th>
-                                                <th>Unit Price</th>
-                                                <th>Total Price</th>
-                                                <th>type of Vat</th>
-                                                <th>Tax PPN Type</th>
-                                                <th>Tax PPN Rate</th>
-                                                <th>Tax PPN Amount</th>
-                                                <th>Tax Base</th>
+                                               <th>Doc Reff Number</th>
+                                               <th>Doc Source</th>
+                                               <th>Vendor</th>
+                                               <th>Company</th>
+                                               <th>Project</th>
+                                               <th>Project Contract Number</th>
+                                               <th>Requestor</th>
+                                               <th>Customer</th>
+                                               <th>Department</th>
+                                               <th>Product</th>
+                                               <th>Product Description</th>
+                                               <th>Quantity</th>
+                                               <th>Currency</th>
+                                               <th>Unit Price</th>
+                                               <th>Total Price</th>
+                                               <th>Type of VAT</th>
+                                               <th>Tax PPN Type</th>
+                                               <th>Tax PPN Rate</th>
+                                               <th>Tax PPN Amount</th>
+                                               <th>Tax Base</th>
                                             </tr>
                                         </thead>
                                         <tbody>
@@ -793,10 +785,19 @@ const PurchaseOrderTable = ({
                                                 .sort((a, b) => a.ID - b.ID) // Sort by ID in ascending order
                                                 .map((detail) => (
                                                     <tr key={detail.ID}>
+                                                        <td>{detail.doc_reff_no}</td>
+                                                        <td>{detail.doc_source}</td>
+                                                        <td>{detail.vendor}</td>
+                                                        <td>{detail.company}</td>
+                                                        <td>{detail.project}</td>
+                                                        <td>{detail.project_contract_number}</td>
+                                                        <td>{detail.requestor}</td>
+                                                        <td>{detail.customer}</td>
+                                                        <td>{detail.departement}</td>
                                                         <td>{detail.product}</td>
                                                         <td>{detail.product_note}</td>
-                                                        <td>{detail.currency}</td>
                                                         <td>{detail.quantity}</td>
+                                                        <td>{detail.currency}</td>
                                                         <td style={{ textAlign: "right" }}>{DisplayFormat(detail.unit_price)}</td>
                                                         <td style={{ textAlign: "right" }}>{DisplayFormat(detail.total_price)}</td>
                                                         <td>{detail.type_of_vat}</td>

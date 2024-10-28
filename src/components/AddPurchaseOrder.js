@@ -12,6 +12,8 @@
   import LookupService from '../service/LookupService';
   import CreatableSelect from 'react-select/creatable';
   import axios from 'axios';
+import UpdateDataService from '../service/UpdateDataService';
+import DeleteDataService from '../service/DeleteDataService';
 
   const AddPurchaseOrder = ({ 
     setIsAddingNewPurchaseOrder, 
@@ -54,7 +56,7 @@
     const [idPr, setIdPr] = useState(''); 
     const [discount, setDiscount] = useState(0);
     const [formattedDiscount, setFormattedDiscount] = useState('IDR 0.00');
-    const [validated, setValidated] = useState(false);
+    const [statusPo, setStatusPo] = useState('');
     
 
     // PO Lookup
@@ -99,125 +101,126 @@
 
     // Lookup
     useEffect(() => {
-      
-      
       if(selectedData) {
         const { ID, PO_NUMBER } = selectedData[0];
-            // Set data awal dari selectedData
-            console.log('id and pr number', ID, PO_NUMBER);
-            setPoNumber(PO_NUMBER);
+        // Set data awal dari selectedData
+        console.log('id and pr number', ID, PO_NUMBER);
+        setPoNumber(PO_NUMBER);
 
-            console.log('deda', selectedData[0]);
+        console.log('deda', selectedData[0]);
 
-            // Panggil API untuk mendapatkan data berdasarkan ID
-            LookupService.fetchLookupData(`PURC_FORMPUOR&filterBy=PO_NUMBER&filterValue=${PO_NUMBER}&operation=EQUAL`, authToken, branchId)
-              .then(response => {
-                  const data = response.data[0];
-                  console.log('Data:', data);
-                  setOrderDate(data.order_date);
-                  setCreatedBy(data.created_by);
-                  setDocRef(data.doc_reff);
-                  setShipTo(data.ship_to);
-                  setShipToAddress(data.ship_to_address);
-                  setBillTo(data.bill_to);
-                  setBillToAddress(data.bill_to_address);
-                  setDiscount(data.discount);
-              })
-              .catch(error => {
-                console.error('Failed to load purchase request data:', error);
-              });
+        // Panggil API untuk mendapatkan data berdasarkan ID
+        LookupService.fetchLookupData(`PURC_FORMPUOR&filterBy=PO_NUMBER&filterValue=${PO_NUMBER}&operation=EQUAL`, authToken, branchId)
+        .then(response => {
+          const data = response.data[0];
+          console.log('Data:', data);
+          setOrderDate(data.order_date);
+          setCreatedBy(data.created_by);
+          setDocRef(data.doc_reff);
+          setShipTo(data.ship_to);
+          setShipToAddress(data.ship_to_address);
+          setBillTo(data.bill_to);
+          setBillToAddress(data.bill_to_address);
+          setDiscount(data.discount);
+          setTermConditions(data.term_conditions);
+          setDescription(data.description);
+        }).catch(error => {
+          console.error('Failed to load purchase request data:', error);
+        });
 
-              // Lookup Puord
-              LookupService.fetchLookupData(`PURC_FORMPUORD&filterBy=PO_NUMBER&filterValue=${PO_NUMBER}&operation=EQUAL`, authToken, branchId)
-              .then(response => {
-                  const fetchedItems = response.data || [];
-                  console.log('Items fetchedda:', fetchedItems);
-                
-                  setItems(fetchedItems.map(item => ({
-                    ...item,
-                  })));
-                  
-                  })
-                .catch(error => {
-                    console.error('Failed to load items:', error);
-                });
+        // Lookup Puord
+        LookupService.fetchLookupData(`PURC_FORMPUORD&filterBy=PO_NUMBER&filterValue=${PO_NUMBER}&operation=EQUAL`, authToken, branchId)
+        .then(response => {
+          const fetchedItems = response.data || [];
+          console.log('Items fetchedda:', fetchedItems);
+        
+          setItems(fetchedItems.map(item => ({
+            ...item,
+          })));
+          
+          })
+        .catch(error => {
+            console.error('Failed to load items:', error);
+        });
 
-                LookupParamService.fetchLookupData("MSDT_FORMTAX", authToken, branchId)
-                  .then(data => {
-                  console.log('Currency lookup data:', data);
+        LookupParamService.fetchLookupData("MSDT_FORMTAX", authToken, branchId)
+        .then(data => {
+          console.log('Currency lookup data:', data);
 
-                  // Transform keys to uppercase directly in the received data
-                  const transformedData = data.data.map(item =>
-                      Object.keys(item).reduce((acc, key) => {
-                      acc[key.toUpperCase()] = item[key];
-                      return acc;
-                      }, {})
-                  );
-                  //console.log('Transformed data:', transformedData);
+          // Transform keys to uppercase directly in the received data
+          const transformedData = data.data.map(item =>
+              Object.keys(item).reduce((acc, key) => {
+              acc[key.toUpperCase()] = item[key];
+              return acc;
+              }, {})
+          );
+          //console.log('Transformed data:', transformedData);
 
-                  const options = transformedData.filter(item => item.TAX_TYPE === 'PPN').map(item => ({
-                      value: item.NAME,
-                      label: item.NAME,
-                      RATE: item.RATE
-                  }));
-                  setTaxTypeOptions(options);
-                  const selectedTaxTypeOption = options.find(option => option.value === selectedData[0].TAX_PPN);
-                  setSelectedTaxType(selectedTaxTypeOption || null);
-                  })
-                  .catch(error => {
-                  console.error('Failed to fetch currency lookup:', error);
-                  });
+          const options = transformedData.filter(item => item.TAX_TYPE === 'PPN').map(item => ({
+              value: item.NAME,
+              label: item.NAME,
+              RATE: item.RATE
+          }));
+          
+          setTaxTypeOptions(options);
+          const selectedTaxTypeOption = options.find(option => option.value === selectedData[0].TAX_PPN);
+          setSelectedTaxType(selectedTaxTypeOption || null);
+        }).catch(error => {
+          console.error('Failed to fetch currency lookup:', error);
+        });
 
-                // Lookup vendor to dan to address
-                LookupParamService.fetchLookupData("MSDT_FORMCUST", authToken, branchId)
-                .then(data => {
-                  console.log('Currency lookup data:', data);
+        // Lookup vendor to dan to address
+        LookupParamService.fetchLookupData("MSDT_FORMCUST", authToken, branchId)
+        .then(data => {
+          console.log('Currency lookup data:', data);
 
-                  // Transform keys to uppercase directly in the received data
-                  const transformedData = data.data.map(item =>
-                    Object.keys(item).reduce((acc, key) => {
-                      acc[key.toUpperCase()] = item[key];
-                      return acc;
-                    }, {})
-                  );
-                  //console.log('Transformed data:', transformedData);
+          // Transform keys to uppercase directly in the received data
+          const transformedData = data.data.map(item =>
+            Object.keys(item).reduce((acc, key) => {
+              acc[key.toUpperCase()] = item[key];
+              return acc;
+            }, {})
+          );
+          //console.log('Transformed data:', transformedData);
 
-                  const options = transformedData.filter(item => item.ENTITY_TYPE === 'BOTH' || item.ENTITY_TYPE === 'Vendor').map(item => ({
-                    value: item.NAME,
-                    label: item.NAME,
-                    vendAddress: item.ADDRESS
-                  }));
-                  setVendorOptions(options);
-                  const selectedVendor = options.find(option => option.value === selectedData[0].FORM_TO);
-                          setSelectedVendor(selectedVendor || null);
+          const options = transformedData.filter(item => item.ENTITY_TYPE === 'BOTH' || item.ENTITY_TYPE === 'Vendor').map(item => ({
+            value: item.NAME,
+            label: item.NAME,
+            vendAddress: item.ADDRESS
+          }));
 
-                  const optionForTo = transformedData.map(item => ({
-                    value: item.NAME,
-                    label: item.NAME,
-                    vendAddress: item.ADDRESS
-                  }));
-                  setToOptions(optionForTo);
+          setVendorOptions(options);
 
-                  const uniqueAddress = [...new Set(transformedData.map(item => item.ADDRESS))];
-                  const optionsForToAddress = uniqueAddress.map(address => ({
-                    value: address,
-                    label: address
-                  }));
-                  setToAddressOptions(optionsForToAddress);
-                  const selectToAddress = optionsForToAddress.find(option => option.value === selectedData[0].TO_ADDRESS);
-                  setSelectedToAddress(selectToAddress || null);
+          const optionForTo = transformedData.map(item => ({
+            value: item.NAME,
+            label: item.NAME,
+            vendAddress: item.ADDRESS
+          }));
 
-                })
-                .catch(error => {
-                  console.error('Failed to fetch currency lookup:', error);
-                });
+          setToOptions(optionForTo);
+          const selectTo = optionForTo.find(option => option.value === selectedData[0].FORM_TO);
+          setSelectedTo(selectTo || null);
+          setTo(selectTo.value);
 
-                
+          const uniqueAddress = [...new Set(transformedData.map(item => item.ADDRESS))];
+          const optionsForToAddress = uniqueAddress.map(address => ({
+            value: address,
+            label: address
+          }));
+
+          setToAddressOptions(optionsForToAddress);
+          const selectToAddress = optionsForToAddress.find(option => option.value === selectedData[0].TO_ADDRESS);
+          setSelectedToAddress(selectToAddress || null);
+          setToAddress(selectToAddress.value);
+        }).catch(error => {
+          console.error('Failed to fetch currency lookup:', error);
+        });
       }
 
 
-    // Lookup Purchase Request
-    LookupParamService.fetchLookupData("PURC_FORMPUREQ&showAll=YES&filterBy=STATUS&filterValue=APPROVED&operation=EQUAL&&filterBy=STATUS_REQUEST&filterValue=IN_PROCESS&operation=EQUAL", authToken, branchId)
+
+      // Lookup Purchase Request
+      LookupParamService.fetchLookupData("PURC_FORMPUREQ&showAll=YES&filterBy=STATUS&filterValue=APPROVED&operation=EQUAL&&filterBy=STATUS_REQUEST&filterValue=IN_PROCESS&operation=EQUAL", authToken, branchId)
       .then(data => {
         console.log('Currency lookup data:', data);
 
@@ -250,9 +253,10 @@
             REQUESTOR: item.REQUESTOR,
           };
         }).filter(option => option !== null);
+
         setPROptions(options);
-      })
-      .catch(error => {
+
+      }).catch(error => {
         console.error('Failed to fetch currency lookup:', error);
       });
 
@@ -260,184 +264,182 @@
 
       // Lookup Department
       LookupParamService.fetchLookupData("MSDT_FORMDPRT", authToken, branchId)
-        .then(data => {
-          console.log('Currency lookup data:', data);
+      .then(data => {
+        console.log('Currency lookup data:', data);
 
-          // Transform keys to uppercase directly in the received data
-          const transformedData = data.data.map(item =>
-            Object.keys(item).reduce((acc, key) => {
-              acc[key.toUpperCase()] = item[key];
-              return acc;
-            }, {})
-          );
-          //console.log('Transformed data:', transformedData);
+        // Transform keys to uppercase directly in the received data
+        const transformedData = data.data.map(item =>
+          Object.keys(item).reduce((acc, key) => {
+            acc[key.toUpperCase()] = item[key];
+            return acc;
+          }, {})
+        );
+        //console.log('Transformed data:', transformedData);
 
-          const options = transformedData.map(item => ({
-            value: item.NAME,
-            label: item.NAME
-          }));
-          setDepartementOptions(options);
-        })
-        .catch(error => {
-          console.error('Failed to fetch currency lookup:', error);
-        });
+        const options = transformedData.map(item => ({
+          value: item.NAME,
+          label: item.NAME
+        }));
+
+        setDepartementOptions(options);
+
+      }).catch(error => {
+        console.error('Failed to fetch currency lookup:', error);
+      });
 
 
       
       // Lookup Requestor
       LookupParamService.fetchLookupData("MSDT_FORMEMPL", authToken, branchId)
-        .then(data => {
-          console.log('Currency lookup data:', data);
+      .then(data => {
+        console.log('Currency lookup data:', data);
 
-          // Transform keys to uppercase directly in the received data
-          const transformedData = data.data.map(item =>
-            Object.keys(item).reduce((acc, key) => {
-              acc[key.toUpperCase()] = item[key];
-              return acc;
-            }, {})
-          );
-          //console.log('Transformed data:', transformedData);
+        // Transform keys to uppercase directly in the received data
+        const transformedData = data.data.map(item =>
+          Object.keys(item).reduce((acc, key) => {
+            acc[key.toUpperCase()] = item[key];
+            return acc;
+          }, {})
+        );
+        //console.log('Transformed data:', transformedData);
 
-          const options = transformedData.map(item => ({
-            value: item.NAME,
-            label: item.NAME
-          }));
-          setRequestorOptions(options);
-        })
-        .catch(error => {
-          console.error('Failed to fetch currency lookup:', error);
-        });
-
-
-        // Lookup Tax Type
-        LookupParamService.fetchLookupData("MSDT_FORMTAX", authToken, branchId)
-        .then(data => {
-          console.log('Currency lookup data:', data);
-
-          // Transform keys to uppercase directly in the received data
-          const transformedData = data.data.map(item =>
-            Object.keys(item).reduce((acc, key) => {
-              acc[key.toUpperCase()] = item[key];
-              return acc;
-            }, {})
-          );
-          //console.log('Transformed data:', transformedData);
-
-          const options = transformedData.filter(item => item.TAX_TYPE === 'PPN').map(item => ({
-            value: item.NAME,
-            label: item.NAME,
-            RATE: item.RATE
-          }));
-          setTaxTypeOptions(options);
-        })
-        .catch(error => {
-          console.error('Failed to fetch currency lookup:', error);
-        });
+        const options = transformedData.map(item => ({
+          value: item.NAME,
+          label: item.NAME
+        }));
+        setRequestorOptions(options);
+      }).catch(error => {
+        console.error('Failed to fetch currency lookup:', error);
+      });
 
 
-        // Lookup Currency
-        LookupParamService.fetchLookupData("MSDT_FORMCCY", authToken, branchId)
-        .then(data => {
-          console.log('Currency lookup data:', data);
+      // Lookup Tax Type
+      LookupParamService.fetchLookupData("MSDT_FORMTAX", authToken, branchId)
+      .then(data => {
+        console.log('Currency lookup data:', data);
 
-          // Transform keys to uppercase directly in the received data
-          const transformedData = data.data.map(item =>
-            Object.keys(item).reduce((acc, key) => {
-              acc[key.toUpperCase()] = item[key];
-              return acc;
-            }, {})
-          );
-          //console.log('Transformed data:', transformedData);
+        // Transform keys to uppercase directly in the received data
+        const transformedData = data.data.map(item =>
+          Object.keys(item).reduce((acc, key) => {
+            acc[key.toUpperCase()] = item[key];
+            return acc;
+          }, {})
+        );
+        //console.log('Transformed data:', transformedData);
 
-          const options = transformedData.map(item => ({
-            value: item.CODE,
-            label: item.CODE
-          }));
-          setCurrencyOptions(options);
-        })
-        .catch(error => {
-          console.error('Failed to fetch currency lookup:', error);
-        });
-
-
-        // Lookup Vendor
-        LookupParamService.fetchLookupData("MSDT_FORMCUST", authToken, branchId)
-        .then(data => {
-          console.log('Currency lookup data:', data);
-
-          // Transform keys to uppercase directly in the received data
-          const transformedData = data.data.map(item =>
-            Object.keys(item).reduce((acc, key) => {
-              acc[key.toUpperCase()] = item[key];
-              return acc;
-            }, {})
-          );
-          //console.log('Transformed data:', transformedData);
-
-          const options = transformedData.filter(item => item.ENTITY_TYPE === 'BOTH' || item.ENTITY_TYPE === 'Vendor').map(item => ({
-            value: item.NAME,
-            label: item.NAME,
-            vendAddress: item.ADDRESS
-          }));
-          setVendorOptions(options);
-
-          const optionForTo = transformedData.map(item => ({
-            value: item.NAME,
-            label: item.NAME,
-            vendAddress: item.ADDRESS
-          }));
-          setToOptions(optionForTo);
-
-          const uniqueAddress = [...new Set(transformedData.map(item => item.ADDRESS))];
-          const optionsForToAddress = uniqueAddress.map(address => ({
-            value: address,
-            label: address
-          }));
-          setToAddressOptions(optionsForToAddress);
-
-        })
-        .catch(error => {
-          console.error('Failed to fetch currency lookup:', error);
-        });
+        const options = transformedData.filter(item => item.TAX_TYPE === 'PPN').map(item => ({
+          value: item.NAME,
+          label: item.NAME,
+          RATE: item.RATE
+        }));
+        setTaxTypeOptions(options);
+      })
+      .catch(error => {
+        console.error('Failed to fetch currency lookup:', error);
+      });
 
 
-        // Lookup Project
-        LookupParamService.fetchLookupData("MSDT_FORMPRJT", authToken, branchId)
-        .then(data => {
-          console.log('Currency lookup data:', data);
+      // Lookup Currency
+      LookupParamService.fetchLookupData("MSDT_FORMCCY", authToken, branchId)
+      .then(data => {
+        console.log('Currency lookup data:', data);
 
-          // Transform keys to uppercase directly in the received data
-          const transformedData = data.data.map(item =>
-            Object.keys(item).reduce((acc, key) => {
-              acc[key.toUpperCase()] = item[key];
-              return acc;
-            }, {})
-          );
-          //console.log('Transformed data:', transformedData);
+        // Transform keys to uppercase directly in the received data
+        const transformedData = data.data.map(item =>
+          Object.keys(item).reduce((acc, key) => {
+            acc[key.toUpperCase()] = item[key];
+            return acc;
+          }, {})
+        );
+        //console.log('Transformed data:', transformedData);
 
-          const options = transformedData.map(item => ({
-            value: item.NAME,
-            label: item.NAME,
-            customer: item.CUSTOMER
-          }));
+        const options = transformedData.map(item => ({
+          value: item.CODE,
+          label: item.CODE
+        }));
+        setCurrencyOptions(options);
+      }).catch(error => {
+        console.error('Failed to fetch currency lookup:', error);
+      });
 
-          const optionsCustomer = transformedData.map(item => ({
-            value: item.CUSTOMER,
-            label: item.CUSTOMER
-          }))
 
-          const contractNumOptions = transformedData.map(item=> ({
-            value: item.CONTRACT_NUMBER,
-            label: item.CONTRACT_NUMBER,
-          }));
+      // Lookup Vendor
+      LookupParamService.fetchLookupData("MSDT_FORMCUST", authToken, branchId)
+      .then(data => {
+        console.log('Currency lookup data:', data);
 
-          setContractNumberOptions(contractNumOptions);
-          setProjectOptions(options);
-          setCustomerOptions(optionsCustomer);
-        })
-        .catch(error => {
-          console.error('Failed to fetch currency lookup:', error);
-        });
+        // Transform keys to uppercase directly in the received data
+        const transformedData = data.data.map(item =>
+          Object.keys(item).reduce((acc, key) => {
+            acc[key.toUpperCase()] = item[key];
+            return acc;
+          }, {})
+        );
+        //console.log('Transformed data:', transformedData);
+
+        const options = transformedData.filter(item => item.ENTITY_TYPE === 'BOTH' || item.ENTITY_TYPE === 'Vendor').map(item => ({
+          value: item.NAME,
+          label: item.NAME,
+          vendAddress: item.ADDRESS
+        }));
+        setVendorOptions(options);
+
+        const optionForTo = transformedData.map(item => ({
+          value: item.NAME,
+          label: item.NAME,
+          vendAddress: item.ADDRESS
+        }));
+        setToOptions(optionForTo);
+
+        const uniqueAddress = [...new Set(transformedData.map(item => item.ADDRESS))];
+        const optionsForToAddress = uniqueAddress.map(address => ({
+          value: address,
+          label: address
+        }));
+        setToAddressOptions(optionsForToAddress);
+
+      }).catch(error => {
+        console.error('Failed to fetch currency lookup:', error);
+      });
+
+
+
+      // Lookup Project
+      LookupParamService.fetchLookupData("MSDT_FORMPRJT", authToken, branchId)
+      .then(data => {
+        console.log('Currency lookup data:', data);
+
+        // Transform keys to uppercase directly in the received data
+        const transformedData = data.data.map(item =>
+          Object.keys(item).reduce((acc, key) => {
+            acc[key.toUpperCase()] = item[key];
+            return acc;
+          }, {})
+        );
+        //console.log('Transformed data:', transformedData);
+
+        const options = transformedData.map(item => ({
+          value: item.NAME,
+          label: item.NAME,
+          customer: item.CUSTOMER
+        }));
+
+        const optionsCustomer = transformedData.map(item => ({
+          value: item.CUSTOMER,
+          label: item.CUSTOMER
+        }))
+
+        const contractNumOptions = transformedData.map(item=> ({
+          value: item.CONTRACT_NUMBER,
+          label: item.CONTRACT_NUMBER,
+        }));
+
+        setContractNumberOptions(contractNumOptions);
+        setProjectOptions(options);
+        setCustomerOptions(optionsCustomer);
+      }).catch(error => {
+        console.error('Failed to fetch currency lookup:', error);
+      });
 
 
         // Lookup Customer
@@ -466,87 +468,86 @@
         // });
 
 
-        // Lookup Product
-        LookupParamService.fetchLookupData("MSDT_FORMPRDT", authToken, branchId)
-        .then(data => {
-          console.log('Currency lookup data:', data);
+      // Lookup Product
+      LookupParamService.fetchLookupData("MSDT_FORMPRDT", authToken, branchId)
+      .then(data => {
+        console.log('Currency lookup data:', data);
 
-          // Transform keys to uppercase directly in the received data
-          const transformedData = data.data.map(item =>
-            Object.keys(item).reduce((acc, key) => {
-              acc[key.toUpperCase()] = item[key];
-              return acc;
-            }, {})
-          );
-          //console.log('Transformed data:', transformedData);
+        // Transform keys to uppercase directly in the received data
+        const transformedData = data.data.map(item =>
+          Object.keys(item).reduce((acc, key) => {
+            acc[key.toUpperCase()] = item[key];
+            return acc;
+          }, {})
+        );
+        //console.log('Transformed data:', transformedData);
 
-          const options = transformedData.map(item => ({
-            value: item.NAME,
-            label: item.NAME
-          }));  
-          setProductOptions(options);
-        })
-        .catch(error => {
-          console.error('Failed to fetch currency lookup:', error);
-        });
+        const options = transformedData.map(item => ({
+          value: item.NAME,
+          label: item.NAME
+        }));  
+        setProductOptions(options);
+      }).catch(error => {
+        console.error('Failed to fetch currency lookup:', error);
+      });
 
 
         // Lookup Payment Term
-        LookupParamService.fetchLookupData("MSDT_FORMPYTM", authToken, branchId)
-        .then(data => {
-          console.log('Currency lookup data:', data);
+        // LookupParamService.fetchLookupData("MSDT_FORMPYTM", authToken, branchId)
+        // .then(data => {
+        //   console.log('Currency lookup data:', data);
 
-          // Transform keys to uppercase directly in the received data
-          const transformedData = data.data.map(item =>
-            Object.keys(item).reduce((acc, key) => {
-              acc[key.toUpperCase()] = item[key];
-              return acc;
-            }, {})
-          );
-          //console.log('Transformed data:', transformedData);
+        //   // Transform keys to uppercase directly in the received data
+        //   const transformedData = data.data.map(item =>
+        //     Object.keys(item).reduce((acc, key) => {
+        //       acc[key.toUpperCase()] = item[key];
+        //       return acc;
+        //     }, {})
+        //   );
+        //   //console.log('Transformed data:', transformedData);
 
-          const options = transformedData.map(item => ({
-            value: item.NAME,
-            label: item.NAME
-          }));
-          setPaymentTermOptions(options);
-        })
-        .catch(error => {
-          console.error('Failed to fetch currency lookup:', error);
-        });
+        //   const options = transformedData.map(item => ({
+        //     value: item.NAME,
+        //     label: item.NAME
+        //   }));
+        //   setPaymentTermOptions(options);
+        // })
+        // .catch(error => {
+        //   console.error('Failed to fetch currency lookup:', error);
+        // });
         
     }, []);
 
     // Handler Project untuk autofill customer
-    const handleProjectChange = (selectedOption) => {
-      setSelectedProject(selectedOption);
-      setProject(selectedOption ? selectedOption.value: '');
+    // const handleProjectChange = (selectedOption) => {
+    //   setSelectedProject(selectedOption);
+    //   setProject(selectedOption ? selectedOption.value: '');
 
-      if(selectedOption) {
-        const customerProject = customerOptions.find((option) => option.value === selectedOption.customer);
-        setSelectedCustomer(customerProject);
-        setCustomer(customerProject ? customerProject.value : null);
-      } else {
-        setSelectedCustomer(null);
-        setCustomer('');
-      }
-    }
-    
-    // To Handler untuk autofill address
-    // const handleToChange = (selectedOption) => {
-    //   setSelectedTo(selectedOption);
-    //   setTo(selectedOption ? selectedOption.value : '');
-      
-    //   // Autofill
     //   if(selectedOption) {
-    //     const toAddressOption = toAddressOptions.find((option) => option.value === selectedOption.vendAddress);
-    //     setSelectedToAddress(toAddressOption);
-    //     setToAddress(toAddressOption ? toAddressOption.value : '');
-    //   }else{
-    //     setSelectedToAddress(null);
-    //     setToAddress('');
+    //     const customerProject = customerOptions.find((option) => option.value === selectedOption.customer);
+    //     setSelectedCustomer(customerProject);
+    //     setCustomer(customerProject ? customerProject.value : null);
+    //   } else {
+    //     setSelectedCustomer(null);
+    //     setCustomer('');
     //   }
     // }
+    
+    // To Handler untuk autofill address
+    const handleToChange = (selectedOption) => {
+      setSelectedTo(selectedOption);
+      setTo(selectedOption ? selectedOption.value : '');
+      
+      // Autofill
+      if(selectedOption) {
+        const toAddressOption = toAddressOptions.find((option) => option.value === selectedOption.vendAddress);
+        setSelectedToAddress(toAddressOption);
+        setToAddress(toAddressOption ? toAddressOption.value : '');
+      }else{
+        setSelectedToAddress(null);
+        setToAddress('');
+      }
+    }
 
     // Pr handler 
     // const handlePRChange = (selectedOption) => {
@@ -710,144 +711,139 @@
 
 
     // New Item List PR Handle
-      const handlePRChange = (index, selectedOption) => {
-        if (selectedOption) {
-          // Fetch lookup data based on the selected option
-          LookupService.fetchLookupData(`PURC_FORMPUREQD&filterBy=PR_NUMBER&filterValue=${selectedOption.value}&operation=EQUAL`, authToken, branchId)
-            .then(response => {
-              const fetchedItems = response.data || [];
-              console.log('Items fetched:', fetchedItems);
+    const handlePRChange = (index, selectedOption) => {
+      if (selectedOption) {
+        // Lookup PR Detail
+        LookupService.fetchLookupData(`PURC_FORMPUREQD&filterBy=PR_NUMBER&filterValue=${selectedOption.value}&operation=EQUAL`, authToken, branchId)
+        .then(response => {
+          const fetchedItems = response.data || [];
+          console.log('Items fetched:', fetchedItems);
 
-              LookupService.fetchLookupData(`PURC_FORMPUREQ&filterBy=PR_NUMBER&filterValue=${selectedOption.value}&operation=EQUAL`, authToken, branchId)
-                .then(response => {
-                  const fetchedDatas = response.data || [];
-                  console.log('Items fetched:', fetchedDatas);
-              
+          // Lookup PR
+          LookupService.fetchLookupData(`PURC_FORMPUREQ&filterBy=PR_NUMBER&filterValue=${selectedOption.value}&operation=EQUAL`, authToken, branchId)
+          .then(response => {
+            const fetchedDatas = response.data || [];
+            console.log('Items fetched:', fetchedDatas);
+          
+            // Fetch product lookup data
+            LookupParamService.fetchLookupData("MSDT_FORMPRDT", authToken, branchId)
+            .then(productData => {
+              console.log('Product lookup data:', productData);
 
-              // Fetch product lookup data
-              LookupParamService.fetchLookupData("MSDT_FORMPRDT", authToken, branchId)
-                  .then(productData => {
-                      console.log('Product lookup data:', productData);
+              // Transform and map product data to options
+              const transformedProductData = productData.data.map(item => Object.keys(item).reduce((acc, key) => {
+                acc[key.toUpperCase()] = item[key];
+                return acc;
+              }, {}));
 
-                      // Transform and map product data to options
-                      const transformedProductData = productData.data.map(item =>
-                          Object.keys(item).reduce((acc, key) => {
-                              acc[key.toUpperCase()] = item[key];
-                              return acc;
-                          }, {})
-                      );
+              const productOptions = transformedProductData.map(item => ({
+                  value: item.NAME,
+                  label: item.NAME
+              }));
 
-                      const productOptions = transformedProductData.map(item => ({
-                          value: item.NAME,
-                          label: item.NAME
-                      }));
-
-                      setProductOptions(productOptions); // Set product options to state
-
-                      // Fetch currency lookup data
-                      LookupParamService.fetchLookupData("MSDT_FORMCCY", authToken, branchId)
-                        .then(currencyData => {
-                          console.log('Currency lookup data:', currencyData);
-
-                          // Transform and map currency data to options
-                          const transformedCurrencyData = currencyData.data.map(item =>
-                              Object.keys(item).reduce((acc, key) => {
-                                  acc[key.toUpperCase()] = item[key];
-                                  return acc;
-                              }, {})
-                          );
-
-                          const currencyOptions = transformedCurrencyData.map(item => ({
-                              value: item.CODE,
-                              label: item.CODE
-                          }));
-
-                          setCurrencyOptions(currencyOptions); // Set currency options to state
-                          
-                          const newItems = [...items];
-                          // Update fetched items with selected options
-                          const updatedFetchedItems = fetchedItems.map(item => {
-                            return {
-                                ...item,
-                                doc_reff_no: item.pr_number,
-                                doc_source: item.doc_source,
-                            };
-                          });
-
-                          updatedFetchedItems.forEach((fetchedItem, i) => {
-                            // Either update the existing index or add new items for each fetched object
-                            newItems[index + i] = {
-                                ...newItems[index + i],
-                                ...fetchedItem,
-                            };
-                          });
-
-                          fetchedDatas.forEach((fetchedData) => {
-                            newItems.forEach((item, i) => {
-                              if (item.doc_reff_no === fetchedData.pr_number) {
-                                newItems[i] = {
-                                    ...newItems[i],
-                                    requestor: fetchedData.requestor,
-                                };
-                              }
-                            });
-                          });
-
-                          const companyValue = 'PT. Abhimata Persada'; // Replace with the actual company value if different
-                          newItems.forEach((item, i) => {
-                              if (item.doc_reff_no === selectedOption.value) {
-                                  newItems[i].company = companyValue; // Set company for matching items
-                              }
-                          });
-
-                          // Set the updated items to state
-                          setItems(newItems);
-                        })
-                        .catch(error => {
-                            console.error('Failed to fetch currency lookup:', error);
-                        });
-                    })
-                  .catch(error => {
-                      console.error('Failed to fetch product lookup:', error);
-                  });
-                })
-                })
-              .catch(error => {
-                  console.error('Failed to load items:', error);
-              });
-          }else{
+              setProductOptions(productOptions);
+            }).catch(error => {
+              console.error('Error fetching product lookup data:', error);
+            });
             
+
+            // Fetch currency lookup data
+            LookupParamService.fetchLookupData("MSDT_FORMCCY", authToken, branchId)
+            .then(currencyData => {
+              console.log('Currency lookup data:', currencyData);
+
+              // Transform and map currency data to options
+              const transformedCurrencyData = currencyData.data.map(item => Object.keys(item).reduce((acc, key) => {
+                acc[key.toUpperCase()] = item[key];
+                return acc;
+              }, {}));
+
+              const currencyOptions = transformedCurrencyData.map(item => ({
+                  value: item.CODE,
+                  label: item.CODE
+              }));
+
+              setCurrencyOptions(currencyOptions); // Set currency options to state
+            }).catch(error=>{
+              console.error('Error fetching currency lookup data:', error);
+            });
+
             const newItems = [...items];
-            newItems[index] = {
-              ...newItems[index],
-              product: '', 
-              product_note: '', 
-              quantity: 1, 
-              currency: 'IDR', 
-              unit_price: 0, 
-              original_unit_price: 0, 
-              total_price: 0, 
-              vat_type: '',
-              tax_ppn_type: '', 
-              tax_ppn_rate: 0, 
-              tax_ppn_amount: 0 , 
-              tax_base: 0, 
-              discount: 0,
-              subTotal: 0,
-              vat_included: false,
-              new_unit_price: 0,
-              doc_reff_no: '',
-              vendor: '',
-              project: '',
-              customer: '',
-              departement: '',
-              project_contract_number: '',
-              company:'PT. Abhimata Persada',
-              requestor: '',
-            };
-            setItems(newItems); // Update state with reset selections
-          }
-      };
+            // Update fetched items with selected options
+            const updatedFetchedItems = fetchedItems.map(item => {
+              return {
+                ...item,
+                doc_reff_no: item.pr_number,
+                doc_source: item.doc_source,
+              };
+            });
+
+            updatedFetchedItems.forEach((fetchedItem, i) => {
+                newItems[index + i] = {
+                ...newItems[index + i],
+                ...fetchedItem,
+              };
+            });
+
+            fetchedDatas.forEach((fetchedData) => {
+              newItems.forEach((item, i) => {
+                if (item.doc_reff_no === fetchedData.pr_number) {
+                  newItems[i] = {
+                    ...newItems[i],
+                    requestor: fetchedData.requestor,
+                  };
+                }
+              });
+            });
+
+            const companyValue = 'PT. Abhimata Persada'; 
+            newItems.forEach((item, i) => {
+              if (item.doc_reff_no === selectedOption.value) {
+                newItems[i].company = companyValue; // Set company for matching items
+              }
+            });
+
+            // Set the updated items to state
+            setItems(newItems);
+          }).catch(error => {
+            console.error('Failed to fetch PR Items', error);
+          });
+        }).catch(error => {
+          console.error('Failed to load items:', error);
+        });
+      }else{
+          
+          const newItems = [...items];
+          newItems[index] = {
+            ...newItems[index],
+            product: '', 
+            product_note: '', 
+            quantity: 1, 
+            currency: 'IDR', 
+            unit_price: 0, 
+            original_unit_price: 0, 
+            total_price: 0, 
+            type_of_vat: '',
+            tax_ppn: '', 
+            tax_ppn_rate: 0, 
+            tax_ppn_amount: 0 , 
+            tax_base: 0, 
+            discount: 0,
+            subTotal: 0,
+            vat_included: false,
+            new_unit_price: 0,
+            doc_reff_no: '',
+            vendor: '',
+            project: '',
+            customer: '',
+            departement: '',
+            project_contract_number: '',
+            company:'PT. Abhimata Persada',
+            requestor: '',
+          };
+          setItems(newItems); // Update state with reset selections
+        }
+    };
 
 
     const handleOptionChange = (setter, stateSetter, selectedOption) => {
@@ -865,8 +861,8 @@
         unit_price: 0, 
         original_unit_price: 0, 
         total_price: 0, 
-        vat_type: '',
-        tax_ppn_type: '', 
+        type_of_vat: '',
+        tax_ppn: '', 
         tax_ppn_rate: 0, 
         tax_ppn_amount: 0 , 
         tax_base: 0, 
@@ -895,12 +891,12 @@
 
       // itungan lama
 
-      // if (field === 'vat_type') {
-      //   newItems[index].tax_ppn_type = '';
+      // if (field === 'type_of_vat') {
+      //   newItems[index].tax_ppn = '';
       //   newItems[index].tax_ppn_rate = 0;
       //   newItems[index].tax_base = 0;
         
-      //   if (newItems[index].vat_type === 'include') {
+      //   if (newItems[index].type_of_vat === 'include') {
       //     newItems[index].unit_price = newItems[index].unit_price + (newItems[index].unit_price * 0.1); 
       //     newItems[index].vat_included = true;
       //   } else if (value === 'exclude' && newItems[index].vat_included === true) {
@@ -915,10 +911,10 @@
       // }
 
 
-      // if (field === 'tax_ppn_type' || newItems[index].tax_ppn_rate ) {
-      //   if (newItems[index].vat_type === 'include') {
+      // if (field === 'tax_ppn' || newItems[index].tax_ppn_rate ) {
+      //   if (newItems[index].type_of_vat === 'include') {
       //     newItems[index].tax_base = Math.round(newItems[index].unit_price/((1+(newItems[index].tax_ppn_rate/100))*newItems[index].quantity)); 
-      //   } else if (newItems[index].vat_type === 'exclude') {
+      //   } else if (newItems[index].type_of_vat === 'exclude') {
       //     newItems[index].tax_base = Math.round(newItems[index].total_price); 
       //   }
       //   if (isNaN(newItems[index].tax_base)) {
@@ -927,14 +923,14 @@
       // }
 
       // console.log('vat', newItems[index].vat_included);
-      // console.log('vat', newItems[index].vat_type);
+      // console.log('vat', newItems[index].type_of_vat);
       // console.log('unir', newItems[index].unit_price);
       // console.log('tax', newItems[index].tax_base);
       // console.log('quant', newItems[index].quantity);
 
       // console.log('Updated tax_base:', newItems[index].tax_base);
 
-      // if (field === 'tax_ppn_type' || field === 'unit_price' || field === 'tax_base'|| field === 'vat_type') {
+      // if (field === 'tax_ppn' || field === 'unit_price' || field === 'tax_base'|| field === 'type_of_vat') {
       //   newItems[index].tax_ppn_amount = newItems[index].tax_base * (newItems[index].tax_ppn_rate / 100);
       // }
 
@@ -948,8 +944,11 @@
       // Reset field vat type dan ppn type ketika mengubah unit price dan quantity
 
       if( field === 'unit_price' || field === 'quantity') {
-        newItems[index].vat_type = '';
-        newItems[index].tax_ppn_type = '';
+        newItems[index].type_of_vat = '';
+        newItems[index].tax_ppn_rate= '';
+        setDiscount(0);
+        setFormattedDiscount(0);
+        newItems[index].tax_ppn = '';
         newItems[index].tax_base = 0; 
         newItems[index].tax_ppn_amount = 0;
         if(newItems[index].vat_included !== undefined) {
@@ -963,25 +962,25 @@
       // Itungan New Unit Price
       let pengkali = newItems[index].tax_ppn_rate/100;
 
-      if (field === 'tax_ppn_type' || field === 'tax_ppn_rate') {
-        if (newItems[index].vat_type === 'include'){
+      if (field === 'tax_ppn' || field === 'tax_ppn_rate') {
+        if (newItems[index].type_of_vat === 'include'){
           newItems[index].new_unit_price = newItems[index].unit_price + (newItems[index].unit_price * (pengkali));
           newItems[index].tax_base =  Math.round(newItems[index].unit_price / ((1 + (newItems[index].tax_ppn_rate / 100)) * newItems[index].quantity));
           newItems[index].tax_ppn_amount = Math.floor(newItems[index].tax_base * (newItems[index].tax_ppn_rate / 100));
           newItems[index].vat_included = true;
-        } else if (newItems[index].vat_type === "exclude"){
+        } else if (newItems[index].type_of_vat === "exclude"){
           newItems[index].tax_ppn_amount = Math.floor(newItems[index].total_price * (newItems[index].tax_ppn_rate/100));
           newItems[index].tax_base = newItems[index].unit_price * newItems[index].quantity;
         }
         newItems[index].total_price = newItems[index].unit_price * newItems[index].quantity;
       }
       
-      if (field === 'vat_type') {
-        newItems[index].tax_ppn_type = '';
+      if (field === 'type_of_vat') {
+        newItems[index].tax_ppn = '';
         newItems[index].tax_ppn_rate = 0;
         newItems[index].tax_base = 0;
         newItems[index].tax_ppn_amount = 0;
-        if (newItems[index].vat_type === 'exclude' && newItems[index].vat_included === true) {
+        if (newItems[index].type_of_vat === 'exclude' && newItems[index].vat_included === true) {
           newItems[index].new_unit_price = newItems[index].new_unit_price - (newItems[index].unit_price * (pengkali));
           newItems[index].vat_included = false;
 
@@ -996,25 +995,25 @@
 
       // let pengkali = newItems[index].tax_ppn_rate/100;
 
-      // if (field === 'tax_ppn_type' || field === 'tax_ppn_rate') {
-      //   if (newItems[index].vat_type === 'include'){
+      // if (field === 'tax_ppn' || field === 'tax_ppn_rate') {
+      //   if (newItems[index].type_of_vat === 'include'){
       //     newItems[index].unit_price = newItems[index].original_unit_price + (newItems[index].original_unit_price * (pengkali));
       //     newItems[index].tax_base = newItems[index].unit_price / ((1 + (newItems[index].tax_ppn_rate / 100)) * newItems[index].quantity);
       //     newItems[index].tax_ppn_amount = newItems[index].tax_base * (newItems[index].tax_ppn_rate / 100);
       //     newItems[index].vat_included = true;
-      //   } else if (newItems[index].vat_type === "exclude"){
+      //   } else if (newItems[index].type_of_vat === "exclude"){
       //     newItems[index].tax_ppn_amount = newItems[index].total_price * (newItems[index].tax_ppn_rate/100);
       //     newItems[index].tax_base = newItems[index].unit_price * newItems[index].quantity;
       //   }
       //   newItems[index].total_price = newItems[index].unit_price * newItems[index].quantity;
       // }
 
-      // if (field === 'vat_type') {
-      //   newItems[index].tax_ppn_type = '';
+      // if (field === 'type_of_vat') {
+      //   newItems[index].tax_ppn = '';
       //   newItems[index].tax_ppn_rate = 0;
       //   newItems[index].tax_base = 0;
       //   newItems[index].tax_ppn_amount = 0;
-      //   if (newItems[index].vat_type === 'exclude' && newItems[index].vat_included === true) {
+      //   if (newItems[index].type_of_vat === 'exclude' && newItems[index].vat_included === true) {
       //     newItems[index].unit_price = newItems[index].unit_price - (newItems[index].original_unit_price * (pengkali));
       //     newItems[index].vat_included = false;
 
@@ -1031,7 +1030,7 @@
       console.log('pengkali', pengkali);  
       console.log('vatinc', newItems[index].vat_included);
       console.log('base', newItems[index].tax_base);
-      console.log('vat', newItems[index].vat_type);
+      console.log('vat', newItems[index].type_of_vat);
       console.log('docref', newItems[index].doc_reff_no)
 
       // if (field === 'tax_type') {
@@ -1147,7 +1146,6 @@
         messageAlertSwal('Error', 'PO Number Cant Be Empty', 'error');
         return; 
       }
-      
 
       // Show SweetAlert2 confirmation
       const result = await Swal.fire({
@@ -1176,19 +1174,15 @@
           }
           
 
-          const { subtotalAfterDiscount, totalPPNAmount, totalAmount} = calculateTotalAmount();
-          // Save general information and description
+          const { subtotalAfterDiscount, totalPPNAmount, subtotalBeforeDiscount, totalAmount} = calculateTotalAmount();
+
+          console.log('statuspo', statusPo);
+          
           const generalInfo = {
             po_number,
             doc_reff: docRef,
-            doc_reff_no: docRefNumber,
-            project,
-            vendor,
-            status_po: 'DRAFT',
-            customer,
-            requestor,
-            departement,
-            order_date, // Converts to date format
+            status_po: selectedData ? selectedData[0].STATUS_PO : 'DRAFT',
+            order_date, 
             request_date,
             created_by: createdBy,
             description,
@@ -1200,7 +1194,8 @@
             ship_to_address: shipToAddress,
             bill_to: billTo,
             bill_to_address: billToAddress,
-            total_tax_base: subtotalAfterDiscount,
+            total_after_discount: subtotalAfterDiscount,
+            total_before_discount: subtotalBeforeDiscount,
             total_amount_ppn: totalPPNAmount,
             term_conditions: termConditions,
             endtoendid: endToEndId,
@@ -1209,8 +1204,68 @@
 
           console.log('Master', generalInfo);
 
-          const response = await InsertDataService.postData(generalInfo, "PUOR", authToken, branchId);
+          let response;
+
+          if(selectedData) {
+            const id = selectedData[0].ID;
+            response = await UpdateDataService.postData(generalInfo, `PUOR&column=id&value=${id}`, authToken, branchId);
+          }else{
+            response = await InsertDataService.postData(generalInfo, "PUOR", authToken, branchId);
+          }
+
           console.log('Data posted successfully:', response);
+
+          if (response.message === "Update Data Successfully") {
+            // Iterate over items array and attempt to delete each item
+            for (const item of items) {
+                if (item.ID) {
+                    const itemId = item.ID;
+                    try {
+                        const itemResponse = await DeleteDataService.postData(`column=id&value=${itemId}`, "PUORD", authToken, branchId);
+                        console.log('Item deleted successfully:', itemResponse);
+                    } catch (error) {
+                        console.error('Error deleting item:', itemId, error);
+                    }
+                } else {
+                    console.log('No ID found, skipping delete for this item:', item);
+                }
+            }
+
+            // After deletion, insert updated items
+            for (const item of items) {
+                // Exclude rwnum, ID, status, and id_trx fields
+                const { rwnum, ID, status, id_trx, ...rest } = item;
+
+                const updatedItem = {
+                    ...rest,
+                    po_number
+                };
+
+                delete updatedItem.rwnum; 
+                delete updatedItem.ID;
+                delete updatedItem.status;
+                delete updatedItem.id_trx;
+                delete updatedItem.pr_number;
+                delete updatedItem.original_unit_price;
+                delete updatedItem.new_unit_price;
+                delete updatedItem.discount;
+                delete updatedItem.vat_included;
+                delete updatedItem.subTotal;
+
+                try {
+                    const itemResponse = await InsertDataService.postData(updatedItem, "PUORD", authToken, branchId);
+                    console.log('Item inserted successfully:', itemResponse);
+                } catch (error) {
+                    console.error('Error inserting item:', updatedItem, error);
+                }
+            }
+
+            // Show success message and reset form
+            messageAlertSwal('Success', response.message, 'success');
+            resetForm();
+            handleRefresh();
+            setIsAddingNewPurchaseOrder(false);
+        }
 
           if (response.message === "insert Data Successfully") {
             // Iterate over items array and post each item individually
@@ -1219,10 +1274,8 @@
               const updatedItem = {
                 ...item,
                 po_number,
-                tax_ppn: item.tax_ppn_type,
-                type_of_vat: item.vat_type
+                tax_ppn: item.tax_ppn,
               };
-
               delete updatedItem.rwnum; 
               delete updatedItem.ID;
               delete updatedItem.status;
@@ -1230,8 +1283,6 @@
               delete updatedItem.pr_number;
               delete updatedItem.original_unit_price;
               delete updatedItem.new_unit_price;
-              delete updatedItem.vat_type;
-              delete updatedItem.tax_ppn_type;
               delete updatedItem.discount;
               delete updatedItem.vat_included;
               delete updatedItem.subTotal;
@@ -1253,20 +1304,21 @@
               formData.append('request', JSON.stringify(request));
               formData.append('file', file); 
               
-              const uploadResponse = await axios.post(UPLOAD_FILES, formData, {
-                headers: {
-                  Authorization: `Bearer ${authToken}`,
-                  'Content-Type': 'multipart/form-data',
-                },
-              });
-
-              if (uploadResponse.ok) {
-                console.log('File uploaded successfully');
-              } else {
-                console.error('Error uploading file:', uploadResponse.status);
+              if(file) {
+                const uploadResponse = await axios.post(UPLOAD_FILES, formData, {
+                  headers: {
+                    Authorization: `Bearer ${authToken}`,
+                    'Content-Type': 'multipart/form-data',
+                  },
+                });
+                
+                if (uploadResponse.ok) {
+                  console.log('File uploaded successfully');
+                } else {
+                  console.error('Error uploading file:', uploadResponse.status);
+                }
               }
-            }
-
+              }
             messageAlertSwal('Success', response.message, 'success');
             resetForm();
           }
@@ -1320,6 +1372,7 @@
             console.log("endtoendId is not empty");
           }
 
+
           const { subtotalAfterDiscount, subtotalBeforeDiscount, totalPPNAmount, totalAmount} = calculateTotalAmount();
           // Save general information and description
           const generalInfo = {
@@ -1348,8 +1401,69 @@
 
           console.log('Master', generalInfo);
 
-          const response = await InsertDataService.postData(generalInfo, "PUOR", authToken, branchId);
+          let response;
+
+          if(selectedData) {
+            const id = selectedData[0].ID;
+            response = await UpdateDataService.postData(generalInfo, `PUOR&column=id&value=${id}`, authToken, branchId);
+          }else{
+            response = await InsertDataService.postData(generalInfo, "PUOR", authToken, branchId);
+          }
+
+          // const response = await InsertDataService.postData(generalInfo, "PUOR", authToken, branchId);
           console.log('Data posted successfully:', response);
+
+          if (response.message === "Update Data Successfully") {
+            // Iterate over items array and attempt to delete each item
+            for (const item of items) {
+                if (item.ID) {
+                    const itemId = item.ID;
+                    try {
+                        const itemResponse = await DeleteDataService.postData(`column=id&value=${itemId}`, "PUORD", authToken, branchId);
+                        console.log('Item deleted successfully:', itemResponse);
+                    } catch (error) {
+                        console.error('Error deleting item:', itemId, error);
+                    }
+                } else {
+                    console.log('No ID found, skipping delete for this item:', item);
+                }
+            }
+
+            // After deletion, insert updated items
+            for (const item of items) {
+                // Exclude rwnum, ID, status, and id_trx fields
+                const { rwnum, ID, status, id_trx, ...rest } = item;
+
+                const updatedItem = {
+                    ...rest,
+                    po_number
+                };
+
+                delete updatedItem.rwnum; 
+                delete updatedItem.ID;
+                delete updatedItem.status;
+                delete updatedItem.id_trx;
+                delete updatedItem.pr_number;
+                delete updatedItem.original_unit_price;
+                delete updatedItem.new_unit_price;
+                delete updatedItem.discount;
+                delete updatedItem.vat_included;
+                delete updatedItem.subTotal;
+
+                try {
+                    const itemResponse = await InsertDataService.postData(updatedItem, "PUORD", authToken, branchId);
+                    console.log('Item inserted successfully:', itemResponse);
+                } catch (error) {
+                    console.error('Error inserting item:', updatedItem, error);
+                }
+            }
+
+            // Show success message and reset form
+            messageAlertSwal('Success', response.message, 'success');
+            resetForm();
+            handleRefresh();
+            setIsAddingNewPurchaseOrder(false);
+        }
         
           if (response.message === "insert Data Successfully") {
             // Iterate over items array and post each item individually
@@ -1358,8 +1472,8 @@
               const updatedItem = {
                 ...rest,
                 po_number,
-                tax_ppn: item.tax_ppn_type,
-                type_of_vat: item.vat_type
+                tax_ppn: item.tax_ppn,
+                type_of_vat: item.type_of_vat
               };
 
               delete updatedItem.rwnum; 
@@ -1369,8 +1483,6 @@
               delete updatedItem.pr_number;
               delete updatedItem.original_unit_price;
               delete updatedItem.new_unit_price;
-              delete updatedItem.vat_type;
-              delete updatedItem.tax_ppn_type;
               delete updatedItem.discount;
               delete updatedItem.vat_included;
               delete updatedItem.subTotal;
@@ -1393,7 +1505,6 @@
                 });
                 await updatePRStatus;
               };
-
             }
 
             messageAlertSwal('Success', response.message, 'success');
@@ -1658,7 +1769,7 @@
                         </Form.Group>
                       </Col> */}
 
-                      <Col md={6}>
+                      {/* <Col md={6}>
                         <Form.Group controlId="formVendor">
                           <Form.Label>To</Form.Label>
                           <Select
@@ -1686,22 +1797,22 @@
                             required
                           />
                         </Form.Group>
-                      </Col>
+                      </Col> */}
 
-                      {/* <Col md={6}>
+                      <Col md={6}>
                         <Form.Group controlId='formTo'>
                           <Form.Label>To</Form.Label>
                           <Select
                             id='to'
                             value={selectedTo}
-                            options={toOptions}
+                            options={vendorOptions}
                             onChange={handleToChange}
                             placeholder = "To..."
                             isClearable
                             required
                           />
                         </Form.Group>
-                      </Col> */}
+                      </Col>
                       
                       <Col md={6}>
                         <Form.Group controlId='formToAddress'>
@@ -1853,7 +1964,7 @@
                                 <th>Total Price</th>
                                 <th>Type of VAT</th>
                                 <th>Tax PPN Type</th>
-                                <th>Tax PPN Rate %</th>
+                                <th>Tax PPN Rate</th>
                                 {/* <th>Tax PPN Amount</th> */}
                                 <th>Tax Base</th>
                                 
@@ -1878,29 +1989,40 @@
                                     </td>
 
                                     <td>
-                                      <Select 
-                                        value={PROptions.find(option => option.value === item.doc_reff_no)}
-                                        options={PROptions}
-                                        onChange={(selectedOption) => {
-                                          handleItemChange(index, 'doc_reff_no', selectedOption ? selectedOption.value : null);
-                                          handlePRChange(index, selectedOption)
-                                        }} 
-                                        isClearable
-                                        required
-                                        placeholder={
-                                          docRef === 'customerContract' ? 
-                                            'Customer Contract...'
+                                      { docRef === 'purchaseRequest' ? 
+                                        <Select 
+                                          value={PROptions.find(option => option.value === item.doc_reff_no)}
+                                          options={PROptions}
+                                          onChange={(selectedOption) => {
+                                            handleItemChange(index, 'doc_reff_no', selectedOption ? selectedOption.value : null);
+                                            handlePRChange(index, selectedOption)
+                                          }} 
+                                          isClearable
+                                          required
+                                          placeholder='Purchase Request...'
+                                        />
+                                        :
+                                        docRef === 'internalMemo' ?
+                                          <Form.Control
+                                            value={item.doc_reff_no}
+                                            onChange={(e) => {
+                                              handleItemChange(index, 'doc_reff_no', e.target.value);
+                                            }}
+                                            placeholder='internal Memo...'
+                                          />
+                                        :
+                                        docRef === 'customerContract' ?
+                                          <Form.Control
+                                            value={item.doc_reff_no}
+                                            onChange={(e)=>{
+                                              handleItemChange(index, 'doc_reff_no', e.target.value);
+                                            }}
+                                            placeholder='Customer Contract...'
+                                          />
                                           :
-                                            docRef === 'internalMemo' ?
-                                              'Internal Memo...'
-                                            : 
-                                              docRef === 'purchaseRequest' ?
-                                                'Purchase Request...'
-                                              :
-                                                'Please Select Doc Reference'
-                                        }
-                                        isDisabled={docRef === ''}
-                                      />
+                                          <span>Choose Doc Ref</span>
+                                      }
+                                      
                                     </td>
 
                                     {/* <td>
@@ -2157,13 +2279,10 @@
                                     <td>
                                       <Form.Select
                                         value={
-                                          selectedData ?
-                                          items[index].type_of_vat
-                                          :
-                                          item.vat_type || ''
+                                          items[index].type_of_vat || ''
                                         }
                                         onChange={(selectedOption) => {
-                                          handleItemChange(index, 'vat_type', selectedOption.target.value);
+                                          handleItemChange(index, 'type_of_vat', selectedOption.target.value);
                                         }}
                                       >
                                         <option value="">Select VAT</option>
@@ -2176,10 +2295,7 @@
                                     <td>
                                       <Select
                                         value={
-                                          selectedData ?
-                                            taxTypeOptions.find(option => option.value === items[index].tax_ppn)
-                                          :
-                                            taxTypeOptions.find(option => option.value === item.tax_ppn_type) || null}
+                                            taxTypeOptions.find(option => option.value === item.tax_ppn) || null}
                                         options={taxTypeOptions}
                                         placeholder="Select Tax Type"
                                         isClearable
@@ -2192,7 +2308,7 @@
                                             // setPPNRate(''); 
                                             handleItemChange(index, 'tax_ppn_rate', 0);
                                           }
-                                          handleItemChange(index, 'tax_ppn_type', selectedOption ? selectedOption.value : ''  );
+                                          handleItemChange(index, 'tax_ppn', selectedOption ? selectedOption.value : ''  );
                                           
                                         }}
                                       />
@@ -2279,7 +2395,7 @@
                               <tr className='text-right'>
                                 <td colSpan="19">Discount:</td>
                                 <td>
-                                  <Form.Control
+                                  {/* <Form.Control
                                     className='text-right'
                                     type='text'
                                     value={formattedDiscount}
@@ -2305,6 +2421,24 @@
                                         // Select the text for easy overwriting
                                         e.target.select();
                                       }, 0);
+                                    }}
+                                    style={{
+                                      textAlign: 'right',
+                                      width: `${inputWidth}px`,
+                                      marginLeft: 'auto',  
+                                      display: 'flex',
+                                    }}
+                                  /> */}
+
+                                  <Form.Control
+                                    className='text-right'
+                                    type="text"
+                                    value={discount !== undefined && discount !== null ? discount.toLocaleString('en-US') : 0}
+                                    onChange={(e) => {
+                                      const newDiscount = parseFloat(e.target.value.replace(/[^\d.-]/g, '')) || 0;
+                                      setDiscount(newDiscount);
+                                      dynamicFormWidth(e);
+                                      
                                     }}
                                     style={{
                                       textAlign: 'right',
@@ -2338,13 +2472,13 @@
                                     className='text-right'
                                     type='text'
                                     value={
-                                      calculateTotalAmount().totalPPNAmount
+                                      calculateTotalAmount().totalPPNAmount.toLocaleString('en-US') || 0
                                     }
                                     onChange={
                                       (e) => {
                                         dynamicFormWidth(e);
                                         const newItems = [...items];
-                                        const totalPPNAmount = e.target.value;
+                                        const totalPPNAmount = parseFloat(e.target.value.replace(/[^\d.-]/g, '')) || 0;
                                         newItems.forEach((item)=>{
                                           item.tax_ppn_amount= totalPPNAmount/newItems.length;
                                         });
