@@ -26,6 +26,7 @@ const InvoiceTable = ({
   const [filterOperation, setFilterOperation] = useState("");
   const [showAdditionalContent, setShowAdditionalContent] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [showLoadButton, setShowLoadButton] = useState(false);
 
   useEffect(() => {
     // Clear selected rows when data changes
@@ -41,13 +42,14 @@ const InvoiceTable = ({
   };
 
   const handleRowSelect = (item) => {
-    setSelectedRows((prevSelectedRows) => {
-      if (prevSelectedRows.includes(item.INV_NUMBER)) {
-        return prevSelectedRows.filter((row) => row !== item.INV_NUMBER);
-      } else {
-        return [...prevSelectedRows, item.INV_NUMBER];
-      }
-    });
+    // setSelectedRows((prevSelectedRows) => {
+    //   if (prevSelectedRows.includes(item.INV_NUMBER)) {
+    //     return prevSelectedRows.filter((row) => row !== item.INV_NUMBER);
+    //   } else {
+    //     return [...prevSelectedRows, item.INV_NUMBER];
+    //   }
+    // });
+    setShowLoadButton(true);
   };
 
   const handleFilterToggle = () => {
@@ -265,6 +267,12 @@ const InvoiceTable = ({
               </tbody>
             </table>
             <FormPagination pageSize={pageSize} handlePageSizeChange={handlePageSizeChange} currentPage={currentPage} onPageChange={handlePageChange} totalItems={totalItems} />
+            {
+              showLoadButton === true ? 
+              <button className="btn btn-primary">Load Data</button>
+              :
+              <></>
+            }
           </div>
         </div>
       </div>

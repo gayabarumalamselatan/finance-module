@@ -5,11 +5,12 @@
   import { messageAlertSwal } from "../config/Swal";
   import InsertDataService from '../service/InsertDataService';
   import { getBranch, getToken, userLoggin } from '../config/Constant';
-  import { FORM_SERVICE_UPDATE_DATA, GENERATED_NUMBER, UPLOAD_FILES } from '../config/ConfigUrl';
+  import { DOWNLOAD_FILES, FORM_SERVICE_UPDATE_DATA, GENERATED_NUMBER, UPLOAD_FILES } from '../config/ConfigUrl';
   import { generateUniqueId } from '../service/GeneratedId';
   import Select from 'react-select';
   import LookupParamService from '../service/LookupParamService';
   import LookupService from '../service/LookupService';
+  import UpdateStatusService from '../service/UpdateStatusService';
   import CreatableSelect from 'react-select/creatable';
   import axios from 'axios';
 import UpdateDataService from '../service/UpdateDataService';
@@ -27,19 +28,14 @@ import DeleteDataService from '../service/DeleteDataService';
     const branchId = getBranch();
     const userId = userLoggin();
 
-    const [schedule_date, setScheduleDate] = useState('');
-    const [requestor, setRequestor] = useState(userId);
     const [items, setItems] = useState([]);
     const [description, setDescription] = useState('');
     const [selectedItems, setSelectedItems] = useState([]);
     const [isLoading, setIsLoading] = useState(false);
-    const [requestorOptions, setRequestorOptions] = useState([]);
-    const [selectedRequestor, setSelectedRequestor] = useState(null);
     const [currencyOptions, setCurrencyOptions] = useState([]);
     const [selectedCurrency, setSelectedCurrency] = useState(null);
 
     // PO Fields
-    const [title, setTitle] = useState('');
     const [po_number, setPoNumber] = useState('');
     const [docRef,setDocRef] = useState(''); 
     const [request_date, setRequestDate] = useState(new Date().toISOString().slice(0, 10));
@@ -57,33 +53,20 @@ import DeleteDataService from '../service/DeleteDataService';
     const [discount, setDiscount] = useState(0);
     const [formattedDiscount, setFormattedDiscount] = useState('IDR 0.00');
     const [statusPo, setStatusPo] = useState('');
+    const [PPNRoyaltyOptions, setPPNRoyaltyOptions] = useState([]);
     
 
     // PO Lookup
-    const [project, setProject] = useState('');
     const [projectOptions, setProjectOptions] = useState([]);
-    const [selectedProject, setSelectedProject] = useState(null);
-    const [departement, setDepartement] = useState('');
     const [departementOptions, setDepartementOptions] = useState([]);
-    const [selectedDepartement, setSelectedDepartement] = useState(null);
-    const [vendor, setVendor] = useState('');
     const [vendorOptions, setVendorOptions] = useState([]);
-    const [selectedVendor, setSelectedVendor] = useState(null);
-    const [customer, setCustomer] = useState('');
     const [customerOptions, setCustomerOptions] = useState([]);
-    const [selectedCustomer, setSelectedCustomer] = useState(null);
     const [taxTypeOptions, setTaxTypeOptions] = useState([]);
     const [selectedTaxType, setSelectedTaxType] = useState(null);
-    const [paymentTerm, setPaymentTerm] = useState('');
-    const [paymentTermOptions, setPaymentTermOptions] = useState([]);
-    const [selectedPaymentTerm, setSelectedPaymentTerm] = useState(null);
     const [productOptions, setProductOptions] = useState([]);
     const [selectedProduct, setSelectedProduct] = useState(null);
     const [PROptions, setPROptions] = useState([]);
-    const [selectedPR, setSelectedPR] = useState(null);
-    const [PPNRate, setPPNRate] = useState('');
     const [docRefNumber, setDocRefNumber] = useState('');
-    const [selectedDocRefNum, setSelectedDocRefNum] = useState([]);
     const [to, setTo] = useState('');
     const [toOptions, setToOptions] = useState([]);
     const [selectedTo, setSelectedTo] = useState(null);
@@ -91,11 +74,10 @@ import DeleteDataService from '../service/DeleteDataService';
     const [toAddressOptions, setToAddressOptions] = useState([]);
     const [selectedToAddress, setSelectedToAddress] = useState(null);
     const [contractNumberOption, setContractNumberOptions]= useState([]);
-    const [fileInput, setFileInput] = useState(null);
     const [file, setFile] = useState(null);
 
     // Dynamic Form Field Width
-    const [inputWidth, setInputWidth] = useState(100);
+    const [inputWidth, setInputWidth] = useState(Array(items.length).fill(0));
 
     const authToken = headers;
 
@@ -241,7 +223,6 @@ import DeleteDataService from '../service/DeleteDataService';
           return {
             value: item.PR_NUMBER,
             label: label.replace('DRAFT ', ''), // remove 'DRAFT ' from the label
-            // REQUESTOR: item.REQUESTOR,
             DEPARTEMENT: item.DEPARTEMENT,
             COMPANY: item.COMPANY,
             PROJECT: item.PROJECT,
@@ -288,30 +269,6 @@ import DeleteDataService from '../service/DeleteDataService';
       });
 
 
-      
-      // Lookup Requestor
-      LookupParamService.fetchLookupData("MSDT_FORMEMPL", authToken, branchId)
-      .then(data => {
-        console.log('Currency lookup data:', data);
-
-        // Transform keys to uppercase directly in the received data
-        const transformedData = data.data.map(item =>
-          Object.keys(item).reduce((acc, key) => {
-            acc[key.toUpperCase()] = item[key];
-            return acc;
-          }, {})
-        );
-        //console.log('Transformed data:', transformedData);
-
-        const options = transformedData.map(item => ({
-          value: item.NAME,
-          label: item.NAME
-        }));
-        setRequestorOptions(options);
-      }).catch(error => {
-        console.error('Failed to fetch currency lookup:', error);
-      });
-
 
       // Lookup Tax Type
       LookupParamService.fetchLookupData("MSDT_FORMTAX", authToken, branchId)
@@ -333,6 +290,13 @@ import DeleteDataService from '../service/DeleteDataService';
           RATE: item.RATE
         }));
         setTaxTypeOptions(options);
+
+        const RoyaltyOption = transformedData.filter(item => item.TAX_TYPE === 'PPN Royalty').map(item => ({
+          value: item.NAME,
+          label: item.NAME,
+          RATE: item.RATE
+        }));
+        setPPNRoyaltyOptions(RoyaltyOption);
       })
       .catch(error => {
         console.error('Failed to fetch currency lookup:', error);
@@ -440,33 +404,7 @@ import DeleteDataService from '../service/DeleteDataService';
       }).catch(error => {
         console.error('Failed to fetch currency lookup:', error);
       });
-
-
-        // Lookup Customer
-        // LookupParamService.fetchLookupData("MSDT_FORM", authToken, branchId)
-        // .then(data => {
-        //   console.log('Currency lookup data:', data);
-
-        //   // Transform keys to uppercase directly in the received data
-        //   const transformedData = data.data.map(item =>
-        //     Object.keys(item).reduce((acc, key) => {
-        //       acc[key.toUpperCase()] = item[key];
-        //       return acc;
-        //     }, {})
-        //   );
-        //   //console.log('Transformed data:', transformedData);
-
-        //   const options = transformedData.map(item => ({
-        //     value: item.NAME,
-        //     label: item.NAME,
-        //     address: item.ADDRESS
-        //   }));
-        //   setCustomerOptions(options);
-        // })
-        // .catch(error => {
-        //   console.error('Failed to fetch currency lookup:', error);
-        // });
-
+        
 
       // Lookup Product
       LookupParamService.fetchLookupData("MSDT_FORMPRDT", authToken, branchId)
@@ -491,47 +429,11 @@ import DeleteDataService from '../service/DeleteDataService';
         console.error('Failed to fetch currency lookup:', error);
       });
 
-
-        // Lookup Payment Term
-        // LookupParamService.fetchLookupData("MSDT_FORMPYTM", authToken, branchId)
-        // .then(data => {
-        //   console.log('Currency lookup data:', data);
-
-        //   // Transform keys to uppercase directly in the received data
-        //   const transformedData = data.data.map(item =>
-        //     Object.keys(item).reduce((acc, key) => {
-        //       acc[key.toUpperCase()] = item[key];
-        //       return acc;
-        //     }, {})
-        //   );
-        //   //console.log('Transformed data:', transformedData);
-
-        //   const options = transformedData.map(item => ({
-        //     value: item.NAME,
-        //     label: item.NAME
-        //   }));
-        //   setPaymentTermOptions(options);
-        // })
-        // .catch(error => {
-        //   console.error('Failed to fetch currency lookup:', error);
-        // });
         
     }, []);
 
-    // Handler Project untuk autofill customer
-    // const handleProjectChange = (selectedOption) => {
-    //   setSelectedProject(selectedOption);
-    //   setProject(selectedOption ? selectedOption.value: '');
 
-    //   if(selectedOption) {
-    //     const customerProject = customerOptions.find((option) => option.value === selectedOption.customer);
-    //     setSelectedCustomer(customerProject);
-    //     setCustomer(customerProject ? customerProject.value : null);
-    //   } else {
-    //     setSelectedCustomer(null);
-    //     setCustomer('');
-    //   }
-    // }
+    
     
     // To Handler untuk autofill address
     const handleToChange = (selectedOption) => {
@@ -547,167 +449,7 @@ import DeleteDataService from '../service/DeleteDataService';
         setSelectedToAddress(null);
         setToAddress('');
       }
-    }
-
-    // Pr handler 
-    // const handlePRChange = (selectedOption) => {
-    //   // setSelectedDocRefNum(selectedOption);
-    //   // setDocRefNumber(selectedOption ? selectedOption.value : '');
-
-      
-    //   if (selectedOption) {
-
-    //     // const requestorOption = requestorOptions.find((option) => option.value === selectedOption.REQUESTOR);
-    //     const departementOption = departementOptions.find((option) => option.value === selectedOption.DEPARTEMENT);
-    //     const projectOption = projectOptions.find((option) => option.value === selectedOption.PROJECT);
-    //     const customerOption = customerOptions.find((option) => option.value === selectedOption.CUSTOMER);
-    //     const vendorOption = vendorOptions.find((option) => option.value === selectedOption.VENDOR);
-    //     const ToOption = toOptions.find((option) => option.value === selectedOption.VENDOR);
-
-    //     // setSelectedRequestor(requestorOption ? requestorOption : null);
-    //     // setRequestor(selectedOption.REQUESTOR);
-    //     setSelectedDepartement(departementOption ? departementOption : null);
-    //     setDepartement(selectedOption.DEPARTEMENT);
-    //     setSelectedProject(projectOption ? projectOption : null);
-    //     setProject(selectedOption.PROJECT);
-    //     setSelectedCustomer(customerOption ? customerOption : null);
-    //     setCustomer(selectedOption.CUSTOMER);
-    //     setRequestDate(selectedOption.REQUESTDATE);
-    //     setSelectedVendor(vendorOption ? vendorOption : null);
-    //     setVendor(selectedOption.VENDOR);
-    //     setSelectedTo(ToOption ? ToOption : null);
-    //     setTo(selectedOption.VENDOR);
-    //     setEndToEnd(selectedOption.ENDTOENDID);
-    //     setIdPr(selectedOption.ID);
-
-    //     if (vendorOption) {
-    //       const toOption = toOptions.find((option) => option.value === vendorOption.value);
-    //       const toAddressOption = toAddressOptions.find((option) => option.value === vendorOption.vendAddress);
-    
-    //       setSelectedTo(toOption);
-    //       setTo(toOption ? toOption.value : '');
-    //       setSelectedToAddress(toAddressOption);
-    //       setToAddress(toAddressOption ? toAddressOption.value : '');
-    //     }
-    //     // setShipTo(selectedOption.CUSTOMER ? selectedOption.CUSTOMER : '');
-    //     // setShipToAddress(selectedOption.ADDRESS);
-
-    //     // if (selectedOption.CUSTOMER) {
-    //     //   const customer = customerOptions.find((option) => option.value === selectedOption.CUSTOMER);
-    //     //   setShipToAddress(customer ? customer.address : '');
-    //     // }
-
-    //     // Lookup Purchase Request Item List
-    //     LookupService.fetchLookupData(`PURC_FORMPUREQD&filterBy=PR_NUMBER&filterValue=${selectedOption.value}&operation=EQUAL`, authToken, branchId)
-    //     .then(response => {
-    //       const fetchedItems = response.data || [];
-    //       console.log('Items fetched:', fetchedItems);
-
-
-    //       const resetItems = fetchedItems.map(item => ({
-    //         ...item,
-    //         original_unit_price: item.unit_price || 0,
-    //         vat_included: false
-
-    //       }));
-    //       // Set fetched items to state
-    //       setItems(resetItems);
-
-    //       // Fetch product lookup data
-    //       LookupParamService.fetchLookupData("MSDT_FORMPRDT", authToken, branchId)
-    //           .then(productData => {
-    //               console.log('Product lookup data:', productData);
-
-    //               // Transform and map product data to options
-    //               const transformedProductData = productData.data.map(item =>
-    //                   Object.keys(item).reduce((acc, key) => {
-    //                       acc[key.toUpperCase()] = item[key];
-    //                       return acc;
-    //                   }, {})
-    //               );
-
-    //               const productOptions = transformedProductData.map(item => ({
-    //                   value: item.NAME,
-    //                   label: item.NAME
-    //               }));
-
-    //               setProductOptions(productOptions); // Set product options to state
-
-    //               // Fetch currency lookup data
-    //               LookupParamService.fetchLookupData("MSDT_FORMCCY", authToken, branchId)
-    //                   .then(currencyData => {
-    //                       console.log('Currency lookup data:', currencyData);
-
-    //                       // Transform and map currency data to options
-    //                       const transformedCurrencyData = currencyData.data.map(item =>
-    //                           Object.keys(item).reduce((acc, key) => {
-    //                               acc[key.toUpperCase()] = item[key];
-    //                               return acc;
-    //                           }, {})
-    //                       );
-
-    //                       const currencyOptions = transformedCurrencyData.map(item => ({
-    //                           value: item.CODE,
-    //                           label: item.CODE
-    //                       }));
-
-    //                       setCurrencyOptions(currencyOptions); // Set currency options to state
-
-    //                       // Update fetched items with selected options
-    //                       const updatedItems = fetchedItems.map(item => {
-    //                           const selectedProductOption = productOptions.find(option =>
-    //                               option.value === item.product
-    //                           );
-
-    //                           console.log('Selected product option:', selectedProductOption);
-
-    //                           const selectedCurrencyOption = currencyOptions.find(option =>
-    //                               option.value === item.currency
-    //                           );
-
-    //                           console.log('Selected currency option:', selectedCurrencyOption);
-    //                           setSelectedCurrency(selectedCurrencyOption);
-    //                           setSelectedProduct(selectedProductOption);
-    //                       });
-
-    //                       // Set the updated items with selected product and currency options to state
-    //                       setItems(fetchedItems);
-    //                   })
-    //                   .catch(error => {
-    //                       console.error('Failed to fetch currency lookup:', error);
-    //                   });
-    //           })
-    //           .catch(error => {
-    //               console.error('Failed to fetch product lookup:', error);
-    //           });
-    //   })
-    //   .catch(error => {
-    //       console.error('Failed to load items:', error);
-    //   });
-
-
-    //   } else {
-    //     setRequestDate('');
-    //     // setSelectedRequestor(null);
-    //     // setRequestor('')
-    //     setSelectedDepartement(null);
-    //     setDepartement('');
-    //     setSelectedProject(null);
-    //     setProject('')
-    //     setSelectedCustomer(null);
-    //     setCustomer('');
-    //     setSelectedProduct(null);
-    //     setSelectedCurrency(null);
-    //     setItems([]);
-    //     setSelectedTaxType(null);
-    //     setVendor('');
-    //     setSelectedVendor(null);
-    //     setTo('')
-    //     setSelectedTo(null);
-    //     setToAddress('');
-    //     setSelectedToAddress(null);
-    //   }
-    // };
+    }    
 
 
     // New Item List PR Handle
@@ -889,60 +631,9 @@ import DeleteDataService from '../service/DeleteDataService';
 
       console.log(index, field, value);
 
-      // itungan lama
-
-      // if (field === 'type_of_vat') {
-      //   newItems[index].tax_ppn = '';
-      //   newItems[index].tax_ppn_rate = 0;
-      //   newItems[index].tax_base = 0;
-        
-      //   if (newItems[index].type_of_vat === 'include') {
-      //     newItems[index].unit_price = newItems[index].unit_price + (newItems[index].unit_price * 0.1); 
-      //     newItems[index].vat_included = true;
-      //   } else if (value === 'exclude' && newItems[index].vat_included === true) {
-      //     if (newItems[index].vat_included === true) {
-      //       newItems[index].unit_price = Math.round(newItems[index].unit_price / 1.1);
-      //       newItems[index].vat_included = false;
-      //     }else if (value === ''){
-      //       newItems[index].vat_included = true;
-      //     }
-      //   }
-      //   newItems[index].total_price = newItems[index].quantity * newItems[index].unit_price;
-      // }
-
-
-      // if (field === 'tax_ppn' || newItems[index].tax_ppn_rate ) {
-      //   if (newItems[index].type_of_vat === 'include') {
-      //     newItems[index].tax_base = Math.round(newItems[index].unit_price/((1+(newItems[index].tax_ppn_rate/100))*newItems[index].quantity)); 
-      //   } else if (newItems[index].type_of_vat === 'exclude') {
-      //     newItems[index].tax_base = Math.round(newItems[index].total_price); 
-      //   }
-      //   if (isNaN(newItems[index].tax_base)) {
-      //     newItems[index].tax_base = 0;
-      //   }
-      // }
-
-      // console.log('vat', newItems[index].vat_included);
-      // console.log('vat', newItems[index].type_of_vat);
-      // console.log('unir', newItems[index].unit_price);
-      // console.log('tax', newItems[index].tax_base);
-      // console.log('quant', newItems[index].quantity);
-
-      // console.log('Updated tax_base:', newItems[index].tax_base);
-
-      // if (field === 'tax_ppn' || field === 'unit_price' || field === 'tax_base'|| field === 'type_of_vat') {
-      //   newItems[index].tax_ppn_amount = newItems[index].tax_base * (newItems[index].tax_ppn_rate / 100);
-      // }
-
-      // if (field === 'unit_price' && !newItems[index].original_unit_price) {
-      //     newItems[index].original_unit_price = Number(value);
-      //   }
-
-
-      // Itungan Baru
+      // Itungan PPN
 
       // Reset field vat type dan ppn type ketika mengubah unit price dan quantity
-
       if( field === 'unit_price' || field === 'quantity') {
         newItems[index].type_of_vat = '';
         newItems[index].tax_ppn_rate= '';
@@ -968,13 +659,14 @@ import DeleteDataService from '../service/DeleteDataService';
           newItems[index].tax_base =  Math.round(newItems[index].unit_price / ((1 + (newItems[index].tax_ppn_rate / 100)) * newItems[index].quantity));
           newItems[index].tax_ppn_amount = Math.floor(newItems[index].tax_base * (newItems[index].tax_ppn_rate / 100));
           newItems[index].vat_included = true;
-        } else if (newItems[index].type_of_vat === "exclude"){
+        } else if (newItems[index].type_of_vat === "exclude" || newItems[index].type_of_vat === 'PPNRoyalty'){
           newItems[index].tax_ppn_amount = Math.floor(newItems[index].total_price * (newItems[index].tax_ppn_rate/100));
           newItems[index].tax_base = newItems[index].unit_price * newItems[index].quantity;
         }
         newItems[index].total_price = newItems[index].unit_price * newItems[index].quantity;
       }
       
+      // Itungan Type of vat
       if (field === 'type_of_vat') {
         newItems[index].tax_ppn = '';
         newItems[index].tax_ppn_rate = 0;
@@ -982,61 +674,15 @@ import DeleteDataService from '../service/DeleteDataService';
         newItems[index].tax_ppn_amount = 0;
         if (newItems[index].type_of_vat === 'exclude' && newItems[index].vat_included === true) {
           newItems[index].new_unit_price = newItems[index].new_unit_price - (newItems[index].unit_price * (pengkali));
-          newItems[index].vat_included = false;
-
+          newItems[index].vat_included = false; 
+        }else if (newItems[index].type_of_vat === 'nonPPN') {
+          newItems[index].tax_base = newItems[index].total_price;
         }else{
           newItems[index].new_unit_price = newItems[index].unit_price;
-
         }
         newItems[index].total_price = newItems[index].unit_price * newItems[index].quantity;
       }
 
-      // Itungan Original Unit Price
-
-      // let pengkali = newItems[index].tax_ppn_rate/100;
-
-      // if (field === 'tax_ppn' || field === 'tax_ppn_rate') {
-      //   if (newItems[index].type_of_vat === 'include'){
-      //     newItems[index].unit_price = newItems[index].original_unit_price + (newItems[index].original_unit_price * (pengkali));
-      //     newItems[index].tax_base = newItems[index].unit_price / ((1 + (newItems[index].tax_ppn_rate / 100)) * newItems[index].quantity);
-      //     newItems[index].tax_ppn_amount = newItems[index].tax_base * (newItems[index].tax_ppn_rate / 100);
-      //     newItems[index].vat_included = true;
-      //   } else if (newItems[index].type_of_vat === "exclude"){
-      //     newItems[index].tax_ppn_amount = newItems[index].total_price * (newItems[index].tax_ppn_rate/100);
-      //     newItems[index].tax_base = newItems[index].unit_price * newItems[index].quantity;
-      //   }
-      //   newItems[index].total_price = newItems[index].unit_price * newItems[index].quantity;
-      // }
-
-      // if (field === 'type_of_vat') {
-      //   newItems[index].tax_ppn = '';
-      //   newItems[index].tax_ppn_rate = 0;
-      //   newItems[index].tax_base = 0;
-      //   newItems[index].tax_ppn_amount = 0;
-      //   if (newItems[index].type_of_vat === 'exclude' && newItems[index].vat_included === true) {
-      //     newItems[index].unit_price = newItems[index].unit_price - (newItems[index].original_unit_price * (pengkali));
-      //     newItems[index].vat_included = false;
-
-      //   }else{
-      //     newItems[index].new_unit_price = newItems[index].unit_price;
-
-      //   }
-      //   newItems[index].total_price = newItems[index].unit_price * newItems[index].quantity;
-      // }
-
-      console.log('new unit price', newItems[index].new_unit_price)
-      console.log('original', newItems[index].tax_ppn_amount);
-      console.log('unit', newItems[index].unit_price);
-      console.log('pengkali', pengkali);  
-      console.log('vatinc', newItems[index].vat_included);
-      console.log('base', newItems[index].tax_base);
-      console.log('vat', newItems[index].type_of_vat);
-      console.log('docref', newItems[index].doc_reff_no)
-
-      // if (field === 'tax_type') {
-      //   const selectedTaxType = taxTypeOptions.find(option => option.value === value);
-      //   setPPNRate(selectedTaxType ? selectedTaxType.RATE : '');
-      // }    
 
       setItems(newItems);
     };
@@ -1084,7 +730,9 @@ import DeleteDataService from '../service/DeleteDataService';
         return total + taxPPNAmount;
       }, 0);
 
-      const totalAmount  =  subtotalAfterDiscount + totalPPNAmount;
+      const hasRoyalty = items.some(item => item.type_of_vat === 'PPNRoyalty');
+
+      const totalAmount  = hasRoyalty ? subtotalAfterDiscount : subtotalAfterDiscount + totalPPNAmount;
       const validTotalAmount = isNaN(totalAmount) ? 0 : parseFloat(totalAmount);
       return { 
         subTotal, 
@@ -1109,7 +757,6 @@ import DeleteDataService from '../service/DeleteDataService';
       setDocRef('');
       setDocRefNumber('');
       setOrderDate(order_date);
-      setPaymentTerm('');
       setCreatedBy(createdBy);
       setDescription('');
       setShipTo('PT. Abhimata Persada');
@@ -1295,30 +942,54 @@ import DeleteDataService from '../service/DeleteDataService';
               // const file = fileInput.files[0];
 
               // Upload  File Logic
-              const request = {
-                idTrx: endToEndId,
-                code: 'PUOR',
-              };
+              // const request = {
+              //   idTrx: endToEndId,
+              //   code: 'PUOR',
+              // };
               
-              const formData = new FormData();
-              formData.append('request', JSON.stringify(request));
-              formData.append('file', file); 
+              // const formData = new FormData();
+              // formData.append('request', JSON.stringify(request));
+              // formData.append('file', file); 
               
-              if(file) {
-                const uploadResponse = await axios.post(UPLOAD_FILES, formData, {
-                  headers: {
-                    Authorization: `Bearer ${authToken}`,
-                    'Content-Type': 'multipart/form-data',
-                  },
-                });
+              // if(file) {
+              //   const uploadResponse = await axios.post(UPLOAD_FILES, formData, {
+              //     headers: {
+              //       Authorization: `Bearer ${authToken}`,
+              //       'Content-Type': 'multipart/form-data',
+              //     },
+              //   });
                 
-                if (uploadResponse.ok) {
-                  console.log('File uploaded successfully');
-                } else {
-                  console.error('Error uploading file:', uploadResponse.status);
-                }
-              }
-              }
+              //   if (uploadResponse.ok) {
+              //     console.log('File uploaded successfully');
+              //   } else {
+              //     console.error('Error uploading file:', uploadResponse.status);
+              //   }
+              // }
+
+              //Set status workflow VERIFIED
+              LookupService.fetchLookupData(`PURC_FORMPUOR&filterBy=endtoendid&filterValue=${endToEndId}&operation=EQUAL`, authToken, branchId)
+              .then(response => {
+                const data = response.data[0];
+                console.log('Data:', data);
+
+                const requestData = {
+                  idTrx: data.ID, 
+                  status: "DRAFT", // Ganti dengan nilai status yang sesuai, atau sesuaikan sesuai kebutuhan
+                };
+                UpdateStatusService.postData(requestData, "PUOR", authToken, branchId)
+                  .then(response => {
+                    console.log('Data updated successfully:', response);
+                  })
+                  .catch(error => {
+                    console.error('Failed to update data:', error);
+                  });
+
+              })
+              .catch(error => {
+                console.error('Failed to load purchase request data:', error);
+              });
+
+            }
             messageAlertSwal('Success', response.message, 'success');
             resetForm();
           }
@@ -1344,7 +1015,6 @@ import DeleteDataService from '../service/DeleteDataService';
         return; 
       }
       
-
       // Show SweetAlert2 confirmation
       const result = await Swal.fire({
         title: 'Are you sure?',
@@ -1371,7 +1041,6 @@ import DeleteDataService from '../service/DeleteDataService';
             endToEndId = endToEnd;
             console.log("endtoendId is not empty");
           }
-
 
           const { subtotalAfterDiscount, subtotalBeforeDiscount, totalPPNAmount, totalAmount} = calculateTotalAmount();
           // Save general information and description
@@ -1410,52 +1079,51 @@ import DeleteDataService from '../service/DeleteDataService';
             response = await InsertDataService.postData(generalInfo, "PUOR", authToken, branchId);
           }
 
-          // const response = await InsertDataService.postData(generalInfo, "PUOR", authToken, branchId);
           console.log('Data posted successfully:', response);
 
           if (response.message === "Update Data Successfully") {
             // Iterate over items array and attempt to delete each item
             for (const item of items) {
-                if (item.ID) {
-                    const itemId = item.ID;
-                    try {
-                        const itemResponse = await DeleteDataService.postData(`column=id&value=${itemId}`, "PUORD", authToken, branchId);
-                        console.log('Item deleted successfully:', itemResponse);
-                    } catch (error) {
-                        console.error('Error deleting item:', itemId, error);
-                    }
-                } else {
-                    console.log('No ID found, skipping delete for this item:', item);
+              if (item.ID) {
+                const itemId = item.ID;
+                try {
+                    const itemResponse = await DeleteDataService.postData(`column=id&value=${itemId}`, "PUORD", authToken, branchId);
+                    console.log('Item deleted successfully:', itemResponse);
+                } catch (error) {
+                    console.error('Error deleting item:', itemId, error);
                 }
+              } else {
+                console.log('No ID found, skipping delete for this item:', item);
+              }
             }
 
             // After deletion, insert updated items
             for (const item of items) {
-                // Exclude rwnum, ID, status, and id_trx fields
-                const { rwnum, ID, status, id_trx, ...rest } = item;
+              // Exclude rwnum, ID, status, and id_trx fields
+              const { rwnum, ID, status, id_trx, ...rest } = item;
 
-                const updatedItem = {
-                    ...rest,
-                    po_number
-                };
+              const updatedItem = {
+                ...rest,
+                po_number
+              };
 
-                delete updatedItem.rwnum; 
-                delete updatedItem.ID;
-                delete updatedItem.status;
-                delete updatedItem.id_trx;
-                delete updatedItem.pr_number;
-                delete updatedItem.original_unit_price;
-                delete updatedItem.new_unit_price;
-                delete updatedItem.discount;
-                delete updatedItem.vat_included;
-                delete updatedItem.subTotal;
+              delete updatedItem.rwnum; 
+              delete updatedItem.ID;
+              delete updatedItem.status;
+              delete updatedItem.id_trx;
+              delete updatedItem.pr_number;
+              delete updatedItem.original_unit_price;
+              delete updatedItem.new_unit_price;
+              delete updatedItem.discount;
+              delete updatedItem.vat_included;
+              delete updatedItem.subTotal;
 
-                try {
-                    const itemResponse = await InsertDataService.postData(updatedItem, "PUORD", authToken, branchId);
-                    console.log('Item inserted successfully:', itemResponse);
-                } catch (error) {
-                    console.error('Error inserting item:', updatedItem, error);
-                }
+              try {
+                const itemResponse = await InsertDataService.postData(updatedItem, "PUORD", authToken, branchId);
+                console.log('Item inserted successfully:', itemResponse);
+              } catch (error) {
+                console.error('Error inserting item:', updatedItem, error);
+              }
             }
 
             // Show success message and reset form
@@ -1463,7 +1131,7 @@ import DeleteDataService from '../service/DeleteDataService';
             resetForm();
             handleRefresh();
             setIsAddingNewPurchaseOrder(false);
-        }
+            }
         
           if (response.message === "insert Data Successfully") {
             // Iterate over items array and post each item individually
@@ -1486,8 +1154,6 @@ import DeleteDataService from '../service/DeleteDataService';
               delete updatedItem.discount;
               delete updatedItem.vat_included;
               delete updatedItem.subTotal;
-              
-              
 
               const itemResponse = await InsertDataService.postData(updatedItem, "PUORD", authToken, branchId);
               console.log('Item posted successfully:', itemResponse);
@@ -1523,11 +1189,55 @@ import DeleteDataService from '../service/DeleteDataService';
     };
 
 
+    // Get File Document
+    const getFileDocument = async (endtoendid) => {
+      const request = {
+        idTrx: '2910202400024',
+        code: 'PUREQD',
+      };
+      
+      const formData = new FormData();
+      formData.append('request', JSON.stringify(request));
+      console.log('asd', authToken);
+      try {
+        const getFileResponse = await axios.get(`${DOWNLOAD_FILES}`, {
+          headers: {
+            Authorization: `Bearer ${authToken}`,
+          },
+          params: request,
+          responseType: 'blob'
+        })  
+        const blob = new Blob([getFileResponse.data], {type: getFileResponse.headers['content-type'] || 'application/pdf' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+
+        const contentDisposition = getFileResponse.headers['content-disposition'];
+        const filename = contentDisposition ? contentDisposition.split('filename=')[1].replace(/"/g, '') : 'download.pdf';
+
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+
+        URL.revokeObjectURL(url);
+      } catch (error) {
+        console.error('Error downloading file:', error);
+      }
+    };
+
+
     //Dynamic Form With 
-    const dynamicFormWidth = (e) => {
-      const contentLength = e.target.value.length;
-      const newWidth = Math.max(100, contentLength * 12); // 8px per character, adjust as needed
-      setInputWidth(newWidth);
+    const dynamicFormWidth = (value, index) => {
+      const contentLength = value.length;
+      const newWidth = Math.max(100, (contentLength + 5) * 8); 
+      console.log('content', contentLength);
+      
+      setInputWidth((prevWidth) => {
+        const newWidths = [...prevWidth];
+        newWidths[index] = newWidth;
+        return newWidths;
+      });
     }
 
     const [isAddFile, setIsAddFile] = useState(false);
@@ -1536,7 +1246,6 @@ import DeleteDataService from '../service/DeleteDataService';
       setIsAddFile(true);
     }
 
-    console.log('endtoed', endToEnd);
 
     return (
       <Fragment>
@@ -1592,7 +1301,7 @@ import DeleteDataService from '../service/DeleteDataService';
                             placeholder="Enter Document Number"
                             value={docRef}
                             onChange={(e) => {
-                              setDocRef(e.target.value)
+                              setDocRef(e.target.value);
                             }}
                           >
                             <option value="">Select Document Reference</option>
@@ -1604,145 +1313,19 @@ import DeleteDataService from '../service/DeleteDataService';
                           </Form.Select>
                         </Form.Group>
                       </Col>
-
-                      {/* <Col md={6}>
-                      <Form.Group controlId='formFile'>
-                        <Form.Label>File Document</Form.Label>
-                        <Form.Control
-                          type='file'
-                          placeholder='Upload Document'
-                          onChange={(e) => setFile(e.target.files[0])}
-                        />
-                      </Form.Group>
-                      </Col> */}
-
-
-                      {/* <Col md={6}>
-                        <Form.Group controlId="formProject">
-                          <Form.Label>Project</Form.Label>
-                          <Select
-                            id="project"
-                            value={selectedProject}
-                            options={projectOptions}
-                            // onChange={(selectedOption) => {
-                            //   handleOptionChange(setSelectedProject, setProject, selectedOption);
-                            // }}
-                            onChange={handleProjectChange}
-                            placeholder="Project..."
-                            isClearable 
-                            required
-                            isDisabled = {docRef === 'purchaseRequest'}
-                          />
-                        </Form.Group>
-                      </Col> */}
                       
-
-                      {/* {docRef === 'purchaseRequest' ?
-
-                        <Col md={6}>
-                          <Form.Group>
-                            <Form.Label>Requestor</Form.Label>
-                            <Form.Control
-                              value={requestor}
-                              onChange={(e)=> setRequestor(e.target.value)}
-                              disabled
-                              required
-                            />
-                          </Form.Group>
-                        </Col>
-                      :
-                        <Col md={6}>
-                          <Form.Group controlId="formRequestor">
-                            <Form.Label>Requestor</Form.Label>
-                            <Select
-                              id='requestor'
-                              value={selectedRequestor}
-                              onChange={(selectedOption) => {
-                                handleOptionChange(setSelectedRequestor, setRequestor, selectedOption);
-                              }}
-                              options={requestorOptions}
-                              placeholder='Requestor...'
-                              isClearable
-                              required
-                              isDisabled = {docRef === 'purchaseRequest'}
-                            />
-                          </Form.Group>
-                        </Col>
-                      } */}
-
-                      {/* <Col md={6}>
-                        <Form.Group>
-                          <Form.Label>Requestor</Form.Label>
-                          <Form.Control
-                            value={requestor}
-                            onChange={(e)=> setRequestor(e.target.value)}
-                            disabled
-                            required
-                          />
-                        </Form.Group>
-                      </Col> */}
-
-                       <Col md={6}>
-                          <Form.Group controlId="formCreatedBy">
-                            <Form.Label>Created By</Form.Label>
-                            <Form.Control
-                              type="text"
-                              placeholder='Insert Created By'
-                              value={createdBy}
-                              onChange={(e) => setCreatedBy(e.target.value)}
-                              disabled
-                            />
-                          </Form.Group>
-                        </Col>
-                    {/* 
                       <Col md={6}>
-                        <Form.Group controlId="formDepartment">
-                          <Form.Label>Department</Form.Label>
-                            <Select
-                            id='department'
-                            value={selectedDepartement}
-                            onChange={(selectedOption)  => {
-                              handleOptionChange(setSelectedDepartement, setDepartement, selectedOption);
-                            }}
-                            options={departementOptions}
-                            placeholder='Department...'
-                            isClearable
-                            required
-                            isDisabled = {docRef === 'purchaseRequest'}
-                          />
-                        </Form.Group>
-                      </Col> */}
-
-                      {/* <Col md={6}>
-                        <Form.Group controlId='formCustomer'>
-                          <Form.Label>Customer</Form.Label>
-                          <Select
-                            id='customer'
-                            value={selectedCustomer}
-                            onChange={(selectedOption) => {
-                              handleOptionChange(setSelectedCustomer, setCustomer, selectedOption)
-                            }}
-                            options={customerOptions}
-                            placeholder='Customer...'
-                            isClearable
-                            required
-                            isDisabled = {docRef === 'purchaseRequest' || !docRef}
-                          />
-                        </Form.Group>
-                      </Col> */}
-
-                      {/* <Col md={6}>
-                        <Form.Group controlId="formRequestDate">
-                          <Form.Label>Request Date</Form.Label>
+                        <Form.Group controlId="formCreatedBy">
+                          <Form.Label>Created By</Form.Label>
                           <Form.Control
-                            type="date"
-                            value={request_date}
-                            onChange={(e) => setRequestDate(e.target.value)}
-                            required
+                            type="text"
+                            placeholder='Insert Created By'
+                            value={createdBy}
+                            onChange={(e) => setCreatedBy(e.target.value)}
                             disabled
                           />
                         </Form.Group>
-                      </Col> */}
+                      </Col>
 
                       <Col md={6}>
                         <Form.Group controlId="formOrderDate">
@@ -1755,49 +1338,6 @@ import DeleteDataService from '../service/DeleteDataService';
                           />
                         </Form.Group>
                       </Col>
-
-                      {/* <Col md={6}>
-                        <Form.Group controlId="formApprovedBy">
-                          <Form.Label>Approved By</Form.Label>
-                          <Form.Control
-                            type="text"
-                            placeholder='Insert Approved By'
-                            value={approveBy}
-                            onChange={(e) => setApproveBy(e.target.value)}
-                            required
-                          />
-                        </Form.Group>
-                      </Col> */}
-
-                      {/* <Col md={6}>
-                        <Form.Group controlId="formVendor">
-                          <Form.Label>To</Form.Label>
-                          <Select
-                            id='vendor'
-                            value={selectedVendor}
-                            options={vendorOptions}
-                            onChange={(selectedOption) => {
-                              handleOptionChange(setSelectedVendor, setVendor, selectedOption);
-                              if(selectedOption){
-                              const toOption = toOptions.find((option) => option.value === selectedOption.value);
-                              const addressTo = toAddressOptions.find((option) => option.value === selectedOption.vendAddress);
-                              setSelectedTo(toOption);
-                              setTo(toOption ? toOption.value : null);
-                              setSelectedToAddress(addressTo);
-                              setToAddress(addressTo ? addressTo.value : null);
-                              }else{
-                                setSelectedTo(null);
-                                setTo('');
-                                setSelectedToAddress(null);
-                                setToAddress('');
-                              }
-                            }}
-                            isClearable
-                            placeholder="To..."
-                            required
-                          />
-                        </Form.Group>
-                      </Col> */}
 
                       <Col md={6}>
                         <Form.Group controlId='formTo'>
@@ -1966,8 +1506,7 @@ import DeleteDataService from '../service/DeleteDataService';
                                 <th>Tax PPN Type</th>
                                 <th>Tax PPN Rate</th>
                                 {/* <th>Tax PPN Amount</th> */}
-                                <th>Tax Base</th>
-                                
+                                <th>Tax Base</th>   
                                 <th>Actions</th>
                               </tr>
                             </thead>
@@ -1989,7 +1528,7 @@ import DeleteDataService from '../service/DeleteDataService';
                                     </td>
 
                                     <td>
-                                      { docRef === 'purchaseRequest' ? 
+                                      {docRef === 'purchaseRequest' ? 
                                         <Select 
                                           value={PROptions.find(option => option.value === item.doc_reff_no)}
                                           options={PROptions}
@@ -2022,16 +1561,7 @@ import DeleteDataService from '../service/DeleteDataService';
                                           :
                                           <span>Choose Doc Ref</span>
                                       }
-                                      
                                     </td>
-
-                                    {/* <td>
-                                      <Form.Control
-                                        type='file'
-                                        placeholder='Upload Document'
-                                        onChange={(e) => setFile(e.target.files[0])}
-                                      />
-                                    </td> */}
 
                                     <td>
                                         { isAddFile ? 
@@ -2040,6 +1570,7 @@ import DeleteDataService from '../service/DeleteDataService';
                                             type='file'
                                             placeholder='Upload Document'
                                             onChange={(e) => setFile(e.target.files[0])}
+                                            disabled // Ilangin kalo upload dh jalan
                                           />
                                           <button className='btn btn-danger ms-2' onClick={() => setIsAddFile(false)}>
                                             <i className='fa fa-times'/>
@@ -2052,6 +1583,10 @@ import DeleteDataService from '../service/DeleteDataService';
                                             <a 
                                               href='#' 
                                               className='me-2' 
+                                              onClick={(e)=>{
+                                                e.preventDefault();
+                                                getFileDocument(item.endtoendid)
+                                              }}
                                             >
                                               {item.doc_source}
                                             </a>
@@ -2145,11 +1680,11 @@ import DeleteDataService from '../service/DeleteDataService';
                                         id='customer'
                                         value={
                                           items[index].customer ?
-                                              customerOptions.find(option => option.value === item.customer)
-                                            : 
-                                              null
-                                          }
-                                            onChange={(selectedOption) => {
+                                            customerOptions.find(option => option.value === item.customer)
+                                          : 
+                                            null
+                                        }
+                                        onChange={(selectedOption) => {
                                           handleItemChange(index, 'customer', selectedOption ? selectedOption.value : null)
                                         }}
                                         options={customerOptions}
@@ -2217,7 +1752,7 @@ import DeleteDataService from '../service/DeleteDataService';
                                       <Select
                                         value={currencyOptions.find(option => option.value === item.currency)}
                                         onChange={(selectedOption) => {
-                                          setSelectedCurrency(selectedOption);
+                                          // setSelectedCurrency(selectedOption);
                                           handleItemChange(index, 'currency', selectedOption ? selectedOption.value : 'IDR');
                                         }}
                                         options={currencyOptions}
@@ -2233,12 +1768,11 @@ import DeleteDataService from '../service/DeleteDataService';
                                           value={item.unit_price !== undefined && item.unit_price !== null ? item.unit_price.toLocaleString('en-US') : 0}
                                           onChange={(e) => {
                                             const newPrice = parseFloat(e.target.value.replace(/[^\d.-]/g, '')) || 0;
+                                            dynamicFormWidth(e.target.value || item.unit_price , index);
                                             handleItemChange(index, 'unit_price',  newPrice);
-                                            dynamicFormWidth(e);
-                                            
                                           }}
                                           style={{
-                                            width: `${inputWidth}px`,
+                                            width: `${inputWidth[index] || 100}px`,
                                           }}
                                         />
                                       : 
@@ -2251,24 +1785,17 @@ import DeleteDataService from '../service/DeleteDataService';
                                               : '0'
                                           }
                                           onChange={(e) => {
-                                            dynamicFormWidth(e);
+                                            dynamicFormWidth(e, index);
                                             const input = e.target.value;
-
-                                            // Allow only numbers, periods, and remove unwanted characters
                                             const sanitizedInput = input.replace(/[^0-9.]/g, '');
-
-                                            // Update the state with sanitized input
                                             handleItemChange(index, 'unit_price', sanitizedInput);
-
-                                            // Optional: You can maintain original price logic if needed
-                                            // handleItemChange(index, 'original_unit_price', sanitizedInput);
                                           }}
                                           onBlur={() => {
                                             const price = parseFloat(item.unit_price) || 0;
-                                            handleItemChange(index, 'unit_price', price); // Convert back to number on blur
+                                            handleItemChange(index, 'unit_price', price);
                                           }}
                                           style={{
-                                            width: `${inputWidth}px`,
+                                            width: `${inputWidth[index] || 100}px`,
                                           }}
                                         />
                                       }
@@ -2289,14 +1816,24 @@ import DeleteDataService from '../service/DeleteDataService';
                                         {/* Add more options here */}
                                         <option value="include">Include</option>
                                         <option value="exclude">Exclude</option>
+                                        <option value="nonPPN">Non PPN</option>
+                                        { items[index].currency !== 'IDR' ?
+                                          <option value="PPNRoyalty">PPN Royalty</option>
+                                          :
+                                          <></>
+                                        }
                                       </Form.Select>
                                     </td>
 
                                     <td>
                                       <Select
                                         value={
-                                            taxTypeOptions.find(option => option.value === item.tax_ppn) || null}
-                                        options={taxTypeOptions}
+                                          items[index].type_of_vat === 'PPNRoyalty' ?
+                                            PPNRoyaltyOptions.find(option => option.value === item.tax_ppn)
+                                          :
+                                            taxTypeOptions.find(option => option.value === item.tax_ppn) || null
+                                        }
+                                        options={items[index].type_of_vat === 'PPNRoyalty' ? PPNRoyaltyOptions : taxTypeOptions}
                                         placeholder="Select Tax Type"
                                         isClearable
                                         onChange={(selectedOption) => {
@@ -2309,8 +1846,8 @@ import DeleteDataService from '../service/DeleteDataService';
                                             handleItemChange(index, 'tax_ppn_rate', 0);
                                           }
                                           handleItemChange(index, 'tax_ppn', selectedOption ? selectedOption.value : ''  );
-                                          
                                         }}
+                                        isDisabled={items[index].type_of_vat === 'nonPPN'}
                                       />
                                     </td>
                                     
@@ -2323,10 +1860,6 @@ import DeleteDataService from '../service/DeleteDataService';
                                       />
                                     </td>
 
-                                    {/* <td style={{textAlign: 'right'}}>
-                                      {item.tax_ppn_amount ? parseFloat(item.tax_ppn_amount).toLocaleString('en-US', { style: 'currency', currency: item.currency }) : 'IDR 0.00'}
-                                    </td> */}
-
                                     <td className=''>
                                       {item.currency === 'IDR' ?
                                         <Form.Control
@@ -2334,7 +1867,7 @@ import DeleteDataService from '../service/DeleteDataService';
                                           disabled
                                           style={{
                                             textAlign: 'right',
-                                            width: `${inputWidth}px`,
+                                            width: `${inputWidth[index] || 100}px`,
                                             marginLeft: 'auto',  
                                             display: 'flex',
                                           }}
@@ -2342,7 +1875,7 @@ import DeleteDataService from '../service/DeleteDataService';
                                           onChange={(e) => {
                                             const newTaxBase = parseFloat(e.target.value.replace(/[^\d.-]/g, '')) || 0;
                                             handleItemChange(index, 'tax_base', Math.max(0, newTaxBase));
-                                            dynamicFormWidth(e);
+                                            dynamicFormWidth(e, index);
                                           }}
                                         />
                                       :
@@ -2351,20 +1884,19 @@ import DeleteDataService from '../service/DeleteDataService';
                                           disabled
                                           style={{
                                             textAlign: 'right',
-                                            width: `${inputWidth}px`,
+                                            width: `${inputWidth[index] || 100}px`,
                                             marginLeft: 'auto',  
                                             display: 'flex',
                                           }}
                                           value={item.tax_base !== undefined && item.tax_base !== null ? item.tax_base : 0}
                                           onChange={(e) => {
                                             handleItemChange(index, 'tax_base', Math.max(0, parseFloat(e.target.value) || 0))
-                                            dynamicFormWidth(e)
+                                            dynamicFormWidth(e, index)
                                           }}
                                         />
                                       }
                                     </td>
-
-                                    
+     
                                     <td>
                                       <Button
                                         variant="danger"
@@ -2395,41 +1927,6 @@ import DeleteDataService from '../service/DeleteDataService';
                               <tr className='text-right'>
                                 <td colSpan="19">Discount:</td>
                                 <td>
-                                  {/* <Form.Control
-                                    className='text-right'
-                                    type='text'
-                                    value={formattedDiscount}
-                                    onChange={(e) => {
-                                      // Remove any non-numeric characters for easy input
-                                      dynamicFormWidth(e);
-                                      const newValue = e.target.value.replace(/[^\d.-]/g, '');
-                                      setDiscount(parseFloat(newValue) || 0); // Update the raw number state
-                                      setFormattedDiscount(e.target.value); // Keep the input as is for display
-                                    }}
-                                    onBlur={() => {
-                                      // When focus is lost, apply the currency format
-                                      const formattedValue = discount.toLocaleString('en-US', { 
-                                        style: 'currency', 
-                                        currency: items.length > 0 ? items[0].currency || 'IDR' : 'IDR' 
-                                      });
-                                      setFormattedDiscount(formattedValue); // Set the formatted value for display
-                                    }}
-                                    onFocus={(e) => {
-                                      // When the input is focused, remove currency formatting for easy editing
-                                      setFormattedDiscount(discount.toString().replace(/[^\d.-]/g, '')); // Display the raw number
-                                      setTimeout(() => {
-                                        // Select the text for easy overwriting
-                                        e.target.select();
-                                      }, 0);
-                                    }}
-                                    style={{
-                                      textAlign: 'right',
-                                      width: `${inputWidth}px`,
-                                      marginLeft: 'auto',  
-                                      display: 'flex',
-                                    }}
-                                  /> */}
-
                                   <Form.Control
                                     className='text-right'
                                     type="text"
@@ -2437,12 +1934,12 @@ import DeleteDataService from '../service/DeleteDataService';
                                     onChange={(e) => {
                                       const newDiscount = parseFloat(e.target.value.replace(/[^\d.-]/g, '')) || 0;
                                       setDiscount(newDiscount);
-                                      dynamicFormWidth(e);
+                                      dynamicFormWidth(e, index);
                                       
                                     }}
                                     style={{
                                       textAlign: 'right',
-                                      width: `${inputWidth}px`,
+                                      width: `${inputWidth[index] || 100}px`,
                                       marginLeft: 'auto',  
                                       display: 'flex',
                                     }}
@@ -2466,7 +1963,6 @@ import DeleteDataService from '../service/DeleteDataService';
                               </tr>
                               <tr className='text-right'>
                                 <td colSpan="19">Total PPN:</td>
-                                {/* <td><strong>{calculateTotalAmount().totalPPNAmount.toLocaleString('en-US', { style: 'currency', currency: 'IDR' })}</strong></td> */}
                                 <td>
                                   <Form.Control
                                     className='text-right'
@@ -2476,7 +1972,7 @@ import DeleteDataService from '../service/DeleteDataService';
                                     }
                                     onChange={
                                       (e) => {
-                                        dynamicFormWidth(e);
+                                        dynamicFormWidth(e, index);
                                         const newItems = [...items];
                                         const totalPPNAmount = parseFloat(e.target.value.replace(/[^\d.-]/g, '')) || 0;
                                         newItems.forEach((item)=>{
@@ -2486,7 +1982,7 @@ import DeleteDataService from '../service/DeleteDataService';
                                     }}
                                     style={{
                                       textAlign: 'right',
-                                      width: `${inputWidth}px`,
+                                      width: `${inputWidth[index] || 100}px`,
                                       marginLeft: 'auto',  
                                       display: 'flex',
                                     }}
@@ -2519,7 +2015,6 @@ import DeleteDataService from '../service/DeleteDataService';
                 </Card.Body>
               </Card>
             </Col>
-
           </Row>
 
           <Row className='mt-4'>
@@ -2553,15 +2048,12 @@ import DeleteDataService from '../service/DeleteDataService';
                       placeholder="Enter Notes"
                       value={description}
                       onChange={(e) => setDescription(e.target.value)}
-
-                    // Add state and event handling logic as needed
                     />
                   </Form.Group>
                 </Card.Body>
               </Card>
             </Col>
           </Row>
-
 
           <Row className="mt-4">
             <Col md={12} className="d-flex justify-content-end">
@@ -2577,8 +2069,8 @@ import DeleteDataService from '../service/DeleteDataService';
                 <i className="fas fa-save"></i> Save
               </Button>
               <Button variant="primary" onClick={handleSubmit}>
-                    <i className="fas fa-check"></i> Submit
-                  </Button>
+                <i className="fas fa-check"></i> Submit
+              </Button>
             </Col>
           </Row>
         </section>

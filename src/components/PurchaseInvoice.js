@@ -202,7 +202,7 @@ const PurchaseInvoice = () => {
             handleResetFilter={handleResetFilters}
             branchId={branchId}
             authToken={authToken}
-            handleSelectData={handleSelectData}
+            handleSelect={handleSelectData}
             handleEditPurchaseInvoice={handleEditPurchaseInvoice}
             isAddingNewPurchaseInvoice={handleAddNewPurchaseInvoice}
             EditPurchaseInvoice={handleEditPurchaseInvoice}
