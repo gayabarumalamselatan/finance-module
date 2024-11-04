@@ -205,7 +205,7 @@ const PurchaseExpanseTable = ({
       return;
     }
 
-    const puexvoId = dataSelected[0].ID; // ID dari data utama
+    const vcbankId = dataSelected[0].ID; // ID dari data utama
     const voucher_number = dataSelected[0].VOUCHER_NUMBER;
 
     // Konfirmasi sebelum penghapusan
@@ -220,7 +220,7 @@ const PurchaseExpanseTable = ({
       if (result.isConfirmed) {
         try {
           // Panggil API untuk menghapus data master (utama)
-          const response = await DeleteDataService.postData(`column=id&value=`, "VCBANK", authToken, branchId);
+          const response = await DeleteDataService.postData(`column=id&value=${vcbankId}`, "VCBANK", authToken, branchId);
 
           if (!response.message === "Delete Data Successfully") {
             throw new Error("Failed to delete main request");

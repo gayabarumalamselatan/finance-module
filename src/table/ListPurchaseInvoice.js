@@ -16,6 +16,7 @@ const ListPurchaseInvoice = ({ selectedRow, onClose }) => {
   const [bondPairData, setBondPairData] = useState([]);
   const [bondPosData, setBondPosData] = useState([]);
   const [isListVisible, setIsListVisible] = useState(false);
+  const [bondPairDataItem, setBondPairDataItem] = useState([]); // Add this line
   console.log("Selected row:", selectedRow);
 
   // Get bond code from selectedRow
@@ -27,6 +28,7 @@ const ListPurchaseInvoice = ({ selectedRow, onClose }) => {
     console.log("Selected row:", selectedRow);
     if (selectedRow) {
       fetchSchedulePaymentData(selectedRow);
+      fetchBondPairData(selectedRow);
     }
   }, [selectedRow]);
 
@@ -91,20 +93,59 @@ const ListPurchaseInvoice = ({ selectedRow, onClose }) => {
   };
 
   const fetchBondPairData = (bond) => {
-    let url = `TRY_FORMBONDPAIR&filterBy=BOND_CODE&filterValue=${bond}&operation=EQUAL&viewOnly=true&sortBy=ID&sortOperation=ASC`;
-    LookupParamService.fetchLookupData(`${url}`, authToken, branchId)
+    let url = `VOUC_FORMVCBANK&filterBy=VOUCHER_NUMBER&filterValue=${selectedRow.INVOICE_NUMBER}&operation=EQUAL`;
+    console.log("Fetching data from URL:", url);
+
+    LookupParamService.fetchLookupData(url, authToken, branchId)
       .then((data) => {
+        if (!data || !data.data) {
+          console.error("Unexpected data format:", data);
+          return;
+        }
+        console.log("Bond pair data:", data);
         const transformedData = data.data.map((item) =>
           Object.keys(item).reduce((acc, key) => {
             acc[key.toUpperCase()] = item[key];
             return acc;
           }, {})
         );
-        console.log("Transformed data:", transformedData);
-        setSelectedRowData(transformedData);
+        console.log("Transformed bond pair data:", transformedData);
+        setBondPairData(transformedData);
       })
       .catch((error) => {
         console.error("Failed to fetch bond pair data:", error);
+      });
+
+    let urlD = `VOUC_FORMVCBANKD&filterBy=VOUCHER_NUMBER&filterValue=${selectedRow.INVOICE_NUMBER}&operation=EQUAL`;
+
+    console.log("Fetching data from URL for details:", urlD);
+
+    LookupParamService.fetchLookupData(urlD, authToken, branchId)
+
+      .then((data) => {
+        if (!data || !data.data) {
+          console.error("Unexpected data format for details:", data);
+
+          return;
+        }
+
+        console.log("Bond pair detail data:", data);
+
+        const transformedDataItem = data.data.map((item) =>
+          Object.keys(item).reduce((acc, key) => {
+            acc[key.toUpperCase()] = item[key];
+
+            return acc;
+          }, {})
+        );
+
+        console.log("Transformed bond pair detail data:", transformedDataItem);
+
+        setBondPairDataItem(transformedDataItem); // Change this line to use bondPairDataItem
+      })
+
+      .catch((error) => {
+        console.error("Failed to fetch bond pair detail data:", error);
       });
   };
 
@@ -126,6 +167,61 @@ const ListPurchaseInvoice = ({ selectedRow, onClose }) => {
       });
   };
 
+  // buat jurnal
+  const fetchJurnal = (selectedRow) => {
+    console.log("Fetching schedule payment data for:", selectedRow);
+
+    // Construct the URL for the main invoice data
+    let url = `PURC_FORMPUINVC&filterBy=INVOICE_NUMBER&filterValue=${selectedRow.INVOICE_NUMBER}&operation=EQUAL`;
+    console.log("Fetching data from URL:", url);
+
+    LookupParamService.fetchLookupData(url, authToken, branchId)
+      .then((data) => {
+        if (!data || !data.data) {
+          console.error("Unexpected data format:", data);
+          return;
+        }
+        console.log("Schedule payment data:", data);
+        const transformedData = data.data.map((item) =>
+          Object.keys(item).reduce((acc, key) => {
+            acc[key.toUpperCase()] = item[key];
+            return acc;
+          }, {})
+        );
+        console.log("Transformed data:", transformedData);
+        setSelectedRowData(transformedData);
+      })
+      .catch((error) => {
+        console.error("Failed to fetch schedule payment data:", error);
+        // Optionally, display an error message to the user
+      });
+
+    // Construct the URL for the invoice details
+    let urlD = `PURC_FORMPUINVCD&filterBy=INVOICE_NUMBER&filterValue=${selectedRow.INVOICE_NUMBER}&operation=EQUAL`;
+    console.log("Fetching data from URL for details:", urlD);
+
+    LookupParamService.fetchLookupData(urlD, authToken, branchId)
+      .then((data) => {
+        if (!data || !data.data) {
+          console.error("Unexpected data format for details:", data);
+          return;
+        }
+        console.log("Schedule payment detail data:", data);
+        const transformedDataItem = data.data.map((item) =>
+          Object.keys(item).reduce((acc, key) => {
+            acc[key.toUpperCase()] = item[key];
+            return acc;
+          }, {})
+        );
+        console.log("Transformed detail data:", transformedDataItem);
+        setSelectedRowDataItem(transformedDataItem);
+      })
+      .catch((error) => {
+        console.error("Failed to fetch schedule payment detail data:", error);
+        // Optionally, display an error message to the user
+      });
+  };
+
   const handleTabChange = (tab) => {
     setActiveTab(tab);
   };
@@ -137,6 +233,11 @@ const ListPurchaseInvoice = ({ selectedRow, onClose }) => {
           <li className="nav-item">
             <button className={`nav-link ${activeTab === "schedule" ? "active" : ""}`} onClick={() => handleTabChange("schedule")}>
               <CgAlignBottom /> Invoice Number
+            </button>
+          </li>
+          <li className="nav-item">
+            <button className={`nav-link ${activeTab === "jurnal" ? "active" : ""}`} onClick={() => handleTabChange("jurnal")}>
+              <CgAlignBottom /> Journal
             </button>
           </li>
           <li className="nav-item">
@@ -267,7 +368,7 @@ const ListPurchaseInvoice = ({ selectedRow, onClose }) => {
                           <th>Tax Base</th>
                           <th>Tax PPN Amount</th>
                           <th>Tax PPh Amount</th>
-                          <th>Total Amount</th>
+                          {/* <th>Total Amount</th> */}
                         </tr>
                       </thead>
                       <tbody>
@@ -307,7 +408,129 @@ const ListPurchaseInvoice = ({ selectedRow, onClose }) => {
                                 <td style={{ textAlign: "right" }}>{DisplayFormat(detail.TAX_BASE)}</td>
                                 <td style={{ textAlign: "right" }}>{DisplayFormat(detail.TAX_PPN_AMOUNT)}</td>
                                 <td style={{ textAlign: "right" }}>{DisplayFormat(detail.TAX_PPH_AMOUNT)}</td>
-                                <td style={{ textAlign: "right" }}>{DisplayFormat(detail.TOTAL_AMOUNT)}</td>
+                                {/* <td style={{ textAlign: "right" }}>{DisplayFormat(detail.TOTAL_AMOUNT)}</td> */}
+                              </tr>
+                            ))
+                        ) : (
+                          <tr>
+                            <td colSpan="15" className="text-center">
+                              No data selected.
+                            </td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </Table>
+                  </div>
+                </div>
+              ) : (
+                <p>No data selected.</p>
+              )}
+            </div>
+          </div>
+        )}
+        {activeTab === "jurnal" && (
+          <div className="card">
+            <div className="card-header">
+              <h5 className="card-title">Journal</h5>
+              <button type="button" className="close" onClick={onClose}>
+                <span aria-hidden="true">&times;</span>
+              </button>
+            </div>
+            <div className="card-body">
+              {selectedRowData.length > 0 ? (
+                <div>
+                  {/* <div className="container">
+                    <div className="row mb-3">
+                      <div className="col-md-4 font-weight-bold">Invoice Number:</div>
+                      <div className="col-md-8">{selectedRowData[0].INVOICE_NUMBER}</div>
+                    </div>
+
+                    <div className="row mb-3">
+                      <div className="col-md-4 font-weight-bold">Invoice Date:</div>
+                      <div className="col-md-8">{selectedRowData[0].INVOICE_DATE}</div>
+                    </div>
+
+                    <div className="row mb-3">
+                      <div className="col-md-4 font-weight-bold">Doc Reference:</div>
+                      <div className="col-md-8">{selectedRowData[0].DOC_REFF}</div>
+                    </div>
+
+                    <div className="row mb-3">
+                      <div className="col-md-4 font-weight-bold">Payment Term:</div>
+                      <div className="col-md-8">{selectedRowData[0].PAYMENT_TERM}</div>
+                    </div>
+
+                    <div className="row mb-3">
+                      <div className="col-md-4 font-weight-bold">Due Date:</div>
+                      <div className="col-md-8">{selectedRowData[0].DUE_DATE}</div>
+                    </div>
+
+                    <div className="row mb-3">
+                      <div className="col-md-4 font-weight-bold">Term Of Payment:</div>
+                      <div className="col-md-8">{selectedRowData[0].TERM_OF_PAYMENT}</div>
+                    </div>
+
+                    <div className="row mb-3">
+                      <div className="col-md-4 font-weight-bold">Tax Exchange Rate:</div>
+                      <div className="col-md-8">{selectedRowData[0].TAX_EXCHANGE_RATE}</div>
+                    </div>
+
+                    <div className="row mb-3">
+                      <div className="col-md-4 font-weight-bold">Invoice Status:</div>
+                      <div className="col-md-8">{selectedRowData[0].INVOICE_STATUS}</div>
+                    </div>
+
+
+                    <div className="row mb-3">
+                      <div className="col-md-4 font-weight-bold">Discount:</div>
+                      <div className="col-md-8">{selectedRowData[0].DISCOUNT}</div>
+                    </div>
+
+                    <div className="row mb-3">
+                      <div className="col-md-4 font-weight-bold">Total Amount:</div>
+                      <div className="col-md-8">{selectedRowData[0].TOTAL_AMOUNT}</div>
+                    </div>
+
+                    <div className="row mb-3">
+                      <div className="col-md-4 font-weight-bold">Description:</div>
+                      <div className="col-md-8">{selectedRowData[0].DESCRIPTION}</div>
+                    </div>
+                  </div> */}
+                  {/* Add more fields as needed */}
+                  <div className="table-responsive" style={{ overflowX: "auto" }}>
+                    <Table striped bordered hover>
+                      <thead>
+                        <tr>
+                          <th>Code/Name Account</th>
+                          <th>Description</th>
+                          <th>Discharge (IDR)</th>
+                          <th>Credit (IDR)</th>
+                          <th>Discharge</th>
+                          <th>Credit</th>
+                          <th>Currency</th>
+                          <th>Exchange Rate</th>
+                          <th>Invoice Number</th>
+                          <th>Project</th>
+                          <th>Departement</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {selectedRowDataItem.length > 0 ? (
+                          selectedRowDataItem
+                            .sort((a, b) => a.ID - b.ID) // Sort by ID in ascending order
+                            .map((detail) => (
+                              <tr key={detail.ID}>
+                                <td>{detail.ACCOUNT_CODE}</td>
+                                <td>{detail.DESCRIPTION}</td>
+                                <td>{detail.DISCHARGE_IDR}</td>
+                                <td>{detail.CREDIT_IDR}</td>
+                                <td>{detail.DISCHARGE}</td>
+                                <td>{detail.CREDIT}</td>
+                                <td>{detail.CURRENCY}</td>
+                                <td>{detail.EXCHANGE_RATE}</td>
+                                <td>{detail.INVOICE_NUMBER}</td>
+                                <td>{detail.PROJECT}</td>
+                                <td>{detail.DEPARTEMENT}</td>
                               </tr>
                             ))
                         ) : (
@@ -336,7 +559,7 @@ const ListPurchaseInvoice = ({ selectedRow, onClose }) => {
               </button>
             </div>
             <div className="card-body">
-              {selectedRowData.length > 0 ? (
+              {bondPairData.length > 0 ? (
                 <div>
                   <div className="container">
                     <div className="row mb-3">

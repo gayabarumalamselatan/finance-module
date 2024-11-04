@@ -15,10 +15,13 @@ import LookupService from "../service/LookupService";
 import UpdateDataService from "../service/UpdateDataService";
 import DeleteDataService from "../service/DeleteDataService";
 import UpdateStatusService from "../service/UpdateStatusService";
+import ActivityLogger from "../components/ActivityLogger";
 
 const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchaseInvoice, handleRefresh, index, item, selectedData }) => {
   const headers = getToken();
   const branchId = getBranch();
+  const userId = sessionStorage.getItem("userId");
+  const idUser = sessionStorage.getItem("id");
   const [pr_number, setPrNumber] = useState("");
   const [title, setTitle] = useState("");
   const [project, setProject] = useState("");
@@ -100,19 +103,18 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
   const [selectedtaxppntype, setSelectedTaxPpnType] = useState(null);
   const [isAddFile, setIsAddFile] = useState(false);
   const [tax_ppn_royalty_option, setTaxPpnRoyaltyOption] = useState([]);
+  const [selectedPrNumbers, setSelectedPrNumbers] = useState([]);
 
   const authToken = headers;
 
   const [inputWidth, setInputWidth] = useState(100);
 
-  const generateInitialInvoiceNumber = async () => {
-    const generatedInvoiceNumber = await generatePrNumber("DRAFT_INVC"); // Adjust the code as needed
-
-    setInvoiceNumber(generatedInvoiceNumber);
-  };
-
   useEffect(() => {
-    
+    const generateInitialInvoiceNumber = async () => {
+      const generatedInvoiceNumber = await generatePrNumber("DRAFT_INVC"); // Adjust the code as needed
+
+      setInvoiceNumber(generatedInvoiceNumber);
+    };
 
     generateInitialInvoiceNumber();
   }, []); // Empty dependency array means this runs once on mount
@@ -196,7 +198,7 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
           setItems(fetchedItems);
 
           // Lookup PPN & PPh
-          LookupParamService.fetchLookupData("MSDT_FORMTAX", authToken, branchId)
+          LookupParamService.fetchLookupDataView("MSDT_FORMTAX", authToken, branchId)
             .then((data) => {
               console.log("Currency lookup data:", data);
 
@@ -241,7 +243,7 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
             });
 
           // Fetch product lookup data
-          LookupParamService.fetchLookupData("MSDT_FORMPRDT", authToken, branchId)
+          LookupParamService.fetchLookupDataView("MSDT_FORMPRDT", authToken, branchId)
             .then((productData) => {
               console.log("Product lookup data:", productData);
 
@@ -261,7 +263,7 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
               setProductOptions(productOptions); // Set product options to state
 
               // Fetch currency lookup data
-              LookupParamService.fetchLookupData("MSDT_FORMCCY", authToken, branchId)
+              LookupParamService.fetchLookupDataView("MSDT_FORMCCY", authToken, branchId)
                 .then((currencyData) => {
                   console.log("Currency lookup data:", currencyData);
 
@@ -308,7 +310,7 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
           console.error("Failed to load items:", error);
         });
 
-      LookupParamService.fetchLookupData("MSDT_FORMCUST", authToken, branchId)
+      LookupParamService.fetchLookupDataView("MSDT_FORMCUST", authToken, branchId)
         .then((data) => {
           console.log("Vendor lookup data:", data);
 
@@ -339,7 +341,7 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
           console.error("Failed to fetch vendor lookup:", error);
         });
 
-      LookupParamService.fetchLookupData("MSDT_FORMCCY", authToken, branchId)
+      LookupParamService.fetchLookupDataView("MSDT_FORMCCY", authToken, branchId)
         .then((data) => {
           console.log("Currency lookup data:", data);
 
@@ -364,7 +366,7 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
           console.error("Failed to fetch currency lookup:", error);
         });
 
-      LookupParamService.fetchLookupData("MSDT_FORMPRJT", authToken, branchId)
+      LookupParamService.fetchLookupDataView("MSDT_FORMPRJT", authToken, branchId)
         .then((data) => {
           console.log("Currency lookup data:", data);
 
@@ -399,7 +401,7 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
           console.error("Failed to fetch currency lookup:", error);
         });
 
-      LookupParamService.fetchLookupData("MSDT_FORMPYTM", authToken, branchId)
+      LookupParamService.fetchLookupDataView("MSDT_FORMPYTM", authToken, branchId)
         .then((data) => {
           console.log("Payment term lookup data:", data);
 
@@ -433,7 +435,7 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
           console.error("Failed to fetch payment term lookup:", error);
         });
 
-      LookupParamService.fetchLookupData("MSDT_FORMPRDT", authToken, branchId)
+      LookupParamService.fetchLookupDataView("MSDT_FORMPRDT", authToken, branchId)
         .then((data) => {
           console.log("Currency lookup data:", data);
 
@@ -459,7 +461,7 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
           console.error("Failed to fetch currency lookup:", error);
         });
 
-      LookupParamService.fetchLookupData("MSDT_FORMCUST", authToken, branchId)
+      LookupParamService.fetchLookupDataView("MSDT_FORMCUST", authToken, branchId)
         .then((data) => {
           console.log("Currency lookup data:", data);
 
@@ -491,7 +493,7 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
     // Ambil data lookup untuk currency
     // MSDT_FORMEMPL adalah nama table yang menyimpan data lookup untuk currency
     // authToken dan branchId digunakan untuk mengirimkan token otorisasi dan kode cabang ke server
-    LookupParamService.fetchLookupData("MSDT_FORMEMPL", authToken, branchId)
+    LookupParamService.fetchLookupDataView("MSDT_FORMEMPL", authToken, branchId)
       .then((data) => {
         console.log("Currency lookup data:", data);
 
@@ -570,7 +572,7 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
         console.error("Failed to fetch currency lookup:", error);
       });
 
-    LookupParamService.fetchLookupData("MSDT_FORMPRDT", authToken, branchId)
+    LookupParamService.fetchLookupDataView("MSDT_FORMPRDT", authToken, branchId)
       .then((data) => {
         console.log("Currency lookup data:", data);
 
@@ -594,7 +596,7 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
       });
 
     // buat vendor
-    LookupParamService.fetchLookupData("MSDT_FORMCUST", authToken, branchId)
+    LookupParamService.fetchLookupDataView("MSDT_FORMCUST", authToken, branchId)
       .then((data) => {
         console.log("Vendor lookup data:", data);
 
@@ -626,7 +628,7 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
       });
 
     // Lookup Department
-    LookupParamService.fetchLookupData("MSDT_FORMDPRT", authToken, branchId)
+    LookupParamService.fetchLookupDataView("MSDT_FORMDPRT", authToken, branchId)
       .then((data) => {
         console.log("Currency lookup data:", data);
 
@@ -650,7 +652,7 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
       });
 
     // buat payment term
-    LookupParamService.fetchLookupData("MSDT_FORMPYTM", authToken, branchId)
+    LookupParamService.fetchLookupDataView("MSDT_FORMPYTM", authToken, branchId)
       .then((data) => {
         console.log("Payment term lookup data:", data);
 
@@ -852,7 +854,7 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
     //     console.error("Failed to fetch PO number lookup:", error);
     //   });
 
-    LookupParamService.fetchLookupData("MSDT_FORMCCY", authToken, branchId)
+    LookupParamService.fetchLookupDataView("MSDT_FORMCCY", authToken, branchId)
       .then((data) => {
         // console.log("Currency lookup data:", data);
 
@@ -875,7 +877,7 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
         console.error("Failed to fetch currency lookup:", error);
       });
 
-    LookupParamService.fetchLookupData("MSDT_FORMPRJT", authToken, branchId)
+    LookupParamService.fetchLookupDataView("MSDT_FORMPRJT", authToken, branchId)
       .then((data) => {
         console.log("Currency lookup data:", data);
 
@@ -910,7 +912,7 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
         console.error("Failed to fetch currency lookup:", error);
       });
 
-    LookupParamService.fetchLookupData("MSDT_FORMTAX", authToken, branchId)
+    LookupParamService.fetchLookupDataView("MSDT_FORMTAX", authToken, branchId)
       .then((data) => {
         console.log("Currency lookup data:", data);
 
@@ -1272,7 +1274,7 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
           console.log("Items fetched:", fetchedItems);
 
           // Fetch product lookup data
-          LookupParamService.fetchLookupData("MSDT_FORMPRDT", authToken, branchId)
+          LookupParamService.fetchLookupDataView("MSDT_FORMPRDT", authToken, branchId)
             .then((productData) => {
               console.log("Product lookup data:", productData);
 
@@ -1292,7 +1294,7 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
               setProductOptions(productOptions); // Set product options to state
 
               // Fetch currency lookup data
-              LookupParamService.fetchLookupData("MSDT_FORMCCY", authToken, branchId)
+              LookupParamService.fetchLookupDataView("MSDT_FORMCCY", authToken, branchId)
                 .then((currencyData) => {
                   console.log("Currency lookup data:", currencyData);
 
@@ -1387,7 +1389,7 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
           console.log("Items fetched:", fetchedItems);
 
           // Fetch product lookup data
-          LookupParamService.fetchLookupData("MSDT_FORMPRDT", authToken, branchId)
+          LookupParamService.fetchLookupDataView("MSDT_FORMPRDT", authToken, branchId)
             .then((productData) => {
               console.log("Product lookup data:", productData);
 
@@ -1407,7 +1409,7 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
               setProductOptions(productOptions); // Set product options to state
 
               // Fetch currency lookup data
-              LookupParamService.fetchLookupData("MSDT_FORMCCY", authToken, branchId)
+              LookupParamService.fetchLookupDataView("MSDT_FORMCCY", authToken, branchId)
                 .then((currencyData) => {
                   console.log("Currency lookup data:", currencyData);
 
@@ -1426,7 +1428,7 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
 
                   setCurrencyOptions(currencyOptions); // Set currency options to state
 
-                  LookupParamService.fetchLookupData("MSDT_FORMTAX", authToken, branchId)
+                  LookupParamService.fetchLookupDataView("MSDT_FORMTAX", authToken, branchId)
                     .then((data) => {
                       console.log("Currency lookup data:", data);
 
@@ -2283,7 +2285,7 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
   };
 
   const resetForm = () => {
-    // generatePrNumber("DRAFT_INVC");
+    generatePrNumber("DRAFT_INVC");
     setPrNumber("");
     setTitle("");
     setInternalMemo("");
@@ -2589,6 +2591,9 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
           console.log("endtoendId is not empty");
         }
 
+        const checkDataResponse = await LookupService.fetchLookupData(`PURC_FORMPUINVC&filterBy=invoice_number&filterValue=${invoice_number}&operation=EQUAL`, authToken, branchId);
+        const existingData = checkDataResponse.data;
+
         const { subtotalAfterDiscount, subTotal, totalPPNAmount, totalPPHAmount, totalAmount } = calculateTotalAmount();
 
         // Save general information
@@ -2619,6 +2624,9 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
         // Check if updating existing data or inserting new data
         if (selectedData) {
           const id = selectedData[0].ID;
+          response = await UpdateDataService.postData(generalInfo, `PUINVC&column=id&value=${id}`, authToken, branchId);
+        } else if (existingData && existingData.length > 0) {
+          const id = existingData[0].ID;
           response = await UpdateDataService.postData(generalInfo, `PUINVC&column=id&value=${id}`, authToken, branchId);
         } else {
           response = await InsertDataService.postData(generalInfo, "PUINVC", authToken, branchId);
@@ -2661,18 +2669,35 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
 
         // Handle item deletion and insertion
         if (response.message === "Update Data Successfully") {
-          // Delete existing items
-          for (const item of items) {
-            if (item.ID) {
-              const itemId = item.ID;
+          if (existingData && existingData.length > 0) {
+            const piNum = existingData[0].invoice_number;
+            const lookupResponse = await LookupService.fetchLookupData(`PURC_FORMPUINVCD&filterBy=invoice_number&filterValue=${piNum}&operation=EQUAL`, authToken, branchId);
+
+            const ids = lookupResponse.data.map((item) => item.ID); // Dapatkan semua ID dari respons array
+            console.log("IDs to delete:", ids);
+
+            // Delete each item based on fetched IDs
+            for (const id of ids) {
               try {
-                const itemResponse = await DeleteDataService.postData(`column=id&value=${itemId}`, "PUINVCD", authToken, branchId);
-                console.log("Item deleted successfully:", itemResponse);
+                await DeleteDataService.postData(`column=id&value=${id}`, "PUINVCD", authToken, branchId);
+                console.log("Item deleted successfully:", id);
               } catch (error) {
-                console.error("Error deleting item:", itemId, error);
+                console.error("Error deleting item:", id, error);
               }
-            } else {
-              console.log("No ID found, skipping delete for this item:", item);
+            }
+          } else {
+            for (const item of items) {
+              if (item.ID) {
+                const itemId = item.ID;
+                try {
+                  const itemResponse = await DeleteDataService.postData(`column=id&value=${itemId}`, "PUINVCD", authToken, branchId);
+                  console.log("Item deleted successfully:", itemResponse);
+                } catch (error) {
+                  console.error("Error deleting item:", itemId, error);
+                }
+              } else {
+                console.log("No ID found, skipping delete for this item:", item);
+              }
             }
           }
 
@@ -2720,7 +2745,7 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
 
           // Show success message and reset form
           messageAlertSwal("Success", response.message, "success");
-          resetForm();
+          // resetForm();
         } else if (response.message === "insert Data Successfully") {
           // Insert new items
           for (const item of items) {
@@ -2788,7 +2813,7 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
         }
 
         messageAlertSwal("Success", response.message, "success");
-        resetForm();
+        // resetForm();
       } catch (err) {
         console.error(err);
         setIsLoading(false);
@@ -3298,8 +3323,36 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
     }
   };
 
+  const usedOptions = new Set(items.map((item) => item.doc_reff_no));
+  const optionsWithDisabled = prNumberOptions.map((option) => ({
+    ...option,
+    isDisabled: usedOptions.has(option.value),
+  }));
+  const optionsWithDisabled1 = poNumberOptions.map((option) => ({
+    ...option,
+    isDisabled: usedOptions.has(option.value),
+  }));
+
   return (
     <Fragment>
+      <section className="content-header">
+        <div className="container-fluid">
+          <div className="row mb-2">
+            <div className="col-sm-6">
+              <h1>{selectedData ? "Edit Purchase Invoice" : "Add Purchase Invoice"}</h1>
+            </div>
+            <div className="col-sm-6">
+              <ol className="breadcrumb float-sm-right">
+                <li className="breadcrumb-item">
+                  <a href="/">Home</a>
+                </li>
+                <li className="breadcrumb-item active">{selectedData ? "Edit Purchase Invoice" : "Add Purchase Invoice"}</li>
+              </ol>
+            </div>
+          </div>
+        </div>
+      </section>
+
       <section className="content">
         <Row>
           <Col md={12}>
@@ -3307,16 +3360,20 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
               <Card.Header className="d-flex justify-content-between align-items-center">
                 <Card.Title>General Information</Card.Title>
                 <div className="ml-auto">
-                  <Button
-                    variant="secondary"
-                    className="mr-2"
-                    onClick={() => {
-                      handleRefresh();
-                      setIsAddingNewPurchaseInvoice(false);
-                    }}
-                  >
-                    <i className="fas fa-arrow-left"></i> Go Back
-                  </Button>
+                  {setIsEditingPurchaseInvoice && (
+                    <>
+                      <Button
+                        variant="secondary"
+                        className="mr-2"
+                        onClick={() => {
+                          handleRefresh();
+                          setIsEditingPurchaseInvoice(false);
+                        }}
+                      >
+                        <i className="fas fa-arrow-left"></i> Go Back
+                      </Button>
+                    </>
+                  )}
                   <Button variant="primary" className="mr-2" onClick={handleSave}>
                     <i className="fas fa-save"></i> Save
                   </Button>
@@ -3743,7 +3800,7 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
                                       <Form.Group controlId="formPrNumber">
                                         <Select
                                           value={prNumberOptions.find((option) => option.value === item.doc_reff_no)}
-                                          options={prNumberOptions}
+                                          options={optionsWithDisabled}
                                           onChange={(selectedOption) => {
                                             handleItemChange(index, "doc_reff_no", selectedOption ? selectedOption.value : null);
                                             handlePrNumberChange(index, selectedOption);
@@ -3759,7 +3816,7 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
                                       <Form.Group controlId="formPoNumber">
                                         <Select
                                           value={poNumberOptions.find((option) => option.value === item.doc_reff_no)}
-                                          options={poNumberOptions}
+                                          options={optionsWithDisabled1}
                                           onChange={(selectedOption) => {
                                             handleItemChange(index, "doc_reff_no", selectedOption ? selectedOption.value : null);
                                             handlePoNumberChange(index, selectedOption);
@@ -4368,7 +4425,7 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
 
         <Row className="mt-4">
           <Col md={12} className="d-flex justify-content-end">
-            <Button
+            {/* <Button
               variant="secondary"
               className="mr-2"
               onClick={() => {
@@ -4377,7 +4434,7 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
               }}
             >
               <i className="fas fa-arrow-left"></i>Go Back
-            </Button>
+            </Button> */}
             <Button variant="primary" className="mr-2" onClick={handleSave}>
               <i className="fas fa-save"></i> Save
             </Button>

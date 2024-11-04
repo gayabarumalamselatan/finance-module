@@ -1,5 +1,5 @@
 import React from 'react';// Import service yang Anda gunakan
-import InsertDataService from './InsertDataService';
+import InsertDataService from '../service/InsertDataService';
 
 const ActivityLogger = async ({
   userId,

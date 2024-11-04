@@ -8,7 +8,6 @@ import FormService from "../service/FormService";
 import PurchaseInvoiceTable from "../table/PurchaseInvoiceTable";
 import AddPurchaseInvoice from "../formComponents/AddPurchaseInvoice";
 
-
 const PurchaseInvoice = () => {
   const headers = getToken();
   const branchId = getBranch();
@@ -163,30 +162,32 @@ const PurchaseInvoice = () => {
 
   return (
     <Fragment>
-      <section className="content-header">
-        <div className="container-fluid">
-          <div className="row mb-2">
-            <div className="col-sm-6">
-              <h1>Purchase Invoice</h1>
-            </div>
-            <div className="col-sm-6">
-              <ol className="breadcrumb float-sm-right">
-                <li className="breadcrumb-item">
-                  <a href="/">Home</a>
-                </li>
-                <li className="breadcrumb-item active">Purchase Invoice</li>
-              </ol>
+      {!isEditingPurchaseInvoice && (
+        <section className="content-header">
+          <div className="container-fluid">
+            <div className="row mb-2">
+              <div className="col-sm-6">
+                <h1>Purchase Invoice</h1>
+              </div>
+              <div className="col-sm-6">
+                <ol className="breadcrumb float-sm-right">
+                  <li className="breadcrumb-item">
+                    <a href="/">Home</a>
+                  </li>
+                  <li className="breadcrumb-item active">Purchase Invoice</li>
+                </ol>
+              </div>
             </div>
           </div>
-        </div>
-      </section>
+        </section>
+      )}
       <section className="content">
         {isAddingNewPurchaseInvoice ? (
           <div>
             <AddPurchaseInvoice setIsAddingNewPurchaseInvoice={setIsAddingNewPurchaseInvoice} handleRefresh={handleRefresh} />
           </div>
         ) : isEditingPurchaseInvoice ? (
-          <AddPurchaseInvoice setIsAddingNewPurchaseInvoice={setIsEditingPurchaseInvoice} handleRefresh={handleRefresh} selectedData={selectedData} />
+          <AddPurchaseInvoice setIsEditingPurchaseInvoice={setIsEditingPurchaseInvoice} handleRefresh={handleRefresh} selectedData={selectedData} />
         ) : (
           <PurchaseInvoiceTable
             formCode={formCode}
