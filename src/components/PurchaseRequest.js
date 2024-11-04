@@ -181,6 +181,7 @@ const PurchaseRequest = () => {
 
     return (
         <Fragment>
+            {!isEditingPurchaseRequest && (
             <section className="content-header">
                 <div className="container-fluid">
                     <div className="row mb-2">
@@ -200,6 +201,7 @@ const PurchaseRequest = () => {
                     </div>
                 </div>
             </section>
+             )}
             <section className="content">
                 {isAddingNewPurchaseRequest ? (
                     <div>

@@ -55,6 +55,7 @@ const AddPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, select
   // const [selectedCustomer, setSelectedCustomer] = useState(null);
   const [vendorOptions, setVendorOptions] = useState([]);
   const [selectedVendor, setSelectedVendor] = useState(null);
+  const [buttonAfterSubmit, setButtonAfterSubmit] = useState(false);
 
 
   const authToken = headers;
@@ -714,16 +715,14 @@ const AddPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, select
     // setSelectedCustomer(null);
   };
 
-
-
   const handleSave = async (event) => {
     event.preventDefault();
 
     if (schedule_date !== due_date && (!description || description.trim() === '')) {
       messageAlertSwal('Warning', 'Description is required !!!', 'warning');
-      return; // Exit the function if validation fails
+      return;
     }
-    // Show SweetAlert2 confirmation
+
     const result = await Swal.fire({
       title: 'Are you sure?',
       text: "Do you want to save the Purchase Request?",
@@ -737,14 +736,14 @@ const AddPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, select
     if (result.isConfirmed) {
       setIsLoading(true);
       try {
-        const total_amount = calculateTotalAmount();
-        // Save general information and description
         const createBy = sessionStorage.getItem('userId');
-        const endtoendid = await generatePrNumber("PURC");
+        const total_amount = calculateTotalAmount();
+        const endtoendid = await generateEndtoEndId("PURC");
+
         const generalInfo = {
           pr_number,
           request_date,
-          schedule_date, // Converts to date format
+          schedule_date,
           doc_no,
           doc_reff,
           requestor,
@@ -757,29 +756,40 @@ const AddPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, select
           endtoendid
         };
 
-        console.log('Master', generalInfo);
+        // Check if pr_number exists in API
+        const lookupResponse = await LookupService.fetchLookupData(
+          `PURC_FORMPUREQ&filterBy=pr_number&filterValue=${pr_number}&operation=EQUAL`,
+          authToken,
+          branchId
+        );
 
-        const response = await InsertDataService.postData(generalInfo, "PUREQ", authToken, branchId);
-        console.log('Data posted successfully:', response);
+        if (lookupResponse.data.length > 0) {
+          // pr_number exists, handle as edit
+          console.log("PR number exists, updating data...");
+          const id = lookupResponse.data[0].ID;
 
-        if (response.message === "insert Data Successfully") {
-          // Iterate over items array and post each item individually
-          for (const item of items) {
-            const updatedItem = {
-              ...item,
-              pr_number
-            };
+          const response = await UpdateDataService.postData(generalInfo, `PUREQ&column=id&value=${id}`, authToken, branchId);
+          console.log('Data updated successfully:', response);
 
-            const itemResponse = await InsertDataService.postData(updatedItem, "PUREQD", authToken, branchId);
-            console.log('Item posted successfully:', itemResponse);
+
+          if (response.message === "Update Data Successfully") {
+            await handleItemsUpdate(pr_number);
+            messageAlertSwal('Success', response.message, 'success');
+            // resetForm();
           }
 
-          //Set status workflow VERIFIED
+        } else {
+          // pr_number does not exist, handle as new save
+          console.log("PR number does not exist, creating new data...");
+          const response = await InsertDataService.postData(generalInfo, "PUREQ", authToken, branchId);
+          console.log('Data posted successfully:', response);
+
           LookupService.fetchLookupData(`PURC_FORMPUREQ&filterBy=endtoendid&filterValue=${endtoendid}&operation=EQUAL`, authToken, branchId)
             .then(response => {
               const data = response.data[0];
               console.log('Data:', data);
 
+              // Check if data exists
               const requestData = {
                 idTrx: data.ID, // Menggunakan ID dari data terpilih
                 status: "DRAFT", // Ganti dengan nilai status yang sesuai, atau sesuaikan sesuai kebutuhan
@@ -797,49 +807,16 @@ const AddPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, select
               console.error('Failed to load purchase request data:', error);
             });
 
-            LookupService.fetchLookupData(`PURC_FORMPUREQ&filterBy=endtoendid&filterValue=${endtoendid}&operation=EQUAL`, authToken, branchId)
-          .then(response => {
-            const data = response.data[0];
-            console.log('Data:', data);
+          console.log('Data posted successfully:', response);
 
-            // Check if data exists
-
-            if (data.status === "PENDING") {
-              const requestData = {
-                idTrx: data.ID, // Menggunakan ID dari data terpilih
-                status: "DRAFT", // Ganti dengan nilai status yang sesuai, atau sesuaikan sesuai kebutuhan
-              };
-              UpdateStatusService.postData(requestData, "PUREQ", authToken, branchId)
-                .then(response => {
-                  console.log('Data updated successfully:', response);
-                })
-                .catch(error => {
-                  console.error('Failed to update data:', error);
-                });
-            }
-          })
-          .catch(error => {
-            console.error('Failed to load purchase request data:', error);
-          });
-          //Activity Logs Success
-          await ActivityLogger({
-            userId: idUser,
-            userName: createBy,
-            action: 'SAVE',
-            description: `Saved Purchase Request ${pr_number}`,
-            entityName: 'PURC',
-            entityId: endtoendid,
-            status: 'SUCCESS',
-            authToken,
-            branchId
-          });
-
-          messageAlertSwal('Success', response.message, 'success');
-          // resetForm();
+          if (response.message === "insert Data Successfully") {
+            await handleItemsInsert(pr_number);
+            messageAlertSwal('Success', response.message, 'success');
+            // resetForm();
+          }
         }
-      } catch (err) {
-        console.error(err);
-        //Activity Logs Success
+
+        // Log activity
         await ActivityLogger({
           userId: idUser,
           userName: createBy,
@@ -847,29 +824,86 @@ const AddPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, select
           description: `Saved Purchase Request ${pr_number}`,
           entityName: 'PURC',
           entityId: endtoendid,
+          status: 'SUCCESS',
+          authToken,
+          branchId
+        });
+
+      } catch (err) {
+        console.error(err);
+        await ActivityLogger({
+          userId: idUser,
+          userName: createBy,
+          action: 'SAVE',
+          description: `Failed to save Purchase Request ${pr_number}`,
+          entityName: 'PURC',
+          entityId: endtoendid,
           status: 'FAILED',
           authToken,
           branchId
         });
-        setIsLoading(false);
         messageAlertSwal('Error', err.message, 'error');
       } finally {
-        setIsLoading(false); // Set loading state back to false after completion
+        setIsLoading(false);
       }
     } else {
       console.log('Form submission was canceled.');
     }
   };
 
+  const handleItemsUpdate = async (pr_number) => {
+    try {
+      // Fetch the ID using the pr_number
+      const lookupResponse = await LookupService.fetchLookupData(
+        `PURC_FORMPUREQD&filterBy=pr_number&filterValue=${pr_number}&operation=EQUAL`,
+        authToken,
+        branchId
+      );
+
+      const ids = lookupResponse.data.map(item => item.ID); // Dapatkan semua ID dari respons array
+      console.log('IDs to delete:', ids);
+
+      // Delete each item based on fetched IDs
+      for (const id of ids) {
+        try {
+          await DeleteDataService.postData(`column=id&value=${id}`, "PUREQD", authToken, branchId);
+          console.log('Item deleted successfully:', id);
+        } catch (error) {
+          console.error('Error deleting item:', id, error);
+        }
+      }
+
+      // Insert updated items with the fetched ID
+      for (const item of items) {
+        const { rwnum, ID, status, id_trx, ...rest } = item;
+        const updatedItem = { ...rest, pr_number };
+        await InsertDataService.postData(updatedItem, "PUREQD", authToken, branchId);
+        console.log('Item inserted successfully:', updatedItem);
+      }
+
+    } catch (error) {
+      console.error('Error in handleItemsUpdate:', error);
+    }
+  };
+  // Helper function for inserting new items
+  const handleItemsInsert = async (pr_number) => {
+    for (const item of items) {
+      const updatedItem = { ...item, pr_number };
+      await InsertDataService.postData(updatedItem, "PUREQD", authToken, branchId);
+      console.log('Item posted successfully:', updatedItem);
+    }
+  };
+
   const handleSubmit = async (event) => {
     event.preventDefault();
 
+    console.log('Form submitted:', pr_number);
+
     if (schedule_date !== due_date && (!description || description.trim() === '')) {
       messageAlertSwal('Warning', 'Description is required !!!', 'warning');
-      return; // Exit the function if validation fails
+      return;
     }
 
-    // Show SweetAlert2 confirmation
     const result = await Swal.fire({
       title: 'Are you sure?',
       text: "Do you want to submit the Purchase Request?",
@@ -883,90 +917,109 @@ const AddPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, select
     if (result.isConfirmed) {
       setIsLoading(true);
       try {
-        const pr_number = await generatePrNumber("PR");
-        const endtoendid = await generatePrNumber("PURC");
-
-        console.log('pr_number', pr_number);
-
         const total_amount = calculateTotalAmount();
-        // Save general information and description
-        const createBy = sessionStorage.getItem('userId');
-        const generalInfo = {
-          pr_number,
-          request_date,
-          schedule_date, // Converts to date format
-          doc_no,
-          doc_reff,
-          requestor,
-          payment_term,
-          description,
-          company,
-          total_amount,
-          status_request: 'IN_PROCESS',
-          due_date,
-          endtoendid
-        };
 
-        console.log('Master', generalInfo);
+        // Check if pr_number exists
+        const lookupResponse = await LookupService.fetchLookupData(
+          `PURC_FORMPUREQ&filterBy=pr_number&filterValue=${pr_number}&operation=EQUAL`,
+          authToken,
+          branchId
+        );
 
-        const response = await InsertDataService.postData(generalInfo, "PUREQ", authToken, branchId);
-        console.log('Data posted successfully:', response);
 
-        if (response.message === "insert Data Successfully") {
-          // Iterate over items array and post each item individually
-          for (const item of items) {
-            const updatedItem = {
-              ...item,
-              pr_number
-            };
-
-            const itemResponse = await InsertDataService.postData(updatedItem, "PUREQD", authToken, branchId);
-            console.log('Item posted successfully:', itemResponse);
+        if (lookupResponse.data.length > 0) {
+          // pr_number exists, handle as edit
+          if (pr_number.startsWith('DRAFT_PR')) {
+            console.log("Draft PR number detected, generating a new PR number...");
+            const newPrNumber = await generatePrNumber('PR');
+            console.log("New PR number generated:", newPrNumber);
+            setPrNumber(newPrNumber);
           }
-          //Set status workflow VERIFIED
-          //   LookupService.fetchLookupData(`PURC_FORMPUREQ&filterBy=endtoendid&filterValue=${endtoendid}&operation=EQUAL`, authToken, branchId)
-          // .then(response => {
-          //   const data = response.data[0];
-          //   console.log('Data:', data);
 
-          //   const requestData = {
-          //     idTrx: data.ID, // Menggunakan ID dari data terpilih
-          //     status: "PENDING", // Ganti dengan nilai status yang sesuai, atau sesuaikan sesuai kebutuhan
-          //   };
-          //   UpdateStatusService.postData(requestData, "PUREQ", authToken, branchId)
-          //     .then(response => {
-          //       console.log('Data updated successfully:', response);
-          //     })
-          //     .catch(error => {
-          //       console.error('Failed to update data:', error);
-          //     });
+          console.log("PR number exists, updating data...", pr_number);
 
-          // })
-          // .catch(error => {
-          //   console.error('Failed to load purchase request data:', error);
-          // });
+          const id = lookupResponse.data[0].ID;
+          const generalInfo = {
+            pr_number,
+            request_date,
+            schedule_date,
+            doc_no,
+            doc_reff,
+            requestor,
+            payment_term,
+            description,
+            company,
+            total_amount,
+            status_request: 'IN_PROCESS',
+            due_date,
+            endtoendid
+          };
 
+          const response = await UpdateDataService.postData(generalInfo, `PUREQ&column=id&value=${id}`, authToken, branchId);
 
-          await ActivityLogger({
-            userId: idUser,
-            userName: createBy,
-            action: 'SUBMIT',
-            description: `Submit Purchase Request ${pr_number}`,
-            entityName: 'PURC',
-            entityId: endtoendid,
-            status: 'SUCCESS',
-            authToken,
-            branchId
-          });
-          messageAlertSwal('Success', response.message, 'success');
-          resetForm();
+          const endtoendidLookupResponse = await LookupService.fetchLookupData(`PURC_FORMPUREQ&filterBy=endtoendid&filterValue=${endtoendid}&operation=EQUAL`, authToken, branchId);
+
+          if (endtoendidLookupResponse.data[0]?.status === "DRAFT") {
+            const requestData = {
+              idTrx: endtoendidLookupResponse.data[0].ID,
+              status: "PENDING",
+            };
+            await UpdateStatusService.postData(requestData, "PUREQ", authToken, branchId);
+          }
+
+          if (response.message === "Update Data Successfully") {
+            await handleItemsUpdate(pr_number);
+            messageAlertSwal('Success', response.message, 'success');
+          }
+        } else {
+          // pr_number does not exist, handle as new save
+
+          let endtoendid = '';
+          const newPrNumber = await generatePrNumber('PR');
+          setPrNumber(newPrNumber);
+          endtoendid = await generateEndtoEndId("PURC");
+
+          const generalInfo = {
+            pr_number: newPrNumber,
+            request_date,
+            schedule_date,
+            doc_no,
+            doc_reff,
+            requestor,
+            payment_term,
+            description,
+            company,
+            total_amount,
+            status_request: 'IN_PROCESS',
+            due_date,
+            endtoendid
+          };
+
+          const response = await InsertDataService.postData(generalInfo, "PUREQ", authToken, branchId);
+
+          if (response.message === "insert Data Successfully") {
+            await handleItemsInsert(newPrNumber);
+            messageAlertSwal('Success', response.message, 'success');
+          }
         }
+
+        await ActivityLogger({
+          userId: idUser,
+          userName: sessionStorage.getItem('userId'),
+          action: 'SUBMIT',
+          description: `Submit Purchase Request ${pr_number}`,
+          entityName: 'PURC',
+          entityId: endtoendid,
+          status: 'SUCCESS',
+          authToken,
+          branchId
+        });
       } catch (err) {
         console.error(err);
         setIsLoading(false);
         await ActivityLogger({
           userId: idUser,
-          userName: createBy,
+          userName: sessionStorage.getItem('userId'),
           action: 'SUBMIT',
           description: `Submit Purchase Request ${pr_number}`,
           entityName: 'PURC',
@@ -977,16 +1030,30 @@ const AddPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, select
         });
         messageAlertSwal('Error', err.message, 'error');
       } finally {
-        setIsLoading(false); // Set loading state back to false after completion
+        setIsLoading(false);
       }
     } else {
       console.log('Form submission was canceled.');
     }
   };
+
+
+
   const generatePrNumber = async (code) => {
     try {
       const uniquePrNumber = await generateUniqueId(`${GENERATED_NUMBER}?code=${code}`, authToken);
       setPrNumber(uniquePrNumber); // Updates state, if needed elsewhere in your component
+      return uniquePrNumber; // Return the generated PR number for further use
+    } catch (error) {
+      console.error('Failed to generate PR Number:', error);
+      throw error; // Rethrow the error for proper handling in the calling function
+    }
+  };
+
+  const generateEndtoEndId = async (code) => {
+    try {
+      const uniquePrNumber = await generateUniqueId(`${GENERATED_NUMBER}?code=${code}`, authToken);
+      setEntoendid(uniquePrNumber); // Updates state, if needed elsewhere in your component
       return uniquePrNumber; // Return the generated PR number for further use
     } catch (error) {
       console.error('Failed to generate PR Number:', error);
@@ -1207,30 +1274,29 @@ const AddPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, select
           }
 
           //Set status workflow VERIFIED
-            LookupService.fetchLookupData(`PURC_FORMPUREQ&filterBy=endtoendid&filterValue=${endtoendid}&operation=EQUAL`, authToken, branchId)
-          .then(response => {
-            const data = response.data[0];
-            console.log('Data:', data);
+          LookupService.fetchLookupData(`PURC_FORMPUREQ&filterBy=endtoendid&filterValue=${endtoendid}&operation=EQUAL`, authToken, branchId)
+            .then(response => {
+              const data = response.data[0];
+              console.log('Data:', data);
 
-            // Check if data exists
-
-            if (data.status === "DRAFT") {
-              const requestData = {
-                idTrx: data.ID, // Menggunakan ID dari data terpilih
-                status: "PENDING", // Ganti dengan nilai status yang sesuai, atau sesuaikan sesuai kebutuhan
-              };
-              UpdateStatusService.postData(requestData, "PUREQ", authToken, branchId)
-                .then(response => {
-                  console.log('Data updated successfully:', response);
-                })
-                .catch(error => {
-                  console.error('Failed to update data:', error);
-                });
-            }
-          })
-          .catch(error => {
-            console.error('Failed to load purchase request data:', error);
-          });
+              // Check if data exists
+              if (data.status === "DRAFT") {
+                const requestData = {
+                  idTrx: data.ID, // Menggunakan ID dari data terpilih
+                  status: "PENDING", // Ganti dengan nilai status yang sesuai, atau sesuaikan sesuai kebutuhan
+                };
+                UpdateStatusService.postData(requestData, "PUREQ", authToken, branchId)
+                  .then(response => {
+                    console.log('Data updated successfully:', response);
+                  })
+                  .catch(error => {
+                    console.error('Failed to update data:', error);
+                  });
+              }
+            })
+            .catch(error => {
+              console.error('Failed to load purchase request data:', error);
+            });
 
           // Show success message and reset form
           messageAlertSwal('Success', response.message, 'success');
@@ -1258,7 +1324,7 @@ const AddPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, select
         <div className="container-fluid">
           <div className="row mb-2">
             <div className="col-sm-6">
-              <h1>Add Purchase Request</h1>
+              <h1>{selectedData ? "Edit Purchase Request" : "Add Purchase Request"}</h1>
             </div>
             <div className="col-sm-6">
               <ol className="breadcrumb float-sm-right">
@@ -1266,13 +1332,14 @@ const AddPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, select
                   <a href="/">Home</a>
                 </li>
                 <li className="breadcrumb-item active">
-                  Add Purchase Request
+                  {selectedData ? "Edit Purchase Request" : "Add Purchase Request"}
                 </li>
               </ol>
             </div>
           </div>
         </div>
       </section>
+
 
       <section className="content">
 
@@ -1296,11 +1363,12 @@ const AddPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, select
                       </Button>
                     </>
                   )}
-                  <Button variant="primary" className="mr-2" onClick={handleSave}>
-                    <i className="fas fa-save"></i> Save
+
+                  <Button variant="primary" className="mr-2" onClick={setIsEditingPurchaseRequest ? handleEditSave : handleSave}>
+                    <i className="fas fa-save"></i> {setIsEditingPurchaseRequest ? 'Save Changes' : 'Save'}
                   </Button>
-                  <Button variant="primary" onClick={handleSubmit}>
-                    <i className="fas fa-check"></i> Submit
+                  <Button variant="primary" onClick={setIsEditingPurchaseRequest ? handleEditSubmit : handleSubmit}>
+                    <i className="fas fa-check"></i> {setIsEditingPurchaseRequest ? 'Submit Changes' : 'Submit'}
                   </Button>
                 </div>
               </Card.Header>
