@@ -1,24 +1,26 @@
-  import React, { Fragment, useEffect, useState } from 'react';
-  import { Button, Col, Form, InputGroup, Row, Card } from 'react-bootstrap';
-  import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd';
-  import Swal from 'sweetalert2';
-  import { messageAlertSwal } from "../config/Swal";
-  import InsertDataService from '../service/InsertDataService';
-  import { getBranch, getToken, userLoggin } from '../config/Constant';
-  import { DOWNLOAD_FILES, FORM_SERVICE_UPDATE_DATA, GENERATED_NUMBER, UPLOAD_FILES } from '../config/ConfigUrl';
-  import { generateUniqueId } from '../service/GeneratedId';
-  import Select from 'react-select';
-  import LookupParamService from '../service/LookupParamService';
-  import LookupService from '../service/LookupService';
-  import UpdateStatusService from '../service/UpdateStatusService';
-  import CreatableSelect from 'react-select/creatable';
-  import axios from 'axios';
+import React, { Fragment, useEffect, useState } from 'react';
+import { Button, Col, Form, InputGroup, Row, Card } from 'react-bootstrap';
+import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd';
+import Swal from 'sweetalert2';
+import { messageAlertSwal } from "../config/Swal";
+import InsertDataService from '../service/InsertDataService';
+import { getBranch, getToken, userLoggin } from '../config/Constant';
+import { DOWNLOAD_FILES, FORM_SERVICE_UPDATE_DATA, GENERATED_NUMBER, UPLOAD_FILES } from '../config/ConfigUrl';
+import { generateUniqueId } from '../service/GeneratedId';
+import Select from 'react-select';
+import LookupParamService from '../service/LookupParamService';
+import LookupService from '../service/LookupService';
+import UpdateStatusService from '../service/UpdateStatusService';
+import CreatableSelect from 'react-select/creatable';
+import axios from 'axios';
 import UpdateDataService from '../service/UpdateDataService';
 import DeleteDataService from '../service/DeleteDataService';
 
   const AddPurchaseOrder = ({ 
     setIsAddingNewPurchaseOrder, 
     setIsEditingPurchaseOrder,
+    isEditingPurchaseOrder,
+    isAddingNewPurchaseOrder,
     selectedData,
     handleRefresh,
     index, 
@@ -152,7 +154,7 @@ import DeleteDataService from '../service/DeleteDataService';
         });
 
         // Lookup vendor to dan to address
-        LookupParamService.fetchLookupData("MSDT_FORMCUST", authToken, branchId)
+        LookupParamService.fetchLookupDataView("MSDT_FORMCUST", authToken, branchId)
         .then(data => {
           console.log('Currency lookup data:', data);
 
@@ -244,7 +246,7 @@ import DeleteDataService from '../service/DeleteDataService';
       
 
       // Lookup Department
-      LookupParamService.fetchLookupData("MSDT_FORMDPRT", authToken, branchId)
+      LookupParamService.fetchLookupDataView("MSDT_FORMDPRT", authToken, branchId)
       .then(data => {
         console.log('Currency lookup data:', data);
 
@@ -267,11 +269,11 @@ import DeleteDataService from '../service/DeleteDataService';
       }).catch(error => {
         console.error('Failed to fetch currency lookup:', error);
       });
-
+      
 
 
       // Lookup Tax Type
-      LookupParamService.fetchLookupData("MSDT_FORMTAX", authToken, branchId)
+      LookupParamService.fetchLookupDataView("MSDT_FORMTAX", authToken, branchId)
       .then(data => {
         console.log('Currency lookup data:', data);
 
@@ -304,7 +306,7 @@ import DeleteDataService from '../service/DeleteDataService';
 
 
       // Lookup Currency
-      LookupParamService.fetchLookupData("MSDT_FORMCCY", authToken, branchId)
+      LookupParamService.fetchLookupDataView("MSDT_FORMCCY", authToken, branchId)
       .then(data => {
         console.log('Currency lookup data:', data);
 
@@ -328,7 +330,7 @@ import DeleteDataService from '../service/DeleteDataService';
 
 
       // Lookup Vendor
-      LookupParamService.fetchLookupData("MSDT_FORMCUST", authToken, branchId)
+      LookupParamService.fetchLookupDataView("MSDT_FORMCUST", authToken, branchId)
       .then(data => {
         console.log('Currency lookup data:', data);
 
@@ -369,7 +371,7 @@ import DeleteDataService from '../service/DeleteDataService';
 
 
       // Lookup Project
-      LookupParamService.fetchLookupData("MSDT_FORMPRJT", authToken, branchId)
+      LookupParamService.fetchLookupDataView("MSDT_FORMPRJT", authToken, branchId)
       .then(data => {
         console.log('Currency lookup data:', data);
 
@@ -407,7 +409,7 @@ import DeleteDataService from '../service/DeleteDataService';
         
 
       // Lookup Product
-      LookupParamService.fetchLookupData("MSDT_FORMPRDT", authToken, branchId)
+      LookupParamService.fetchLookupDataView("MSDT_FORMPRDT", authToken, branchId)
       .then(data => {
         console.log('Currency lookup data:', data);
 
@@ -459,16 +461,17 @@ import DeleteDataService from '../service/DeleteDataService';
         LookupService.fetchLookupData(`PURC_FORMPUREQD&filterBy=PR_NUMBER&filterValue=${selectedOption.value}&operation=EQUAL`, authToken, branchId)
         .then(response => {
           const fetchedItems = response.data || [];
-          console.log('Items fetched:', fetchedItems);
+          console.log('Itemd fetched:', response.data);
+          dynamicFormWidth(response.data[0].unit_price.toString()+5, index);
 
           // Lookup PR
-          LookupService.fetchLookupData(`PURC_FORMPUREQ&filterBy=PR_NUMBER&filterValue=${selectedOption.value}&operation=EQUAL`, authToken, branchId)
+          LookupParamService.fetchLookupDataView(`PURC_FORMPUREQ&filterBy=PR_NUMBER&filterValue=${selectedOption.value}&operation=EQUAL`, authToken, branchId)
           .then(response => {
             const fetchedDatas = response.data || [];
             console.log('Items fetched:', fetchedDatas);
           
             // Fetch product lookup data
-            LookupParamService.fetchLookupData("MSDT_FORMPRDT", authToken, branchId)
+            LookupParamService.fetchLookupDataView("MSDT_FORMPRDT", authToken, branchId)
             .then(productData => {
               console.log('Product lookup data:', productData);
 
@@ -490,7 +493,7 @@ import DeleteDataService from '../service/DeleteDataService';
             
 
             // Fetch currency lookup data
-            LookupParamService.fetchLookupData("MSDT_FORMCCY", authToken, branchId)
+            LookupParamService.fetchLookupDataView("MSDT_FORMCCY", authToken, branchId)
             .then(currencyData => {
               console.log('Currency lookup data:', currencyData);
 
@@ -820,6 +823,10 @@ import DeleteDataService from '../service/DeleteDataService';
             console.log("endtoendId is not empty");
           }
           
+          const checkDataResponse = await LookupService.fetchLookupData(`PURC_FORMPUOR&filterBy=po_number&filterValue=${po_number}&operation=EQUAL`, authToken, branchId);
+          const existingData = checkDataResponse.data;
+          console.log('sda', existingData[0]?.po_number);
+
 
           const { subtotalAfterDiscount, totalPPNAmount, subtotalBeforeDiscount, totalAmount} = calculateTotalAmount();
 
@@ -856,15 +863,38 @@ import DeleteDataService from '../service/DeleteDataService';
           if(selectedData) {
             const id = selectedData[0].ID;
             response = await UpdateDataService.postData(generalInfo, `PUOR&column=id&value=${id}`, authToken, branchId);
-          }else{
+          } else if (existingData && existingData.length > 0) {
+            const ida = existingData[0].ID;
+            response = await UpdateDataService.postData(generalInfo, `PUOR&column=id&value=${ida}  `, authToken, branchId);
+          } else{
             response = await InsertDataService.postData(generalInfo, "PUOR", authToken, branchId);
           }
 
           console.log('Data posted successfully:', response);
-
+          
           if (response.message === "Update Data Successfully") {
-            // Iterate over items array and attempt to delete each item
-            for (const item of items) {
+            if(existingData && existingData.length > 0) {
+              const poNum = existingData[0].po_number;
+              const lookupResponse = await LookupService.fetchLookupData(
+                `PURC_FORMPUORD&filterBy=po_number&filterValue=${poNum}&operation=EQUAL`,
+                authToken,
+                branchId
+              );
+        
+              const ids = lookupResponse.data.map(item => item.ID); // Dapatkan semua ID dari respons array
+              console.log('IDs to delete:', ids);
+        
+              // Delete each item based on fetched IDs
+              for (const id of ids) {
+                try {
+                  await DeleteDataService.postData(`column=id&value=${id}`, "PUORD", authToken, branchId);
+                  console.log('Item deleted successfully:', id);
+                } catch (error) {
+                  console.error('Error deleting item:', id, error);
+                }
+              }
+            }else{
+              for (const item of items) {
                 if (item.ID) {
                     const itemId = item.ID;
                     try {
@@ -876,6 +906,7 @@ import DeleteDataService from '../service/DeleteDataService';
                 } else {
                     console.log('No ID found, skipping delete for this item:', item);
                 }
+              }
             }
 
             // After deletion, insert updated items
@@ -909,9 +940,9 @@ import DeleteDataService from '../service/DeleteDataService';
 
             // Show success message and reset form
             messageAlertSwal('Success', response.message, 'success');
-            resetForm();
-            handleRefresh();
-            setIsAddingNewPurchaseOrder(false);
+            // resetForm();
+            // handleRefresh();
+            // setIsAddingNewPurchaseOrder(false);
         }
 
           if (response.message === "insert Data Successfully") {
@@ -991,7 +1022,7 @@ import DeleteDataService from '../service/DeleteDataService';
 
             }
             messageAlertSwal('Success', response.message, 'success');
-            resetForm();
+            // resetForm();
           }
         } catch (err) {
           console.error(err);
@@ -1126,12 +1157,32 @@ import DeleteDataService from '../service/DeleteDataService';
               }
             }
 
+            //Set status workflow VERIFIED
+              LookupService.fetchLookupData(`PURC_FORMPUOR&filterBy=endtoendid&filterValue=${endToEndId}&operation=EQUAL`, authToken, branchId)
+              .then(response => {
+                const data = response.data[0];
+                console.log('Data:', data);
+
+                const requestData = {
+                  idTrx: data.ID, 
+                  status: "IN_PROCESS", // Ganti dengan nilai status yang sesuai, atau sesuaikan sesuai kebutuhan
+                };
+                UpdateStatusService.postData(requestData, "PUOR", authToken, branchId)
+                  .then(response => {
+                    console.log('Data updated successfully:', response);
+                  })
+                  .catch(error => {
+                    console.error('Failed to update data:', error);
+                  });
+
+              })
+              .catch(error => {
+                console.error('Failed to load purchase request data:', error);
+              });
+
             // Show success message and reset form
             messageAlertSwal('Success', response.message, 'success');
-            resetForm();
-            handleRefresh();
-            setIsAddingNewPurchaseOrder(false);
-            }
+          }
         
           if (response.message === "insert Data Successfully") {
             // Iterate over items array and post each item individually
@@ -1172,6 +1223,29 @@ import DeleteDataService from '../service/DeleteDataService';
                 await updatePRStatus;
               };
             }
+
+            //Set status workflow VERIFIED
+            LookupService.fetchLookupData(`PURC_FORMPUOR&filterBy=endtoendid&filterValue=${endToEndId}&operation=EQUAL`, authToken, branchId)
+            .then(response => {
+              const data = response.data[0];
+              console.log('Data:', data);
+
+              const requestData = {
+                idTrx: data.ID, 
+                status: "IN_PROCESS", 
+              };
+              UpdateStatusService.postData(requestData, "PUOR", authToken, branchId)
+                .then(response => {
+                  console.log('Data updated successfully:', response);
+                })
+                .catch(error => {
+                  console.error('Failed to update data:', error);
+                });
+
+            })
+            .catch(error => {
+              console.error('Failed to load purchase request data:', error);
+            });
 
             messageAlertSwal('Success', response.message, 'success');
             resetForm();
@@ -1246,9 +1320,39 @@ import DeleteDataService from '../service/DeleteDataService';
       setIsAddFile(true);
     }
 
+    // Disabling used PR Number Logic
+    const usedOptions = new Set(items.map(item => item.doc_reff_no)); 
+    const optionsWithDisabled = PROptions.map(option => ({
+      ...option,
+      isDisabled: usedOptions.has(option.value) 
+    }));
 
     return (
       <Fragment>
+
+        {isEditingPurchaseOrder ? 
+          <></>
+          :
+          <section className="content-header">
+              <div className="container-fluid">
+                  <div className="row mb-2">
+                      <div className="col-sm-6">
+                          <h1>Add Purchase Order</h1>
+                      </div>
+                      <div className="col-sm-6">
+                          <ol className="breadcrumb float-sm-right">
+                              <li className="breadcrumb-item">
+                                  <a href="/">Home</a>
+                              </li>
+                              <li className="breadcrumb-item active">
+                                  Add Purchase Order
+                              </li>
+                          </ol>
+                      </div>
+                  </div>
+              </div>
+          </section>
+        }
 
         <section className="content">
 
@@ -1258,16 +1362,20 @@ import DeleteDataService from '../service/DeleteDataService';
                 <Card.Header className="d-flex justify-content-between align-items-center">
                   <Card.Title>General Information</Card.Title>
                   <div className="ml-auto">
-                    <Button
-                      variant="secondary"
-                      className="mr-2"
-                      onClick={() => {
-                        handleRefresh();
-                        setIsAddingNewPurchaseOrder(false);
-                      }}
-                    >
-                      <i className="fas fa-arrow-left"></i> Back
-                    </Button>
+                    {isEditingPurchaseOrder?
+                      <Button
+                        variant="secondary"
+                        className="mr-2"
+                        onClick={() => {
+                          handleRefresh();
+                          setIsAddingNewPurchaseOrder(false);
+                        }}
+                      >
+                        <i className="fas fa-arrow-left"></i> Back
+                      </Button>
+                      :
+                      <></>
+                    }
                     <Button variant="primary" className='mr-2' onClick={handleSave}>
                       <i className="fas fa-save"></i> Save
                     </Button>
@@ -1531,7 +1639,7 @@ import DeleteDataService from '../service/DeleteDataService';
                                       {docRef === 'purchaseRequest' ? 
                                         <Select 
                                           value={PROptions.find(option => option.value === item.doc_reff_no)}
-                                          options={PROptions}
+                                          options={optionsWithDisabled}
                                           onChange={(selectedOption) => {
                                             handleItemChange(index, 'doc_reff_no', selectedOption ? selectedOption.value : null);
                                             handlePRChange(index, selectedOption)
@@ -1768,7 +1876,7 @@ import DeleteDataService from '../service/DeleteDataService';
                                           value={item.unit_price !== undefined && item.unit_price !== null ? item.unit_price.toLocaleString('en-US') : 0}
                                           onChange={(e) => {
                                             const newPrice = parseFloat(e.target.value.replace(/[^\d.-]/g, '')) || 0;
-                                            dynamicFormWidth(e.target.value || item.unit_price , index);
+                                            dynamicFormWidth(e.target.value , index);
                                             handleItemChange(index, 'unit_price',  newPrice);
                                           }}
                                           style={{
@@ -1875,7 +1983,7 @@ import DeleteDataService from '../service/DeleteDataService';
                                           onChange={(e) => {
                                             const newTaxBase = parseFloat(e.target.value.replace(/[^\d.-]/g, '')) || 0;
                                             handleItemChange(index, 'tax_base', Math.max(0, newTaxBase));
-                                            dynamicFormWidth(e, index);
+                                            dynamicFormWidth(e.target.value, index);
                                           }}
                                         />
                                       :
@@ -1884,14 +1992,11 @@ import DeleteDataService from '../service/DeleteDataService';
                                           disabled
                                           style={{
                                             textAlign: 'right',
-                                            width: `${inputWidth[index] || 100}px`,
-                                            marginLeft: 'auto',  
                                             display: 'flex',
                                           }}
                                           value={item.tax_base !== undefined && item.tax_base !== null ? item.tax_base : 0}
                                           onChange={(e) => {
                                             handleItemChange(index, 'tax_base', Math.max(0, parseFloat(e.target.value) || 0))
-                                            dynamicFormWidth(e, index)
                                           }}
                                         />
                                       }
@@ -1934,7 +2039,7 @@ import DeleteDataService from '../service/DeleteDataService';
                                     onChange={(e) => {
                                       const newDiscount = parseFloat(e.target.value.replace(/[^\d.-]/g, '')) || 0;
                                       setDiscount(newDiscount);
-                                      dynamicFormWidth(e, index);
+                                      dynamicFormWidth(e.target.value, index);
                                       
                                     }}
                                     style={{
@@ -1972,7 +2077,7 @@ import DeleteDataService from '../service/DeleteDataService';
                                     }
                                     onChange={
                                       (e) => {
-                                        dynamicFormWidth(e, index);
+                                        dynamicFormWidth(e.target.value, index);
                                         const newItems = [...items];
                                         const totalPPNAmount = parseFloat(e.target.value.replace(/[^\d.-]/g, '')) || 0;
                                         newItems.forEach((item)=>{
@@ -2057,14 +2162,18 @@ import DeleteDataService from '../service/DeleteDataService';
 
           <Row className="mt-4">
             <Col md={12} className="d-flex justify-content-end">
-              <Button variant="secondary" className="mr-2"
-                onClick={() => {
-                  handleRefresh();
-                  setIsAddingNewPurchaseOrder(false);
-                }}
-              >
-                <i className="fas fa-arrow-left"></i> Back
-              </Button>
+              {isEditingPurchaseOrder?
+                <Button variant="secondary" className="mr-2"
+                  onClick={() => {
+                    handleRefresh();
+                    setIsAddingNewPurchaseOrder(false);
+                  }}
+                >
+                  <i className="fas fa-arrow-left"></i> Back
+                </Button> 
+                :
+                <></>
+              }
               <Button variant="primary" className='mr-2' onClick={handleSave}>
                 <i className="fas fa-save"></i> Save
               </Button>

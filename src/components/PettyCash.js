@@ -5,11 +5,11 @@ import axios from "axios";
 import { FORM_SERVICE_INSERT_DATA, FORM_SERVICE_LOAD_FIELD, FORM_SERVICE_REPORT_DATA_EXCEL, MM_SERVICE_LIST_FILE_TRADE, MM_SERVICE_LIST_JOURNAL } from "../config/ConfigUrl";
 import { HandleToUppercase } from "../utils/HandleToUpercase";
 import FormService from "../service/FormService";
-import PurchaseInvoiceTable from "../table/PurchaseInvoiceTable";
-import AddPurchaseInvoice from "../formComponents/AddPurchaseInvoice";
+import EditPettyCash from "../formComponents/EditPettyCash ";
+import AddPettyCash from "../formComponents/AddPettyCash";
+import PettyCashTable from "../table/PettyCashTable";
 
-
-const PurchaseInvoice = () => {
+const PettyCash = () => {
   const headers = getToken();
   const branchId = getBranch();
   const userId = userLoggin();
@@ -29,9 +29,15 @@ const PurchaseInvoice = () => {
   const [filterValue, setFilterValue] = useState("");
   const [filterOperation, setFilterOperation] = useState("");
 
-  const [isAddingNewPurchaseInvoice, setIsAddingNewPurchaseInvoice] = useState(false);
-  const [isViewingPurchaseInvoice, setIsViewingPurchaseInvoice] = useState(false);
-  const [isEditingPurchaseInvoice, setIsEditingPurchaseInvoice] = useState(false);
+  const [isAddingNewPettyCash, setIsAddingNewPettyCash] = useState(false);
+  //   const [isAddingNewPurchaseInvoice, setIsAddingNewPurchaseInvoice] = useState(false); //backup
+
+  const [isViewingPettyCash, setIsViewingPettyCash] = useState(false);
+  //   const [isViewingPurchaseInvoice, setIsViewingPurchaseInvoice] = useState(false); //backup
+
+  const [isEditingPettyCash, setIsEditingPettyCash] = useState(false);
+  //   const [isEditingPurchaseInvoice, setIsEditingPurchaseInvoice] = useState(false); //backup
+
   const [selectedData, setSelectedData] = useState([]);
 
   const permissionsString = sessionStorage.getItem("permisions");
@@ -39,14 +45,14 @@ const PurchaseInvoice = () => {
   // Parse the JSON string into a JavaScript object
   const permissions = JSON.parse(permissionsString);
 
-  const handleEditPurchaseInvoice = (value) => {
-    setIsEditingPurchaseInvoice(value);
+  const handleEditPettyCash = (value) => {
+    setIsEditingPettyCash(value);
   };
-  const handleViewPurchaseInvoice = (value) => {
-    setIsViewingPurchaseInvoice(value);
+  const handleViewPettyCash = (value) => {
+    setIsViewingPettyCash(value);
   };
-  const handleAddNewPurchaseInvoice = (value) => {
-    setIsAddingNewPurchaseInvoice(value);
+  const handleAddNewPettyCash = (value) => {
+    setIsAddingNewPettyCash(value);
   };
   const handleSelectData = (value) => {
     setSelectedData(value);
@@ -145,7 +151,7 @@ const PurchaseInvoice = () => {
   };
 
   const handleFilterSearch = ({ filterColumn, filterOperation, filterValue }) => {
-    console.log("filter Purchase Invoice list:", filterColumn, filterOperation, filterValue);
+    console.log("filter Petty Cash list:", filterColumn, filterOperation, filterValue);
     setFilterOperation(filterOperation);
     setfilterColumn(filterColumn);
     setFilterValue(filterValue);
@@ -167,28 +173,28 @@ const PurchaseInvoice = () => {
         <div className="container-fluid">
           <div className="row mb-2">
             <div className="col-sm-6">
-              <h1>Purchase Invoice</h1>
+              <h1>Petty Cash</h1>
             </div>
             <div className="col-sm-6">
               <ol className="breadcrumb float-sm-right">
                 <li className="breadcrumb-item">
                   <a href="/">Home</a>
                 </li>
-                <li className="breadcrumb-item active">Purchase Invoice</li>
+                <li className="breadcrumb-item active">Petty Cash</li>
               </ol>
             </div>
           </div>
         </div>
       </section>
       <section className="content">
-        {isAddingNewPurchaseInvoice ? (
+        {isAddingNewPettyCash ? (
           <div>
-            <AddPurchaseInvoice setIsAddingNewPurchaseInvoice={setIsAddingNewPurchaseInvoice} handleRefresh={handleRefresh} />
+            <AddPettyCash setIsAddingNewPettyCash={setIsAddingNewPettyCash} handleRefresh={handleRefresh} />
           </div>
-        ) : isEditingPurchaseInvoice ? (
-          <AddPurchaseInvoice setIsAddingNewPurchaseInvoice={setIsEditingPurchaseInvoice} handleRefresh={handleRefresh} selectedData={selectedData} />
+        ) : isEditingPettyCash ? (
+          <EditPettyCash setIsEditingPettyCash={setIsEditingPettyCash} handleRefresh={handleRefresh} selectedData={selectedData} />
         ) : (
-          <PurchaseInvoiceTable
+          <PettyCashTable
             formCode={formCode}
             dataTable={dataTable}
             totalItems={totalItems}
@@ -203,11 +209,11 @@ const PurchaseInvoice = () => {
             branchId={branchId}
             authToken={authToken}
             handleSelectData={handleSelectData}
-            handleEditPurchaseInvoice={handleEditPurchaseInvoice}
-            isAddingNewPurchaseInvoice={handleAddNewPurchaseInvoice}
-            EditPurchaseInvoice={handleEditPurchaseInvoice}
+            handleEditPettyCash={handleEditPettyCash}
+            isAddingNewPettyCash={handleAddNewPettyCash}
+            EditPettyCash={handleEditPettyCash}
             selectedData={handleSelectData}
-            checker={permissions.Purchase?.["Purchase Invoice"].verify}
+            checker={permissions.Petty?.["Purchase Invoice"].verify}
           />
         )}
 
@@ -221,4 +227,4 @@ const PurchaseInvoice = () => {
   );
 };
 
-export default PurchaseInvoice;
+export default PettyCash;

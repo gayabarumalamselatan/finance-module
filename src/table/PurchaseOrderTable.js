@@ -384,9 +384,9 @@ const PurchaseOrderTable = ({
                                 <button type="button" className="btn btn-default" onClick={handleRefresh}>
                                     <FaSyncAlt />
                                 </button>
-                                <button type="button" className="btn btn-default" onClick={handleAddNewPurchaseOrder}>
+                                {/* <button type="button" className="btn btn-default" onClick={handleAddNewPurchaseOrder}>
                                     <FaAddressBook /> Add New
-                                </button>
+                                </button> */}
                                 {selectedRows.size > 0 && (
                                     <>
                                         <button type="button" className="btn btn-default" onClick={handleEditPurchaseOrder}>
