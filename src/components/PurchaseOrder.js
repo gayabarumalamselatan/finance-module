@@ -6,9 +6,7 @@ import { FORM_SERVICE_INSERT_DATA, FORM_SERVICE_LOAD_FIELD, FORM_SERVICE_REPORT_
 import { HandleToUppercase } from "../utils/HandleToUpercase";
 import FormService from "../service/FormService";
 import PurchaseOrderTable from "../table/PurchaseOrderTable"
-import AddPurchaseRequest from "./AddPurchaseRequest";
-import EditPurchaseOrder from "./EditPurchaseOrder";
-import AddPurchaseOrder from "./AddPurchaseOrder";
+import AddPurchaseOrder from "../formComponents/AddPurchaseOrder";
 
 const PurchaseOrder = () => {
     const headers = getToken();
@@ -187,35 +185,46 @@ const PurchaseOrder = () => {
                 <div className="container-fluid">
                     <div className="row mb-2">
                         <div className="col-sm-6">
-                            <h1>Purchase Order</h1>
+                            {isEditingPurchaseOrder ?
+                                <h1>Edit Purchase Order</h1>
+                                :
+                                <h1>Purchase Order</h1>
+                            }
                         </div>
                         <div className="col-sm-6">
                             <ol className="breadcrumb float-sm-right">
                                 <li className="breadcrumb-item">
                                     <a href="/">Home</a>
                                 </li>
-                                <li className="breadcrumb-item active">
+                                {isEditingPurchaseOrder ?
+                                  <li className="breadcrumb-item active">
+                                    Edit Purchase Order
+                                 </li>
+                                 :
+                                 <li className="breadcrumb-item active">
                                     Purchase Order
                                 </li>
+                                }
                             </ol>
                         </div>
                     </div>
                 </div>
             </section>
             <section className="content">
-                {isAddingNewPurchaseOrder ? (
-                    <div>
-                        <AddPurchaseOrder
-                            setIsAddingNewPurchaseOrder={setIsAddingNewPurchaseOrder}
-                            handleRefresh={handleRefresh}
-                        />
-                    </div>
+                {isAddingNewPurchaseOrder ? (                    
+                    <AddPurchaseOrder
+                        setIsAddingNewPurchaseOrder={setIsAddingNewPurchaseOrder}
+                        isAddingNewPurchaseOrder={isAddingNewPurchaseOrder}
+                        handleRefresh={handleRefresh}
+
+                    />
                 ) : isEditingPurchaseOrder ? (
-                    <EditPurchaseOrder
-                        setIsEditingPurchaseOrder={setIsEditingPurchaseOrder}
+                    <AddPurchaseOrder
+                        setIsAddingNewPurchaseOrder={setIsEditingPurchaseOrder}
+                        // setIsEditingPurchaseOrder={setIsEditingPurchaseOrder}
+                        isEditingPurchaseOrder={isEditingPurchaseOrder}
                         handleRefresh={handleRefresh}
                         selectedData={selectedData}
-
                     />
                 ) : (
                     <PurchaseOrderTable

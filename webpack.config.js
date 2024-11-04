@@ -64,6 +64,12 @@ module.exports = {
                 './PurchaseInvoice': './src/components/PurchaseInvoice',
                 './DashboardPr': './src/components/DashboardPr',
                 './AddPurchaseRequest': './src/components/AddPurchaseRequest',
+                './ListPurchaseOrder': './src/components/PurchaseOrder',
+                './ListPurchaseInvoice': './src/components/PurchaseInvoice',
+                './PettyCash': './src/formComponents/AddPettyCash',
+                './ListPettyCash': './src/components/PettyCash',
+                './PurchaseExpanseVoucher': './src/formComponents/AddPurchaseExpanseVoucher',
+                './ListPurchaseExpanseVoucher': './src/components/PurchaseExpanseVoucher',
             },
             shared: {
                 react: { 
