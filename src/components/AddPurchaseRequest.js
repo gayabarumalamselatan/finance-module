@@ -56,6 +56,7 @@ const AddPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, select
   const [vendorOptions, setVendorOptions] = useState([]);
   const [selectedVendor, setSelectedVendor] = useState(null);
   const [buttonAfterSubmit, setButtonAfterSubmit] = useState(false);
+  const [isSubmitted, setIsSubmitted] = useState(false);
 
 
   const authToken = headers;
@@ -696,23 +697,10 @@ const AddPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, select
 
   const resetForm = () => {
     generatePrNumber("DRAFT_PR");
-    setRequestDate('');
-    setCustomer('');
-    setScheduleDate('');
     setDocReff('');
-    setDocReffNo('');
-    setRequestor(userId);
-    setDepartment('');
-    setCompany('PT. Abhimata Persada');
-    setProject('');
-    setProjectContractNumber('');
     setDescription('');
     setItems([]);
     setSelectedItems([]);
-    setSelectedDepartement(null);
-    setSelectedProject(null);
-    setSelectedCurrency(null);
-    // setSelectedCustomer(null);
   };
 
   const handleSave = async (event) => {
@@ -851,16 +839,16 @@ const AddPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, select
     }
   };
 
-  const handleItemsUpdate = async (pr_number) => {
+  const handleItemsUpdate = async (pr_number, newPrNumber) => {
     try {
-      // Fetch the ID using the pr_number
+      // Fetch the ID using the original pr_number
       const lookupResponse = await LookupService.fetchLookupData(
         `PURC_FORMPUREQD&filterBy=pr_number&filterValue=${pr_number}&operation=EQUAL`,
         authToken,
         branchId
       );
 
-      const ids = lookupResponse.data.map(item => item.ID); // Dapatkan semua ID dari respons array
+      const ids = lookupResponse.data.map(item => item.ID); // Get all IDs from response array
       console.log('IDs to delete:', ids);
 
       // Delete each item based on fetched IDs
@@ -873,10 +861,11 @@ const AddPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, select
         }
       }
 
-      // Insert updated items with the fetched ID
+      // Insert updated items with newPrNumber if provided, otherwise use pr_number
+      const updatedPrNumber = newPrNumber || pr_number;
       for (const item of items) {
         const { rwnum, ID, status, id_trx, ...rest } = item;
-        const updatedItem = { ...rest, pr_number };
+        const updatedItem = { ...rest, pr_number: updatedPrNumber };
         await InsertDataService.postData(updatedItem, "PUREQD", authToken, branchId);
         console.log('Item inserted successfully:', updatedItem);
       }
@@ -885,6 +874,7 @@ const AddPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, select
       console.error('Error in handleItemsUpdate:', error);
     }
   };
+
   // Helper function for inserting new items
   const handleItemsInsert = async (pr_number) => {
     for (const item of items) {
@@ -929,9 +919,10 @@ const AddPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, select
 
         if (lookupResponse.data.length > 0) {
           // pr_number exists, handle as edit
+          let newPrNumber = pr_number;
           if (pr_number.startsWith('DRAFT_PR')) {
             console.log("Draft PR number detected, generating a new PR number...");
-            const newPrNumber = await generatePrNumber('PR');
+            newPrNumber = await generatePrNumber('PR');
             console.log("New PR number generated:", newPrNumber);
             setPrNumber(newPrNumber);
           }
@@ -940,7 +931,7 @@ const AddPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, select
 
           const id = lookupResponse.data[0].ID;
           const generalInfo = {
-            pr_number,
+            pr_number: newPrNumber,
             request_date,
             schedule_date,
             doc_no,
@@ -968,7 +959,7 @@ const AddPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, select
           }
 
           if (response.message === "Update Data Successfully") {
-            await handleItemsUpdate(pr_number);
+            await handleItemsUpdate(pr_number, newPrNumber);
             messageAlertSwal('Success', response.message, 'success');
           }
         } else {
@@ -1007,13 +998,14 @@ const AddPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, select
           userId: idUser,
           userName: sessionStorage.getItem('userId'),
           action: 'SUBMIT',
-          description: `Submit Purchase Request ${pr_number}`,
+          description: `Submit Purchase Request`,
           entityName: 'PURC',
           entityId: endtoendid,
           status: 'SUCCESS',
           authToken,
           branchId
         });
+        setIsSubmitted(true);
       } catch (err) {
         console.error(err);
         setIsLoading(false);
@@ -1021,7 +1013,7 @@ const AddPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, select
           userId: idUser,
           userName: sessionStorage.getItem('userId'),
           action: 'SUBMIT',
-          description: `Submit Purchase Request ${pr_number}`,
+          description: `Submit Purchase Request`,
           entityName: 'PURC',
           entityId: endtoendid,
           status: 'FAILED',
@@ -1035,6 +1027,13 @@ const AddPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, select
     } else {
       console.log('Form submission was canceled.');
     }
+  };
+
+  const handleAddNew = () => {
+    // Reset form or perform actions for adding a new purchase request
+    setIsSubmitted(false);
+    resetForm();
+    // Optionally, clear form fields or reset any other state as needed
   };
 
 
@@ -1160,7 +1159,7 @@ const AddPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, select
 
           // Show success message and reset form
           messageAlertSwal('Success', response.message, 'success');
-          resetForm();
+          // resetForm();
         }
 
       } catch (err) {
@@ -1300,7 +1299,8 @@ const AddPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, select
 
           // Show success message and reset form
           messageAlertSwal('Success', response.message, 'success');
-          resetForm();
+          setIsSubmitted(true);
+          // resetForm();
         }
 
       } catch (err) {
@@ -1364,12 +1364,27 @@ const AddPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, select
                     </>
                   )}
 
-                  <Button variant="primary" className="mr-2" onClick={setIsEditingPurchaseRequest ? handleEditSave : handleSave}>
-                    <i className="fas fa-save"></i> {setIsEditingPurchaseRequest ? 'Save Changes' : 'Save'}
-                  </Button>
-                  <Button variant="primary" onClick={setIsEditingPurchaseRequest ? handleEditSubmit : handleSubmit}>
-                    <i className="fas fa-check"></i> {setIsEditingPurchaseRequest ? 'Submit Changes' : 'Submit'}
-                  </Button>
+                  {!isSubmitted ? (
+                    <>
+                      <Button
+                        variant="primary"
+                        className="mr-2"
+                        onClick={setIsEditingPurchaseRequest ? handleEditSave : handleSave}
+                      >
+                        <i className="fas fa-save"></i> {setIsEditingPurchaseRequest ? 'Save Changes' : 'Save'}
+                      </Button>
+                      <Button
+                        variant="primary"
+                        onClick={setIsEditingPurchaseRequest ? handleEditSubmit : handleSubmit}
+                      >
+                        <i className="fas fa-check"></i> {setIsEditingPurchaseRequest ? 'Submit Changes' : 'Submit'}
+                      </Button>
+                    </>
+                  ) : (
+                    <Button variant="primary" onClick={handleAddNew}>
+                      <i className="fas fa-plus"></i> Add New
+                    </Button>
+                  )}
                 </div>
               </Card.Header>
 
@@ -1780,12 +1795,27 @@ const AddPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, select
               </>
             )}
 
-            <Button variant="primary" className="mr-2" onClick={setIsEditingPurchaseRequest ? handleEditSave : handleSave}>
-              <i className="fas fa-save"></i> {setIsEditingPurchaseRequest ? 'Save Changes' : 'Save'}
-            </Button>
-            <Button variant="primary" onClick={setIsEditingPurchaseRequest ? handleEditSubmit : handleSubmit}>
-              <i className="fas fa-check"></i> {setIsEditingPurchaseRequest ? 'Submit Changes' : 'Submit'}
-            </Button>
+            {!isSubmitted ? (
+              <>
+                <Button
+                  variant="primary"
+                  className="mr-2"
+                  onClick={setIsEditingPurchaseRequest ? handleEditSave : handleSave}
+                >
+                  <i className="fas fa-save"></i> {setIsEditingPurchaseRequest ? 'Save Changes' : 'Save'}
+                </Button>
+                <Button
+                  variant="primary"
+                  onClick={setIsEditingPurchaseRequest ? handleEditSubmit : handleSubmit}
+                >
+                  <i className="fas fa-check"></i> {setIsEditingPurchaseRequest ? 'Submit Changes' : 'Submit'}
+                </Button>
+              </>
+            ) : (
+              <Button variant="primary" onClick={handleAddNew}>
+                <i className="fas fa-plus"></i> Add New
+              </Button>
+            )}
           </Col>
         </Row>
       </section>
