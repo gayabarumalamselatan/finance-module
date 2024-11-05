@@ -1,9 +1,14 @@
-
 import React, { useState, useEffect } from "react";
 import FormPagination from "../utils/FormPagination";
 import { NumericFormat } from "react-number-format";
-import { FaAddressBook, FaFilter, FaSyncAlt } from "react-icons/fa";
+import { FaAddressBook, FaEye, FaFilter, FaSyncAlt } from "react-icons/fa";
 import { FaEdit, FaTrash, FaFileExport } from "react-icons/fa"; // Import icons for Edit, Delete, and Export
+import { Button, Modal, Table } from "react-bootstrap";
+import { getBranch, getToken, userLoggin } from "../config/Constant";
+import LookupService from "../service/LookupService";
+import { DisplayFormat } from "../utils/DisplayFormat";
+import Swal from "sweetalert2";
+import DeleteDataService from "../service/DeleteDataService";
 
 const PurchaseRequestTable = ({
     formCode,
@@ -18,46 +23,267 @@ const PurchaseRequestTable = ({
     isLoadingTable,
     handleFilterSearch,
     handleResetFilter,
-    addingNewPurchaseRequest
+    addingNewPurchaseRequest,
+    EditPurchaseRequest,
+    selectedData,
+    checker
 }) => {
-    const [selectedRows, setSelectedRows] = useState([]);
+    const headers = getToken();
+    const branchId = getBranch();
+    const userId = userLoggin();
+    const [selectedRows, setSelectedRows] = useState(new Set());
     const [isFilterOpen, setIsFilterOpen] = useState(false);
     const [filterColumn, setFilterColumn] = useState('');
     const [filterValue, setFilterValue] = useState('');
     const [filterOperation, setFilterOperation] = useState('');
     const [showAdditionalContent, setShowAdditionalContent] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
+    const [isModalOpen, setIsModalOpen] = useState(false); // For modal visibility
+    const [selectedRowData, setSelectedRowData] = useState(null);
+    const [selectedRowDataItem, setSelectedRowDataItem] = useState([]); // For storing selected row data
+
+    const authToken = headers;
 
     useEffect(() => {
-        // Clear selected rows when data changes
-        setSelectedRows([]);
+        setSelectedRows(new Set());
     }, [dataTable]);
+
+    // Handle checkbox click separately
+    const handleCheckboxSelect = (e, itemId) => {
+        e.stopPropagation(); // Prevent triggering row click when checkbox is clicked
+        const newSelectedRows = new Set(selectedRows);
+        if (newSelectedRows.has(itemId)) {
+            newSelectedRows.delete(itemId);
+        } else {
+            newSelectedRows.add(itemId);
+        }
+        setSelectedRows(newSelectedRows);
+    };
+
+    // Handle row click for modal view
+    const handleRowSelect = (itemId) => {
+        const rowData = dataTable.find(item => item.ID === itemId); // Find the selected row data
+        setSelectedRowData(rowData); // Set the row data
+
+        const PR_NUMBER = rowData.PR_NUMBER;
+        console.log('Fetching data for PR_NUMBER:', PR_NUMBER);
+
+        LookupService.fetchLookupData(`PURC_FORMPUREQD&filterBy=PR_NUMBER&filterValue=${PR_NUMBER}&operation=EQUAL`, authToken, branchId)
+            .then(response => {
+                const fetchedItems = response.data || [];
+                console.log('Items fetched from API:', fetchedItems);
+
+                // Set fetched items to state
+                setSelectedRowDataItem(fetchedItems);
+            })
+            .catch(error => {
+                console.error('Failed to fetch product lookup:', error);
+            });
+
+        setIsModalOpen(true); // Open the modal
+    };
+
+    useEffect(() => {
+        console.log('selectedRowDataItem:', selectedRowDataItem);
+    }, [selectedRowDataItem]);
+
+    const handleModalClose = () => {
+        setIsModalOpen(false); // Close the modal
+    };
 
     const handleSelectAll = (e) => {
         if (e.target.checked) {
-            setSelectedRows(dataTable.map(item => item.PR_NUMBER)); // Assuming PR_NUMBER is unique
+            setSelectedRows(new Set(dataTable.map(item => item.ID)));
         } else {
-            setSelectedRows([]);
+            setSelectedRows(new Set());
         }
-    };
-
-    const handleRowSelect = (item) => {
-        setSelectedRows(prevSelectedRows => {
-            if (prevSelectedRows.includes(item.PR_NUMBER)) {
-                return prevSelectedRows.filter(row => row !== item.PR_NUMBER);
-            } else {
-                return [...prevSelectedRows, item.PR_NUMBER];
-            }
-        });
     };
 
     const handleFilterToggle = () => {
         setIsFilterOpen(!isFilterOpen);
     };
 
-    const handleNewBond = () => {
+    const handleAddNewPurchaseRequest = () => {
         addingNewPurchaseRequest(true);
     };
+
+    const handleEditPurchaseRequest = (value) => {
+        const dataSelected = getSelectedRowsData();
+        console.log('dataSelected Edit:', dataSelected);
+
+        if (dataSelected.length > 1) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Multiple Rows Selected',
+                text: 'Please select only one row to edit.',
+                confirmButtonText: 'OK',
+            });
+            return; // Exit the function if multiple rows are selected
+        }
+
+        // Get the current user's userId
+        const userId = sessionStorage.getItem('userId');
+        console.log('checker:', checker);
+
+        // Check if status_request is 'IN_PROCESS' and userId matches created_by
+        if (
+            dataSelected[0].STATUS_REQUEST === 'IN_PROCESS' &&
+            (!checker || userId !== dataSelected[0].REQUESTOR || dataSelected[0].STATUS === 'APPROVED')) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Edit Restricted',
+                text: 'You cannot edit this request while it is "IN_PROCESS".',
+                confirmButtonText: 'OK',
+            });
+            return; // Exit the function if the condition is met
+        }
+
+        EditPurchaseRequest(true); // Open the edit form or process
+        selectedData(dataSelected); // Pass the selected data for further processing
+    };
+
+
+    // const handleDelete = (value) => {
+    //     const dataSelected = getSelectedRowsData();
+    //     console.log('dataSelected Delete:', dataSelected);
+
+    //     if (dataSelected.length > 1) {
+    //         Swal.fire({
+    //             icon: 'warning',
+    //             title: 'Multiple Rows Selected',
+    //             text: 'Please select only one row to Delete.',
+    //             confirmButtonText: 'OK',
+    //         });
+    //         return; // Exit the function if multiple rows are selected
+    //     }
+
+    //     // Get the current user's userId
+    //     const userId = sessionStorage.getItem('userId');
+
+    //     // Check if status_request is 'IN_PROCESS' and userId matches created_by
+    //     if (!checker && dataSelected[0].STATUS_REQUEST === 'IN_PROCESS' && userId === dataSelected[0].REQUESTOR) {
+    //         Swal.fire({
+    //             icon: 'warning',
+    //             title: 'Delete Restricted',
+    //             text: 'You cannot delete this request while it is "IN_PROCESS".',
+    //             confirmButtonText: 'OK',
+    //         });
+    //         return; // Exit the function if the condition is met
+    //     }
+    //     console.log('dataSelected Delete:', dataSelected)  // Pass the selected data for further processing
+    // };
+
+    const handleDelete = async (value) => {
+        const dataSelected = getSelectedRowsData(); // Ambil data yang dipilih
+        console.log('dataSelected Delete:', dataSelected);
+
+        // Cek jika lebih dari satu baris dipilih
+        if (dataSelected.length !== 1) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Multiple Rows Selected',
+                text: 'Please select exactly one row to delete.',
+                confirmButtonText: 'OK',
+            });
+            return;
+        }
+
+        const userId = sessionStorage.getItem('userId');
+
+        // Cek apakah status IN_PROCESS dan userId cocok dengan REQUESTOR
+        if (!checker && dataSelected[0].STATUS_REQUEST === 'IN_PROCESS' && userId === dataSelected[0].REQUESTOR) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Delete Restricted',
+                text: 'You cannot delete this request while it is "IN_PROCESS".',
+                confirmButtonText: 'OK',
+            });
+            return;
+        }
+
+        const pureqId = dataSelected[0].ID; // ID dari data utama
+        const prNumber = dataSelected[0].PR_NUMBER;
+
+        // Konfirmasi sebelum penghapusan
+        Swal.fire({
+            title: 'Are you sure?',
+            text: 'Do you really want to delete this request and its details? This process cannot be undone.',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonText: 'Yes, delete it!',
+            cancelButtonText: 'Cancel',
+        }).then(async (result) => {
+            if (result.isConfirmed) {
+                try {
+                    // Panggil API untuk menghapus data master (utama)
+                    const response = await DeleteDataService.postData(`column=id&value=${pureqId}`, "PUREQ", authToken, branchId);
+
+                    if (!response.message === 'Delete Data Successfully') {
+                        throw new Error('Failed to delete main request');
+                    }
+
+                    // Jika berhasil hapus master, lanjutkan ke detail berdasarkan PR_NUMBER
+                    const responseDetail = await LookupService.fetchLookupData(
+                        `PURC_FORMPUREQD&filterBy=PR_NUMBER&filterValue=${prNumber}&operation=EQUAL`,
+                        authToken,
+                        branchId
+                    );
+
+                    const fetchedItems = responseDetail.data || [];
+                    console.log('Items fetch:', fetchedItems);
+
+                    if (fetchedItems.length > 0) {
+                        // Hapus setiap detail yang ditemukan
+                        for (const item of fetchedItems) {
+                            if (item.ID) {
+                                try {
+                                    const itemResponseDelete = await DeleteDataService.postData(`column=id&value=${item.ID}`, "PUREQD", authToken, branchId);
+                                    console.log('Item deleted successfully:', itemResponseDelete);
+                                } catch (error) {
+                                    console.error('Error deleting item:', item, error);
+                                    throw new Error('Failed to delete one or more detail items');
+                                }
+                            } else {
+                                console.log('No ID found for this item, skipping delete:', item);
+                            }
+                        }
+                    } else {
+                        throw new Error('No details found for this PR_NUMBER');
+                    }
+
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Request and Details Deleted',
+                        text: 'Both the request and its details have been successfully deleted.',
+                        confirmButtonText: 'OK',
+                    });
+
+                    handleRefresh();
+
+                    // Lakukan refresh data atau aksi lain yang diperlukan setelah penghapusan berhasil
+
+                } catch (error) {
+                    console.error('Error during delete process:', error);
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Delete Error',
+                        text: 'Failed to delete the request or its details. Please try again later.',
+                        confirmButtonText: 'OK',
+                    });
+                }
+            } else {
+                Swal.fire({
+                    icon: 'info',
+                    title: 'Cancelled',
+                    text: 'Your request deletion has been cancelled.',
+                    confirmButtonText: 'OK',
+                });
+            }
+        });
+    };
+
+
+
 
     const handleResetFilters = () => {
         setFilterColumn('');
@@ -78,19 +304,52 @@ const PurchaseRequestTable = ({
         }, 1000);
     };
 
-    const handleEdit = () => {
-        // Add logic for editing selected rows
-        console.log("Edit selected rows:", selectedRows);
+    const getSelectedRowsData = () => {
+        return dataTable.filter(item => selectedRows.has(item.ID));
     };
 
-    const handleDelete = () => {
-        // Add logic for deleting selected rows
-        console.log("Delete selected rows:", selectedRows);
+
+
+    const handleView = () => {
+        // Add logic for viewing selected rows
+        const selectedData = getSelectedRowsData();
+        if (selectedData.length > 1) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Multiple Rows Selected',
+                text: 'Please select only one row to view details.',
+                confirmButtonText: 'OK',
+            });
+            return; // Exit the function if multiple rows are selected
+        }
+
+        setSelectedRowData(selectedData[0]);
+
+        console.log("View selected rows data:", selectedData);
+        const PR_NUMBER = selectedData[0].PR_NUMBER;
+        console.log('Fetching data for PR_NUMBER:', PR_NUMBER);
+
+        LookupService.fetchLookupData(`PURC_FORMPUREQD&filterBy=PR_NUMBER&filterValue=${PR_NUMBER}&operation=EQUAL`, authToken, branchId)
+            .then(response => {
+                const fetchedItems = response.data || [];
+                console.log('Items fetched from API:', fetchedItems);
+
+                // Set fetched items to state
+                setSelectedRowDataItem(fetchedItems);
+            })
+            .catch(error => {
+                console.error('Failed to fetch product lookup:', error);
+            });
+
+        setIsModalOpen(true); // Open the modal
     };
+
+    const startIndex = (currentPage - 1) * pageSize;
+    const endIndex = Math.min(startIndex + pageSize, totalItems);
 
     const handleExport = () => {
         // Add logic for exporting selected rows
-        console.log("Export selected rows:", selectedRows);
+        console.log("Export selected rows:", Array.from(selectedRows));
     };
 
     return (
@@ -123,13 +382,16 @@ const PurchaseRequestTable = ({
                                 <button type="button" className="btn btn-default" onClick={handleRefresh}>
                                     <FaSyncAlt />
                                 </button>
-                                <button type="button" className="btn btn-default" onClick={handleNewBond}>
+                                {/* <button type="button" className="btn btn-default" onClick={handleAddNewPurchaseRequest}>
                                     <FaAddressBook /> Add New
-                                </button>
-                                {selectedRows.length > 0 && (
+                                </button> */}
+                                {selectedRows.size > 0 && (
                                     <>
-                                        <button type="button" className="btn btn-default" onClick={handleEdit}>
+                                        <button type="button" className="btn btn-default" onClick={handleEditPurchaseRequest}>
                                             <FaEdit /> Edit
+                                        </button>
+                                        <button type="button" className="btn btn-default" onClick={handleView}>
+                                            <FaEye /> View
                                         </button>
                                         <button type="button" className="btn btn-default" onClick={handleDelete}>
                                             <FaTrash /> Delete
@@ -157,7 +419,6 @@ const PurchaseRequestTable = ({
                                         </>
                                     )}
                                 </button>
-
                             </div>
                         </div>
                     </div>
@@ -182,11 +443,6 @@ const PurchaseRequestTable = ({
                                     <option value="COMPANY">Company</option>
                                     <option value="PROJECT">Project</option>
                                     <option value="TOTAL_AMOUNT">Total Amount</option>
-                                    <option value="DESCRIPTION">Description</option>
-                                    <option value="CREATED_BY">Created By</option>
-                                    <option value="CHECKED_BY_1">Checked By 1</option>
-                                    <option value="CHECKED_BY_2">Checked By 2</option>
-                                    <option value="APPROVED_BY">Approved By</option>
                                     <option value="STATUS_REQUEST">Status Request</option>
                                 </select>
                             </div>
@@ -231,89 +487,184 @@ const PurchaseRequestTable = ({
                                         <input
                                             type="checkbox"
                                             onChange={handleSelectAll}
-                                            checked={selectedRows.length === dataTable.length && dataTable.length > 0}
+                                            checked={selectedRows.size === dataTable.length && dataTable.length > 0}
                                         />
                                     </th>
+
                                     <th>PR Number</th>
-                                    <th>Title</th>
+                                    <th>Requestor</th>
                                     <th>Request Date</th>
                                     <th>Schedule Date</th>
-                                    <th>Document Number</th>
-                                    <th>Requestor</th>
-                                    <th>Department</th>
-                                    <th>Company</th>
-                                    <th>Project</th>
-                                    <th>Total Amount</th>
                                     <th>Description</th>
-                                    <th>Created By</th>
-                                    <th>Checked By 1</th>
-                                    <th>Checked By 2</th>
-                                    <th>Approved By</th>
+                                    <th>Total Amount</th>
+                                    <th>End to End ID</th>
                                     <th>Status Request</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {isLoadingTable ? (
                                     <tr>
-                                        <td colSpan="17" className="text-center">
-                                            Loading...
+                                        <td colSpan={19}>
+                                            <div className="text-center">
+                                                <div className="spinner-border text-primary" role="status">
+                                                    <span className="sr-only">Loading...</span>
+                                                </div>
+                                            </div>
                                         </td>
                                     </tr>
                                 ) : dataTable.length === 0 ? (
                                     <tr>
-                                        <td colSpan="17" className="text-center">
-                                            No data available
+                                        <td colSpan={19}>
+                                            <div className="text-center">No data available</div>
                                         </td>
                                     </tr>
                                 ) : (
+
                                     dataTable.map((item) => (
-                                        <tr key={item.PR_NUMBER}>
-                                            <td>
+                                        <tr key={item.ID} onClick={() => handleRowSelect(item.ID)} style={{ cursor: "pointer" }}>
+                                            <td onClick={(e) => handleCheckboxSelect(e, item.ID)}>
                                                 <input
                                                     type="checkbox"
-                                                    checked={selectedRows.includes(item.PR_NUMBER)}
-                                                    onChange={() => handleRowSelect(item)}
+                                                    checked={selectedRows.has(item.ID)}
+                                                    onChange={(e) => handleCheckboxSelect(e, item.ID)}
                                                 />
                                             </td>
+
                                             <td>{item.PR_NUMBER}</td>
-                                            <td>{item.TITLE}</td>
+                                            <td>{item.REQUESTOR}</td>
                                             <td>{item.REQUEST_DATE}</td>
                                             <td>{item.SCHEDULE_DATE}</td>
-                                            <td>{item.DOC_NO}</td>
-                                            <td>{item.REQUESTOR}</td>
-                                            <td>{item.DEPARTEMENT}</td>
-                                            <td>{item.COMPANY}</td>
-                                            <td>{item.PROJECT}</td>
-                                            <td>
-                                                <NumericFormat
-                                                    value={item.TOTAL_AMOUNT}
-                                                    displayType="text"
-                                                    thousandSeparator=","
-                                                    prefix="Rp "
-                                                />
+                                            <td style={{ textAlign: "right" }}>{DisplayFormat(item.TOTAL_AMOUNT)}
                                             </td>
                                             <td>{item.DESCRIPTION}</td>
-                                            <td>{item.CREATED_BY}</td>
-                                            <td>{item.CHECKED_BY_1}</td>
-                                            <td>{item.CHECKED_BY_2}</td>
-                                            <td>{item.APPROVED_BY}</td>
+                                            <td>{item.ENDTOENDID}</td>
                                             <td>{item.STATUS_REQUEST}</td>
                                         </tr>
                                     ))
                                 )}
                             </tbody>
                         </table>
+                    </div>
+                    <div className="d-flex justify-content-between align-items-center mt-2">
                         <FormPagination
-                            pageSize={pageSize}
-                            handlePageSizeChange={handlePageSizeChange}
-                            currentPage={currentPage}
-                            handlePageChange={handlePageChange}
                             totalItems={totalItems}
+                            pageSize={pageSize}
+                            currentPage={currentPage}
+                            onPageChange={handlePageChange}
                         />
+                        <div>
+                            {startIndex + 1} - {endIndex} of {totalItems}
+                        </div>
                     </div>
                 </div>
+                <Modal show={isModalOpen} onHide={handleModalClose} size="lg">
+                    <Modal.Header closeButton>
+                        <Modal.Title>View Purchase Request</Modal.Title>
+                    </Modal.Header>
+                    <Modal.Body>
+                        {selectedRowData ? (
+                            <div>
+                                <div className="container">
+                                    <div className="row mb-3">
+                                        <div className="col-md-4 font-weight-bold">PR Number:</div>
+                                        <div className="col-md-8">{selectedRowData.PR_NUMBER}</div>
+                                    </div>
+                                    <div className="row mb-3">
+                                        <div className="col-md-4 font-weight-bold">Requestor:</div>
+                                        <div className="col-md-8">{selectedRowData.REQUESTOR}</div>
+                                    </div>
+                                    <div className="row mb-3">
+                                        <div className="col-md-4 font-weight-bold">Departement:</div>
+                                        <div className="col-md-8">{selectedRowData.DEPARTEMENT}</div>
+                                    </div>
+                                    <div className="row mb-3">
+                                        <div className="col-md-4 font-weight-bold">Company:</div>
+                                        <div className="col-md-8">{selectedRowData.COMPANY}</div>
+                                    </div>
+                                    <div className="row mb-3">
+                                        <div className="col-md-4 font-weight-bold">Project:</div>
+                                        <div className="col-md-8">{selectedRowData.PROJECT}</div>
+                                    </div>
+                                    <div className="row mb-3">
+                                        <div className="col-md-4 font-weight-bold">Project Contract Number:</div>
+                                        <div className="col-md-8">{selectedRowData.PROJECT_CONTRACT_NUMBER}</div>
+                                    </div>
+                                    <div className="row mb-3">
+                                        <div className="col-md-4 font-weight-bold">Customer:</div>
+                                        <div className="col-md-8">{selectedRowData.CUSTOMER}</div>
+                                    </div>
+                                    <div className="row mb-3">
+                                        <div className="col-md-4 font-weight-bold">Request Date:</div>
+                                        <div className="col-md-8">{selectedRowData.REQUEST_DATE}</div>
+                                    </div>
+                                    <div className="row mb-3">
+                                        <div className="col-md-4 font-weight-bold">Schedule Date:</div>
+                                        <div className="col-md-8">{selectedRowData.SCHEDULE_DATE}</div>
+                                    </div>
+                                    <div className="row mb-3">
+                                        <div className="col-md-4 font-weight-bold">Document Number:</div>
+                                        <div className="col-md-8">{selectedRowData.DOC_NO}</div>
+                                    </div>
+                                    <div className="row mb-3">
+                                        <div className="col-md-4 font-weight-bold">Document Reference:</div>
+                                        <div className="col-md-8">{selectedRowData.DOC_REFF}</div>
+                                    </div>
+                                    <div className="row mb-3">
+                                        <div className="col-md-4 font-weight-bold">Document Reference Number:</div>
+                                        <div className="col-md-8">{selectedRowData.DOC_REFF}</div>
+                                    </div>
+                                    <div className="row mb-3">
+                                        <div className="col-md-4 font-weight-bold">Description:</div>
+                                        <div className="col-md-8">{selectedRowData.DESCRIPTION}</div>
+                                    </div>
+                                    <div className="row mb-3">
+                                        <div className="col-md-4 font-weight-bold">Total Amount:</div>
+                                        <div className="col-md-8">{DisplayFormat(selectedRowData.TOTAL_AMOUNT)}</div>
+                                    </div>
+                                    <div className="row mb-3">
+                                        <div className="col-md-4 font-weight-bold">Status Request:</div>
+                                        <div className="col-md-8">{selectedRowData.STATUS_REQUEST}</div>
+                                    </div>
+                                </div>
+                                {/* Add more fields as needed */}
+
+                                <Table striped bordered hover>
+                                    <thead>
+                                        <tr>
+                                            <th>Product</th>
+                                            <th>Product Description</th>
+                                            <th>Currency</th>
+                                            <th>Quantity</th>
+                                            <th>Unit Price</th>
+                                            <th>Total Price</th>
+
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {selectedRowDataItem
+                                            .sort((a, b) => a.ID - b.ID) // Sort by ID in ascending order
+                                            .map((detail) => (
+                                                <tr key={detail.ID}>
+                                                    <td>{detail.product}</td>
+                                                    <td>{detail.product_note}</td>
+                                                    <td>{detail.currency}</td>
+                                                    <td>{detail.quantity}</td>
+                                                    <td style={{ textAlign: "right" }}>{DisplayFormat(detail.unit_price)}</td>
+                                                    <td style={{ textAlign: "right" }}>{DisplayFormat(detail.total_price)}</td>
+                                                </tr>
+                                            ))}
+                                    </tbody>
+                                </Table>
+                            </div>
+                        ) : (
+                            <p>No data selected.</p>
+                        )}
+                    </Modal.Body>
+                    <Modal.Footer>
+                        <Button variant="secondary" onClick={handleModalClose}>Close</Button>
+                    </Modal.Footer>
+                </Modal>
             </div>
-            {showAdditionalContent && <div>Additional content here...</div>}
         </div>
     );
 };

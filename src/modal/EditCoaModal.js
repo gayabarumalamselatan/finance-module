@@ -9,7 +9,8 @@ const EditCoaModal = ({ show, handleClose, handleSave, coaData }) => {
     const [name, setName] = useState('');
     const [type, setType] = useState('');
     const [description, setDescription] = useState('');
-    const [currency, setCurrency] = useState(null);
+    // const [currency, setCurrency] = useState(null);
+    const [normalBalancePosition, setNormalBalancePosition] = useState(0);
     const [currencyOptions, setCurrencyOptions] = useState([]);
     const [parentCode, setParentCode] = useState(null);
     const [parentCodeOptions, setParentCodeOptions] = useState([]);
@@ -24,18 +25,21 @@ const EditCoaModal = ({ show, handleClose, handleSave, coaData }) => {
         setName('');
         setType('');
         setDescription('');
-        setCurrency(null);
+        // setCurrency(null);
+        setNormalBalancePosition(0);
         setParentCode(null);
         setIsParent('Y');
     };
 
     const handleSubmit = () => {
         const updatedCoa = {
+            ID: coaData[0].ID,
             CODE: code,
             NAME: name,
             TYPE: type,
             DESCRIPTION: description,
-            CURRENCY: currency?.value,
+            // CURRENCY: currency?.value,
+            NORMAL_BALANCE_POSITION: normalBalancePosition,
             PARENT_CODE_ID: parentCode?.value,
             IS_PARENT: isParent,
         };
@@ -90,22 +94,40 @@ const EditCoaModal = ({ show, handleClose, handleSave, coaData }) => {
     }, [authToken, branchId]);
 
     useEffect(() => {
-        if (coaData) {
-            setCode(coaData.CODE);
-            setName(coaData.NAME);
-            setType(coaData.TYPE);
-            setDescription(coaData.DESCRIPTION);
-            setCurrency({
-                value: coaData.CURRENCY,
-                label: `${coaData.CURRENCY} - ${coaData.CURRENCY_DESCRIPTION}`
-            });
-            setParentCode({
-                value: coaData.PARENT_CODE_ID,
-                label: `${coaData.PARENT_CODE} - ${coaData.PARENT_NAME}`
-            });
-            setIsParent(coaData.IS_PARENT);
+        console.log('coaData useEffect:', coaData); // Add this line to check the data
+        if (coaData && show) {
+            setCode(coaData[0].CODE);
+            setName(coaData[0].NAME);
+            setType(coaData[0].TYPE);
+            setDescription(coaData[0].DESCRIPTION);
+            setNormalBalancePosition(coaData[0].NORMAL_BALANCE_POSITION);
+            // Log and set currency
+            // if (coaData[0].CURRENCY) {
+            //     console.log('Currency:', coaData[0].CURRENCY);
+            //     setCurrency({
+            //         value: coaData[0].CURRENCY,
+            //         label: `${coaData[0].CURRENCY}`
+            //     });
+            // } else {
+            //     console.log('Currency is undefined or null');
+            //     setCurrency(null);
+            // }
+
+            // Log and set parentCode
+            if (coaData[0].PARENT_CODE_ID) {
+                console.log('Parent Code ID:', coaData[0].PARENT_CODE_ID);
+                setParentCode({
+                    value: coaData[0].PARENT_CODE_ID,
+                    label: `${coaData[0].PARENT_CODE_ID}`
+                });
+            } else {
+                console.log('Parent Code ID is undefined or null');
+                setParentCode(null);
+            }
+            setIsParent(coaData[0].IS_PARENT);
         }
-    }, [coaData]);
+    }, [coaData, show]);
+
 
     useEffect(() => {
         if (!show) {
@@ -171,14 +193,13 @@ const EditCoaModal = ({ show, handleClose, handleSave, coaData }) => {
                     </Row>
                     <Row className="mt-3">
                         <Col>
-                            <Form.Group controlId="currency">
-                                <Form.Label>Currency</Form.Label>
-                                <Select
-                                    value={currency}
-                                    onChange={setCurrency}
-                                    options={currencyOptions}
-                                    placeholder="Select currency"
-                                    isClearable
+                            <Form.Group controlId="normalBalancePosition">
+                                <Form.Label>Normal Balance Position</Form.Label>
+                                <Form.Control
+                                    type="text"
+                                    value={normalBalancePosition}
+                                    onChange={(e) => setNormalBalancePosition(e.target.value)}
+                                    placeholder="Enter Normal Balance Position type"
                                 />
                             </Form.Group>
                         </Col>

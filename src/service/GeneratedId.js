@@ -10,7 +10,7 @@ export const generateUniqueSequence = async (url, token) => {
         const sequenceFromApi = response.data;
         console.log('SEQ', sequenceFromApi); // Assuming the response is a plain text containing the number
 
-        return sequenceFromApi.trim(); // Trim any whitespace characters
+        return sequenceFromApi; // Trim any whitespace characters
     } catch (error) {
         console.error('Error fetching unique sequence:', error);
         throw error;

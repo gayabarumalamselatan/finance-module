@@ -60,10 +60,28 @@ module.exports = {
             exposes: {
                 './Coa': './src/components/Coa',
                 './PurchaseRequest': './src/components/PurchaseRequest',
+                './AddPurchaseRequest': './src/components/AddPurchaseRequest',
+                './ListPurchaseOrder': './src/components/PurchaseOrder',
+                './PurchaseOrder': './src/formComponents/AddPurchaseOrder',
+                './ListPurchaseInvoice': './src/components/PurchaseInvoice',
+                './PurchaseInvoice': './src/formComponents/AddPurchaseInvoice',
+                './PettyCash': './src/formComponents/AddPettyCash',
+                './ListPettyCash': './src/components/PettyCash',
+                './PurchaseExpanseVoucher': './src/formComponents/AddPurchaseExpanseVoucher',
+                './ListPurchaseExpanseVoucher': './src/components/PurchaseExpanseVoucher',
+                './DashboardPr': './src/components/DashboardPr',
             },
             shared: {
-                react: { singleton: true, requiredVersion: '17.0.2' },
-                'react-dom': { singleton: true, requiredVersion: '17.0.2' },
+                react: { 
+                    singleton: true, 
+                    eager: true,
+                    requiredVersion: '^18.2.0' // Ganti dengan versi React yang digunakan dalam aplikasi Anda
+                  },
+                  'react-dom': { 
+                    singleton: true, 
+                    eager: true,
+                    requiredVersion: '^18.2.0' // Ganti dengan versi yang sesuai
+                  },
             },
         }),
         new HtmlWebpackPlugin({

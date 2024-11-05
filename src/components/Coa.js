@@ -149,52 +149,7 @@ const Coa = () => {
         setIsLoadingTable(true);
     };
 
-    const handleChange = (selectedOption) => {
-        setIsLoading(true); // Aktifkan loading
-        console.log("selection ", selectedOption);
 
-        const selectedTradeIdData = selectedOption.TRADEID || selectedOption.TRADE_ID;
-        const counterParty = selectedOption.COUNTERPARTY;
-
-        console.log("Selected trade ID data:", selectedTradeIdData);
-
-        let lookupUrl = '';
-        if (formCode[0] === 'MMT') {
-            lookupUrl = `TRY_FORMMMT&filterBy=TRADEID&filterValue=${selectedTradeIdData}&operation=EQUAL&showAll=YES`;
-        } else if (formCode[0] === 'FIT') {
-            lookupUrl = `TRY_FORMFIT&filterBy=TRADE_ID&filterValue=${selectedTradeIdData}&operation=EQUAL&showAll=YES`;
-        } else {
-            console.error("Invalid formCode");
-            setIsLoading(false);
-            return;
-        }
-
-        LookupParamService.fetchLookupData(
-            lookupUrl,
-            authToken,
-            branchId
-        )
-            .then((data) => {
-                console.log("Basis lookup data:", data);
-                const transformedData = data.data.map((item) =>
-                    Object.keys(item).reduce((acc, key) => {
-                        acc[key.toUpperCase()] = item[key];
-                        return acc;
-                    }, {})
-                );
-                console.log("Transformed data:", transformedData);
-
-                setTimeout(() => {
-                    setIsLoading(false);
-                    setFormData(transformedData);
-                    setCounterPartyName(transformedData.ISSUER);
-                }, 1000);
-            })
-            .catch((error) => {
-                console.error("Failed to fetch basis lookup:", error);
-                setIsLoading(false); // Menonaktifkan loading saat terjadi error
-            });
-    };
 
 
     return (
@@ -234,7 +189,6 @@ const Coa = () => {
                         pageSize={pageSize}
                         handlePageSizeChange={handlePageSizeChange}
                         handlePageChange={handlePageChange}
-                        handleSelect={handleChange}
                         handleRefresh={handleRefresh}
                         isLoadingTable={isLoadingTable}
                         handleFilterSearch={handleFilterSearch}

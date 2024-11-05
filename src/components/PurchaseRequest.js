@@ -1,18 +1,18 @@
-
 import React, { Fragment, useEffect, useState } from "react";
-import { getBranch, getToken } from "../config/Constant";
+import { getBranch, getToken, userLoggin } from "../config/Constant";
 import LookupParamService from "../service/LookupParamService";
 import axios from "axios";
 import { FORM_SERVICE_INSERT_DATA, FORM_SERVICE_LOAD_FIELD, FORM_SERVICE_REPORT_DATA_EXCEL, MM_SERVICE_LIST_FILE_TRADE, MM_SERVICE_LIST_JOURNAL } from "../config/ConfigUrl";
 import { HandleToUppercase } from "../utils/HandleToUpercase";
 import FormService from "../service/FormService";
 import PurchaseRequestTable from "../table/PurchaseRequestTable";
-import AddPurchaseRequest from "../formComponents/AddPurchaseRequest";
-import EditPurchaseRequest from "../formComponents/EditPurchaseRequest";
+import AddPurchaseRequest from "./AddPurchaseRequest";
+import EditPurchaseRequest from "./EditPurchaseRequest";
 
 const PurchaseRequest = () => {
     const headers = getToken();
     const branchId = getBranch();
+    const userId = userLoggin();
     const [formCode, setFormCode] = useState([]);
     const [formData, setFormData] = useState([]);
     const [isLoading, setIsLoading] = useState(false);
@@ -33,6 +33,14 @@ const PurchaseRequest = () => {
     const [isViewingPurchaseRequest, setIsViewingPurchaseRequest] = useState(false);
     const [isEditingPurchaseRequest, setIsEditingPurchaseRequest] = useState(false);
     const [selectedData, setSelectedData] = useState([]);
+
+
+    const permissionsString = sessionStorage.getItem('permisions');
+
+    // Parse the JSON string into a JavaScript object
+    const permissions = JSON.parse(permissionsString);
+
+    
 
     const handleAddNewPurchaseRequest = (value) => {
         setIsAddingNewPurchaseRequest(value);
@@ -94,6 +102,18 @@ const PurchaseRequest = () => {
                 filterColumnParam = 'STATUS';
                 filterOperationParam = 'EQUAL';
                 filterValueParam = statusParam;
+            }
+
+            console.log("permissions", permissions.Purchase?.["Purchase Request"].verify);
+            const checker = permissions.Purchase?.["Purchase Request"].verify;
+            if (checker) {
+                // Do not apply any filter if checker is true
+                console.log("Checker is true, no filter will be applied.");
+            } else if (userId) {
+                // Apply filter if checker is false and userId is present
+                filterColumnParam = 'requestor';
+                filterOperationParam = 'EQUAL';
+                filterValueParam = userId;
             }
 
             const fetchFormMmtData = FormService.fetchData(
@@ -161,6 +181,7 @@ const PurchaseRequest = () => {
 
     return (
         <Fragment>
+            {!isEditingPurchaseRequest && (
             <section className="content-header">
                 <div className="container-fluid">
                     <div className="row mb-2">
@@ -180,6 +201,7 @@ const PurchaseRequest = () => {
                     </div>
                 </div>
             </section>
+             )}
             <section className="content">
                 {isAddingNewPurchaseRequest ? (
                     <div>
@@ -189,7 +211,7 @@ const PurchaseRequest = () => {
                         />
                     </div>
                 ) : isEditingPurchaseRequest ? (
-                    <EditPurchaseRequest
+                    <AddPurchaseRequest
                         setIsEditingPurchaseRequest={setIsEditingPurchaseRequest}
                         handleRefresh={handleRefresh}
                         selectedData={selectedData}
@@ -213,6 +235,7 @@ const PurchaseRequest = () => {
                         addingNewPurchaseRequest={handleAddNewPurchaseRequest}
                         EditPurchaseRequest={handleEditPurchaseRequest}
                         selectedData={handleSelectData}
+                        checker={permissions.Purchase?.["Purchase Request"].verify}
                     />
                 )}
 
