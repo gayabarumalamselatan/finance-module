@@ -60,10 +60,16 @@ module.exports = {
             exposes: {
                 './Coa': './src/components/Coa',
                 './PurchaseRequest': './src/components/PurchaseRequest',
-                './PurchaseOrder': './src/components/PurchaseOrder',
-                './PurchaseInvoice': './src/components/PurchaseInvoice',
-                './DashboardPr': './src/components/DashboardPr',
                 './AddPurchaseRequest': './src/components/AddPurchaseRequest',
+                './ListPurchaseOrder': './src/components/PurchaseOrder',
+                './PurchaseOrder': './src/formComponents/AddPurchaseOrder',
+                './ListPurchaseInvoice': './src/components/PurchaseInvoice',
+                './PurchaseInvoice': './src/formComponents/AddPurchaseInvoice',
+                './PettyCash': './src/formComponents/AddPettyCash',
+                './ListPettyCash': './src/components/PettyCash',
+                './PurchaseExpanseVoucher': './src/formComponents/AddPurchaseExpanseVoucher',
+                './ListPurchaseExpanseVoucher': './src/components/PurchaseExpanseVoucher',
+                './DashboardPr': './src/components/DashboardPr',
             },
             shared: {
                 react: { 

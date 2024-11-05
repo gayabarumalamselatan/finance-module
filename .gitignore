@@ -10,6 +10,7 @@
 
 # production
 /build
+/financemodule
 
 # misc
 .DS_Store

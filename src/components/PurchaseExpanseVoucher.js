@@ -5,10 +5,11 @@ import axios from "axios";
 import { FORM_SERVICE_INSERT_DATA, FORM_SERVICE_LOAD_FIELD, FORM_SERVICE_REPORT_DATA_EXCEL, MM_SERVICE_LIST_FILE_TRADE, MM_SERVICE_LIST_JOURNAL } from "../config/ConfigUrl";
 import { HandleToUppercase } from "../utils/HandleToUpercase";
 import FormService from "../service/FormService";
-import PurchaseInvoiceTable from "../table/PurchaseInvoiceTable";
-import AddPurchaseInvoice from "../formComponents/AddPurchaseInvoice";
+import EditPurchaseExpanseVoucher from "../formComponents/EditPurchaseExpanseVoucher";
+import AddPurchaseExpanseVoucher from "../formComponents/AddPurchaseExpanseVoucher";
+import PurchaseExpanseTable from "../table/PurchaseExpanseTable";
 
-const PurchaseInvoice = () => {
+const PurchaseExpanseVoucher = () => {
   const headers = getToken();
   const branchId = getBranch();
   const userId = userLoggin();
@@ -28,9 +29,9 @@ const PurchaseInvoice = () => {
   const [filterValue, setFilterValue] = useState("");
   const [filterOperation, setFilterOperation] = useState("");
 
-  const [isAddingNewPurchaseInvoice, setIsAddingNewPurchaseInvoice] = useState(false);
-  const [isViewingPurchaseInvoice, setIsViewingPurchaseInvoice] = useState(false);
-  const [isEditingPurchaseInvoice, setIsEditingPurchaseInvoice] = useState(false);
+  const [isAddingNewPurchaseExpanse, setIsAddingNewPurchaseExpanse] = useState(false);
+  const [isViewingPurchaseExpanse, setIsViewingPurchaseExpanse] = useState(false);
+  const [isEditingPurchaseExpanse, setIsEditingPurchaseExpanse] = useState(false);
   const [selectedData, setSelectedData] = useState([]);
 
   const permissionsString = sessionStorage.getItem("permisions");
@@ -38,14 +39,14 @@ const PurchaseInvoice = () => {
   // Parse the JSON string into a JavaScript object
   const permissions = JSON.parse(permissionsString);
 
-  const handleEditPurchaseInvoice = (value) => {
-    setIsEditingPurchaseInvoice(value);
+  const handleEditPurchaseExpanse = (value) => {
+    setIsEditingPurchaseExpanse(value);
   };
-  const handleViewPurchaseInvoice = (value) => {
-    setIsViewingPurchaseInvoice(value);
+  const handleViewPurchaseExpanse = (value) => {
+    setIsViewingPurchaseExpanse(value);
   };
-  const handleAddNewPurchaseInvoice = (value) => {
-    setIsAddingNewPurchaseInvoice(value);
+  const handleAddNewPurchaseExpanse = (value) => {
+    setIsAddingNewPurchaseExpanse(value);
   };
   const handleSelectData = (value) => {
     setSelectedData(value);
@@ -110,7 +111,7 @@ const PurchaseInvoice = () => {
         filterValueParam = userId;
       }
 
-      const fetchFormMmtData = FormService.fetchData("", filterColumnParam, filterOperationParam, filterValueParam, currentPage, pageSize, `PURC_FORM${formCode[0]}`, branchId, authToken, true)
+      const fetchFormMmtData = FormService.fetchData("", filterColumnParam, filterOperationParam, filterValueParam, currentPage, pageSize, `VOUC_FORM${formCode[0]}`, branchId, authToken, true)
         .then((response) => {
           console.log("Form Purchase Request lookup data:", response);
           formMmtData = HandleToUppercase(response.data);
@@ -162,34 +163,34 @@ const PurchaseInvoice = () => {
 
   return (
     <Fragment>
-      {!isEditingPurchaseInvoice && (
-        <section className="content-header">
-          <div className="container-fluid">
-            <div className="row mb-2">
-              <div className="col-sm-6">
-                <h1>Purchase Invoice</h1>
-              </div>
-              <div className="col-sm-6">
-                <ol className="breadcrumb float-sm-right">
-                  <li className="breadcrumb-item">
-                    <a href="/">Home</a>
-                  </li>
-                  <li className="breadcrumb-item active">Purchase Invoice</li>
-                </ol>
-              </div>
+      <section className="content-header">
+        <div className="container-fluid">
+          <div className="row mb-2">
+            <div className="col-sm-6">
+              <h1>Purchase Expanse Voucher by Bank</h1>
+            </div>
+            <div className="col-sm-6">
+              <ol className="breadcrumb float-sm-right">
+                <li className="breadcrumb-item">
+                  <a href="/">Home</a>
+                </li>
+                <li className="breadcrumb-item active">Purchas Expanse Voucher by Bank</li>
+              </ol>
             </div>
           </div>
-        </section>
-      )}
+        </div>
+      </section>
       <section className="content">
-        {isAddingNewPurchaseInvoice ? (
+        {isAddingNewPurchaseExpanse ? (
           <div>
-            <AddPurchaseInvoice setIsAddingNewPurchaseInvoice={setIsAddingNewPurchaseInvoice} handleRefresh={handleRefresh} />
+            <AddPurchaseExpanseVoucher setIsAddingNewPurchaseExpanse={setIsAddingNewPurchaseExpanse} handleRefresh={handleRefresh} />
           </div>
-        ) : isEditingPurchaseInvoice ? (
-          <AddPurchaseInvoice setIsEditingPurchaseInvoice={setIsEditingPurchaseInvoice} handleRefresh={handleRefresh} selectedData={selectedData} />
-        ) : (
-          <PurchaseInvoiceTable
+        ) : 
+        isEditingPurchaseExpanse ? (
+          <EditPurchaseExpanseVoucher setIsEditingPurchaseExpanse={setIsEditingPurchaseExpanse} handleRefresh={handleRefresh} selectedData={selectedData} />
+        ) : 
+        (
+          <PurchaseExpanseTable
             formCode={formCode}
             dataTable={dataTable}
             totalItems={totalItems}
@@ -204,9 +205,9 @@ const PurchaseInvoice = () => {
             branchId={branchId}
             authToken={authToken}
             handleSelectData={handleSelectData}
-            handleEditPurchaseInvoice={handleEditPurchaseInvoice}
-            isAddingNewPurchaseInvoice={handleAddNewPurchaseInvoice}
-            EditPurchaseInvoice={handleEditPurchaseInvoice}
+            handleEditPurchaseExpanse={handleEditPurchaseExpanse}
+            isAddingNewPurchaseExpanse={handleAddNewPurchaseExpanse}
+            isEditPurchaseExpanseVoucher={handleEditPurchaseExpanse}
             selectedData={handleSelectData}
             checker={permissions.Purchase?.["Purchase Invoice"].verify}
           />
@@ -222,4 +223,10 @@ const PurchaseInvoice = () => {
   );
 };
 
-export default PurchaseInvoice;
+export default PurchaseExpanseVoucher;
+
+
+
+
+
+
