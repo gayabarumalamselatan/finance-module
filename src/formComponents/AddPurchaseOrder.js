@@ -83,6 +83,34 @@ import DeleteDataService from '../service/DeleteDataService';
 
     const authToken = headers;
 
+    const lookupDepartment = () => {
+      LookupParamService.fetchLookupDataView("MSDT_FORMDPRT", authToken, branchId)
+      .then(data => {
+        console.log('Currency lookup data:', data);
+
+        // Transform keys to uppercase directly in the received data
+        const transformedData = data.data.map(item =>
+          Object.keys(item).reduce((acc, key) => {
+            acc[key.toUpperCase()] = item[key];
+            return acc;
+          }, {})
+        );
+        //console.log('Transformed data:', transformedData);
+
+        const options = transformedData.map(item => ({
+          value: item.NAME,
+          label: item.NAME
+        }));
+
+        setDepartementOptions(options);
+
+      }).catch(error => {
+        console.error('Failed to fetch currency lookup:', error);
+      });
+    }
+
+    console.log('lookup Department', lookupDepartment);
+
     // Lookup
     useEffect(() => {
       if(selectedData) {
