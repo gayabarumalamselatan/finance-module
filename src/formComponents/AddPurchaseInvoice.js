@@ -15,7 +15,7 @@ import LookupService from "../service/LookupService";
 import UpdateDataService from "../service/UpdateDataService";
 import DeleteDataService from "../service/DeleteDataService";
 import UpdateStatusService from "../service/UpdateStatusService";
-import ActivityLogger from "../service/ActivityLogger";
+import ActivityLogger from '../service/ActivityLogger';
 
 const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchaseInvoice, handleRefresh, index, item, selectedData }) => {
   const headers = getToken();
@@ -677,7 +677,7 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
       });
 
     //buat pr baru
-    LookupService.fetchLookupData("PURC_FORMPUREQ&filterBy=STATUS_REQUEST&filterValue=ORDERED&operation=EQUAL&branchId=1&filterBy=STATUS&filterValue=APPROVED&operation=EQUAL", authToken, branchId)
+    LookupService.fetchLookupData("PURC_FORMPUREQ&filterBy=STATUS_REQUEST&filterValue=ORDERED&operation=EQUAL&filterBy=STATUS&filterValue=APPROVED&operation=EQUAL", authToken, branchId)
       .then((data) => {
         console.log("Currency lookup data:", data);
 
@@ -693,9 +693,9 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
         const options = transformedData
           .map((item) => {
             const label = item.PR_NUMBER;
-            // if (label.startsWith('DRAFT')) {
-            //   return null; // or you can return an empty object {}
-            // }
+            if (label.startsWith("DRAFT")) {
+              return null; // or you can return an empty object {}
+            }
             return {
               value: item.PR_NUMBER,
               label: label.replace("DRAFT ", ""), // remove 'DRAFT ' from the label
@@ -716,6 +716,7 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
           })
           .filter((option) => option !== null);
         setPrNumberOptions(options);
+        console.log("Pr number options:", options);
       })
       .catch((error) => {
         console.error("Failed to fetch currency lookup:", error);
@@ -760,7 +761,7 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
     //   });
 
     // buat po baru
-    LookupService.fetchLookupData("PURC_FORMPUOR&branchId=1&filterBy=STATUS&filterValue=APPROVED&operation=EQUAL  ", authToken, branchId)
+    LookupService.fetchLookupData("PURC_FORMPUOR&filterBy=STATUS_PO&filterValue=IN_PROCESS&operation=EQUAL&filterBy=STATUS&filterValue=APPROVED&operation=EQUAL", authToken, branchId)
       .then((data) => {
         console.log("Currency lookup data:", data);
 
@@ -793,7 +794,6 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
               vendor: item.VENDOR,
               ENDTOENDID: item.ENDTOENDID,
               vatType: item.TYPE_OF_VAT,
-              tax_ppn: item.tax_ppn,
               tax_ppn: item.TAX_PPN,
               discount: item.DISCOUNT,
               currency: item.CURRENCY,
@@ -2660,12 +2660,12 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
           }
         }
 
-        // Update Status for PR or PO
-        if (idPr) {
-          await axios.post(`${FORM_SERVICE_UPDATE_DATA}?f=PUREQ&column=id&value=${idPr}&branchId=${branchId}`, { status_request: "INVOICE" }, { headers: { Authorization: `Bearer ${authToken}` } });
-        } else if (idPo) {
-          await axios.post(`${FORM_SERVICE_UPDATE_DATA}?f=PUOR&column=id&value=${idPo}&branchId=${branchId}`, { status_po: "INVOICE" }, { headers: { Authorization: `Bearer ${authToken}` } });
-        }
+        // // Update Status for PR or PO
+        // if (idPr) {
+        //   await axios.post(`${FORM_SERVICE_UPDATE_DATA}?f=PUREQ&column=id&value=${idPr}&branchId=${branchId}`, { status_request: "INVOICE" }, { headers: { Authorization: `Bearer ${authToken}` } });
+        // } else if (idPo) {
+        //   await axios.post(`${FORM_SERVICE_UPDATE_DATA}?f=PUOR&column=id&value=${idPo}&branchId=${branchId}`, { status_po: "INVOICE" }, { headers: { Authorization: `Bearer ${authToken}` } });
+        // }
 
         // Handle item deletion and insertion
         if (response.message === "Update Data Successfully") {
@@ -3021,7 +3021,7 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
             const { rwnum, ID, status, id_trx, selectedProduct, selectedCurrency, selectedAllVendor, selectedbothvendor, selectedProject, selcetedContractNumber, ...rest } = item;
             const updatedItem = {
               ...rest,
-              invoice_number,
+              invoice_number: invoice_number.replace("DRAFT_", ""),
               type_of_vat: item.type_of_vat,
               tax_ppn: item.tax_ppn,
               tax_base: item.tax_base,
