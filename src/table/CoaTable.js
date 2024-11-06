@@ -18,6 +18,7 @@ const CoaTable = ({
     handlePageSizeChange,
     handleRefresh,
     totalItems,
+    showDynamicSweetAlert,
     currentPage,
     handlePageChange,
     isLoadingTable,

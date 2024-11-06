@@ -354,6 +354,29 @@ const PurchaseOrderTable = ({
         console.log("Export selected rows:", Array.from(selectedRows));
     };
 
+    const tableHeaders = [
+        { value: "END_TO_END_ID", label: "End To End Id" },
+        { value: "PO_NUMBER", label: "PO Number" },
+        { value: "STATUS_PO", label: "Status PO" },
+        { value: "DOC_REFF", label: "Doc. Reference" },
+        { value: "ORDER_DATE", label: "Order Date" },
+        { value: "REQUEST_DATE", label: "Request Date" },
+        { value: "CREATED_BY", label: "Created By" },
+        { value: "FORM_TO", label: "To" },
+        { value: "TO_ADDRESS", label: "To Address" },
+        { value: "SHIP_TO", label: "Ship To" },
+        { value: "SHIP_TO_ADDRESS", label: "Ship To Address" },
+        { value: "BILL_TO", label: "Bill To" },
+        { value: "BILL_TO_ADDRESS", label: "Bill To Address" },
+        { value: "TERM_CONDITIONS", label: "Terms & Conditions" },
+        { value: "DESCRIPTION", label: "Notes" },
+        { value: "SUB_TOTAL", label: "Subtotal" },
+        { value: "DISCOUNT", label: "Discount" },
+        { value: "SUB_TOTAL_AFTER_DISCOUNT", label: "Subtotal After Discount" },
+        { value: "TOTAL_PPN", label: "Total PPN" },
+        { value: "TOTAL_AMOUNT", label: "Total Amount" }
+    ];
+
     return (
         <div>
             <div className="card card-default">
@@ -435,31 +458,11 @@ const PurchaseOrderTable = ({
                                     onChange={(e) => setFilterColumn(e.target.value)}
                                 >
                                     <option value="">Select a column</option>
-                                    <option value="PO_NUMBER">PO Number</option>
-                                    <option value="STATUS_PO">Status PO</option>
-                                    <option value="DOC_REFF">Doc. Refference</option>
-                                    <option value="DOC_REFF_NO">Doc. Refference Number</option>
-                                    <option value="CUSTOMER">Customer</option>
-                                    <option value="REQUESTOR">Requestor</option>
-                                    <option value="DEPARTMENT">Department</option>
-                                    <option value="PROJECT">Project</option>
-                                    <option value="REQUEST_DAE">Request Date</option>
-                                    <option value="VENDOR">Vendor</option>
-                                    <option value="ORDER_DATE">Order Date</option>
-                                    <option value="CREATED_BY">Created By</option>
-                                    <option value="APPROVED_BY">Approved By</option>
-                                    <option value="FORM_TO">To</option>
-                                    <option value="TO_ADDRESS">To Address</option>
-                                    <option value="SHIP_TO">Ship To</option>
-                                    <option value="SHIP_TO_ADDRESS">Ship To Address</option>
-                                    <option value="BILL_TO">Bill To</option>
-                                    <option value="BILL_TO_ADDRESS">Bill To Address</option>
-                                    <option value="TERM_CONDITIONS">Terms and Conditions</option>
-                                    <option value="DESCRIPTION">Notes</option>
-                                    <option value="DISCOUNT">Discount</option>
-                                    <option value="SUB_TOTAL">Sub Total</option>
-                                    <option value="TOTAL_PPN">Total PPN</option>
-                                    <option value="TOTAL_AMOUNT">Total Amount</option>    
+                                    {tableHeaders.map(header => (
+                                        <option key={header.value} value={header.value}>
+                                            {header.label}
+                                        </option>
+                                    ))}
                                 </select>
                             </div>
                             <div className="col-md-4 mb-3">
@@ -506,26 +509,9 @@ const PurchaseOrderTable = ({
                                             checked={selectedRows.size === dataTable.length && dataTable.length > 0}
                                         />
                                     </th>
-                                    <th>End To End Id</th>
-                                    <th>PO Number</th>
-                                    <th>Status PO</th>
-                                    <th>Doc. Refference</th>
-                                    <th>Order Date</th>
-                                    <th>Request Date</th>
-                                    <th>Created By</th>
-                                    <th>To</th>
-                                    <th>To Address</th>
-                                    <th>Ship To</th>
-                                    <th>Ship To Address</th>
-                                    <th>Bill To</th>
-                                    <th>Bill To Address</th>
-                                    <th>Terms & Conditions</th>
-                                    <th>Notes</th>
-                                    <th>Subtotal</th>
-                                    <th>Discount</th>
-                                    <th>Subtotal After Discount</th>
-                                    <th>Total PPN</th>
-                                    <th>Total Amount</th>
+                                   {tableHeaders.map(header => (
+                                    <th>{header.label}</th>
+                                   ))}
                                 </tr>
                             </thead>
                             <tbody>

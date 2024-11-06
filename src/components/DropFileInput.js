@@ -49,7 +49,7 @@
 //     axios
 //       .post("", formData, {
 //         headers: {
-//           Authorization: `Bearer ${token}`,
+//           Authorization: Bearer ${token},
 //           "Content-Type": "multipart/form-data",
 //         },
 //         onUploadProgress: (progressEvent) => {
@@ -114,12 +114,12 @@
 //       const isLessThan25MB = file.size / 1024 / 1024 < 25;
 
 //       if (!isPdfOrDoc) {
-//         message.error(`${file.name} is not a supported file format (PDF or DOC/DOCX).`);
+//         message.error(${file.name} is not a supported file format (PDF or DOC/DOCX).);
 //         return Upload.LIST_IGNORE;
 //       }
 
 //       if (!isLessThan25MB) {
-//         message.error(`${file.name} exceeds the 25MB file size limit.`);
+//         message.error(${file.name} exceeds the 25MB file size limit.);
 //         return Upload.LIST_IGNORE;
 //       }
 
@@ -181,7 +181,7 @@
 //                 </Tooltip>,
 //               ]}
 //             >
-//               <List.Item.Meta avatar={<FileOutlined />} title={item.name} description={`File size: ${(item.file.size / 1024 / 1024).toFixed(2)} MB`} />
+//               <List.Item.Meta avatar={<FileOutlined />} title={item.name} description={File size: ${(item.file.size / 1024 / 1024).toFixed(2)} MB} />
 //             </List.Item>
 //           )}
 //           style={{ marginTop: 20 }}
@@ -235,7 +235,7 @@ const props = {
   },
 };
 
-const App = () => (
+const DropFileInput = () => (
   <Dragger {...props}>
     <p className="ant-upload-drag-icon">
       <InboxOutlined />
@@ -245,4 +245,4 @@ const App = () => (
   </Dragger>
 );
 
-export default App;
+export default DropFileInput;

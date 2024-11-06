@@ -6,8 +6,8 @@ import { FORM_SERVICE_INSERT_DATA, FORM_SERVICE_LOAD_FIELD, FORM_SERVICE_REPORT_
 import { HandleToUppercase } from "../utils/HandleToUpercase";
 import FormService from "../service/FormService";
 import PurchaseRequestTable from "../table/PurchaseRequestTable";
-import AddPurchaseRequest from "./AddPurchaseRequest";
-import EditPurchaseRequest from "./EditPurchaseRequest";
+import AddPurchaseRequest from "../formComponents/AddPurchaseRequest";
+import EditPurchaseRequest from "../formComponents/EditPurchaseRequest";
 
 const PurchaseRequest = () => {
     const headers = getToken();
