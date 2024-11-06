@@ -75,6 +75,8 @@ module.exports = {
                 
                 './PurchaseExpanseVoucher': './src/formComponents/AddPurchaseExpanseVoucher',
                 './ListPurchaseExpanseVoucher': './src/components/PurchaseExpanseVoucher',
+                
+                './SalesOrder': './src/components/SalesOrder',
             },
             shared: {
                 react: { 
