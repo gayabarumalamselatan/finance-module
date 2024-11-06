@@ -15,6 +15,7 @@ import CreatableSelect from 'react-select/creatable';
 import axios from 'axios';
 import UpdateDataService from '../service/UpdateDataService';
 import DeleteDataService from '../service/DeleteDataService';
+import FormService from '../service/FormService';
 
   const AddPurchaseOrder = ({ 
     setIsAddingNewPurchaseOrder, 
@@ -77,6 +78,7 @@ import DeleteDataService from '../service/DeleteDataService';
     const [selectedToAddress, setSelectedToAddress] = useState(null);
     const [contractNumberOption, setContractNumberOptions]= useState([]);
     const [file, setFile] = useState(null);
+    const [isPOAvailable, setIsPoAvailable] = useState(false);
 
     // Dynamic Form Field Width
     const [inputWidth, setInputWidth] = useState(Array(items.length).fill(0));
@@ -204,7 +206,7 @@ import DeleteDataService from '../service/DeleteDataService';
 
 
       // Lookup Purchase Request
-      LookupParamService.fetchLookupData("PURC_FORMPUREQ&showAll=YES&filterBy=STATUS&filterValue=APPROVED&operation=EQUAL&&filterBy=STATUS_REQUEST&filterValue=IN_PROCESS&operation=EQUAL", authToken, branchId)
+      LookupService.fetchLookupData("PURC_FORMPUREQ&filterBy=STATUS_REQUEST&filterValue=IN_PROCESS&operation=EQUAL&branchId=1&filterBy=STATUS&filterValue=APPROVED&operation=EQUAL", authToken, branchId)
       .then(data => {
         console.log('Currency lookup data:', data);
 
@@ -891,8 +893,8 @@ import DeleteDataService from '../service/DeleteDataService';
                   console.log('Item deleted successfully:', id);
                 } catch (error) {
                   console.error('Error deleting item:', id, error);
-                }
-              }
+                }
+              }
             }else{
               for (const item of items) {
                 if (item.ID) {
@@ -1101,11 +1103,20 @@ import DeleteDataService from '../service/DeleteDataService';
 
           console.log('Master', generalInfo);
 
+          const poNumber = po_number;
+
+
+          const check = await LookupService.fetchLookupData(`PURC_FORMPUOR&filterBy=PO_NUMBER&filterValue=${poNumber}&operation=EQUAL`, authToken, branchId)
+          const datacek = check.data[0];
+          console.log('Datasama:', datacek);
+            
           let response;
 
           if(selectedData) {
             const id = selectedData[0].ID;
             response = await UpdateDataService.postData(generalInfo, `PUOR&column=id&value=${id}`, authToken, branchId);
+          }else if(datacek){
+            response = await UpdateDataService.postData(generalInfo, `PUOR&column=id&value=${datacek.ID}`, authToken, branchId);
           }else{
             response = await InsertDataService.postData(generalInfo, "PUOR", authToken, branchId);
           }
@@ -1114,17 +1125,38 @@ import DeleteDataService from '../service/DeleteDataService';
 
           if (response.message === "Update Data Successfully") {
             // Iterate over items array and attempt to delete each item
-            for (const item of items) {
-              if (item.ID) {
-                const itemId = item.ID;
+
+            if(datacek){
+              const poNumber = datacek.po_number;
+              const lookupResponse = await LookupService.fetchLookupData(
+                `PURC_FORMPUORD&filterBy=po_number&filterValue=${poNumber}&operation=EQUAL`,
+                authToken,
+                branchId
+              );
+              const ids = lookupResponse.data.map(item => item.ID);
+              console.log('iddtodelete', ids);
+
+              for(const id of ids){
                 try {
-                    const itemResponse = await DeleteDataService.postData(`column=id&value=${itemId}`, "PUORD", authToken, branchId);
-                    console.log('Item deleted successfully:', itemResponse);
+                  await DeleteDataService.postData(`column=id&value=${id}`, "PUORD", authToken, branchId);
+                  console.log('Item deleted successfully:', id);
                 } catch (error) {
-                    console.error('Error deleting item:', itemId, error);
+                  console.error('Error deleting item:', id, error);
                 }
-              } else {
-                console.log('No ID found, skipping delete for this item:', item);
+              }
+            }else{
+              for (const item of items) {
+                if (item.ID) {
+                  const itemId = item.ID;
+                  try {
+                    const  itemResponse = await DeleteDataService.postData(`column=id&value=${itemId}`, "PUORD", authToken, branchId);
+                      console.log('Item deleted successfully:', itemResponse);
+                  } catch (error) {
+                      console.error('Error deleting item:', itemId, error);
+                  }
+                } else {
+                  console.log('No ID found, skipping delete for this item:', item);
+                }
               }
             }
 
@@ -1158,23 +1190,22 @@ import DeleteDataService from '../service/DeleteDataService';
             }
 
             //Set status workflow VERIFIED
-              LookupService.fetchLookupData(`PURC_FORMPUOR&filterBy=endtoendid&filterValue=${endToEndId}&operation=EQUAL`, authToken, branchId)
-              .then(response => {
-                const data = response.data[0];
-                console.log('Data:', data);
+            LookupService.fetchLookupData(`PURC_FORMPUOR&filterBy=endtoendid&filterValue=${endToEndId}&operation=EQUAL`, authToken, branchId)
+            .then(response => {
+              const data = response.data[0];
+              console.log('Data:', data);
 
-                const requestData = {
-                  idTrx: data.ID, 
-                  status: "IN_PROCESS", // Ganti dengan nilai status yang sesuai, atau sesuaikan sesuai kebutuhan
-                };
-                UpdateStatusService.postData(requestData, "PUOR", authToken, branchId)
-                  .then(response => {
-                    console.log('Data updated successfully:', response);
-                  })
-                  .catch(error => {
-                    console.error('Failed to update data:', error);
-                  });
-
+              const requestData = {
+                idTrx: data.ID, 
+                status: "IN_PROCESS", 
+              };
+              UpdateStatusService.postData(requestData, "PUOR", authToken, branchId)
+                .then(response => {
+                  console.log('Data updated successfully:', response);
+                })
+                .catch(error => {
+                  console.error('Failed to update data:', error);
+                });
               })
               .catch(error => {
                 console.error('Failed to load purchase request data:', error);
@@ -1182,6 +1213,9 @@ import DeleteDataService from '../service/DeleteDataService';
 
             // Show success message and reset form
             messageAlertSwal('Success', response.message, 'success');
+            if(isAddingNewPurchaseOrder){
+              resetForm();
+            }
           }
         
           if (response.message === "insert Data Successfully") {

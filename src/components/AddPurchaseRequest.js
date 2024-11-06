@@ -4,24 +4,18 @@ import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd';
 import Swal from 'sweetalert2';
 import { messageAlertSwal } from "../config/Swal";
 import InsertDataService from '../service/InsertDataService';
-import { getBranch, getToken, getIdUser } from '../config/Constant';
-import { GENERATED_DUE_DATE, GENERATED_NUMBER, UPLOAD_FILES } from '../config/ConfigUrl';
+import { getBranch, getToken } from '../config/Constant';
+import { GENERATED_DUE_DATE, GENERATED_NUMBER } from '../config/ConfigUrl';
 import { generateUniqueId } from '../service/GeneratedId';
 import Select from 'react-select';
 import LookupParamService from '../service/LookupParamService';
 import CreatableSelect from 'react-select/creatable';
 import axios from 'axios';
-import ActivityLogger from '../service/ActivityLogger';
-import LookupService from '../service/LookupService';
-import DeleteDataService from '../service/DeleteDataService';
-import UpdateDataService from '../service/UpdateDataService';
-import UpdateStatusService from '../service/UpdateStatusService';
 
-const AddPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, selectedData }) => {
+const AddPurchaseRequest = ({ setIsAddingNewPurchaseRequest, handleRefresh, index, item }) => {
   const headers = getToken();
   const branchId = getBranch();
-  const userId = sessionStorage.getItem('userId');
-  const idUser = sessionStorage.getItem('id');
+  const userId = sessionStorage.getItem('userId')
   const [pr_number, setPrNumber] = useState('');
   const [request_date, setRequestDate] = useState('');
   const [customer, setCustomer] = useState('');
@@ -35,12 +29,11 @@ const AddPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, select
   const [vendor, setVendor] = useState('');
   const [project, setProject] = useState('');
   const [project_contract_number, setProjectContractNumber] = useState('');
-  const [payment_term, setPaymentTerm] = useState('7 Weekday');
+  const [payment_term, setPaymentTerm] = useState('');
   const [status_request, setStatusRequest] = useState('Draft');
   const [items, setItems] = useState([]);
   const [description, setDescription] = useState('');
   const [due_date, setDueDate] = useState('');
-  const [endtoendid, setEntoendid] = useState('');
   const [selectedItems, setSelectedItems] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [currencyOptions, setCurrencyOptions] = useState([]);
@@ -55,503 +48,225 @@ const AddPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, select
   // const [selectedCustomer, setSelectedCustomer] = useState(null);
   const [vendorOptions, setVendorOptions] = useState([]);
   const [selectedVendor, setSelectedVendor] = useState(null);
-  const [buttonAfterSubmit, setButtonAfterSubmit] = useState(false);
+  const [paymentTermOptions, setPaymentTermOptions] = useState([]);
+  const [selectedPaymentTerm, setSelectedPaymentTerm] = useState([]);
 
 
   const authToken = headers;
+
   useEffect(() => {
-    const today = new Date().toISOString().split('T')[0]; // Get today's date in YYYY-MM-DD format
-    setRequestDate(today);
+
+    LookupParamService.fetchLookupData("MSDT_FORMCCY", authToken, branchId)
+      .then(data => {
+        console.log('Currency lookup data:', data);
+
+        // Transform keys to uppercase directly in the received data
+        const transformedData = data.data.map(item =>
+          Object.keys(item).reduce((acc, key) => {
+            acc[key.toUpperCase()] = item[key];
+            return acc;
+          }, {})
+        );
+        //console.log('Transformed data:', transformedData);
+
+        const options = transformedData.map(item => ({
+          value: item.CODE,
+          label: item.CODE
+        }));
+        setCurrencyOptions(options);
+      })
+      .catch(error => {
+        console.error('Failed to fetch currency lookup:', error);
+      });
+    LookupParamService.fetchLookupData("MSDT_FORMDPRT", authToken, branchId)
+      .then(data => {
+        console.log('Currency lookup data:', data);
+
+        // Transform keys to uppercase directly in the received data
+        const transformedData = data.data.map(item =>
+          Object.keys(item).reduce((acc, key) => {
+            acc[key.toUpperCase()] = item[key];
+            return acc;
+          }, {})
+        );
+        //console.log('Transformed data:', transformedData);
+
+        const options = transformedData.map(item => ({
+          value: item.NAME,
+          label: item.NAME
+        }));
+        setDepartementOptions(options);
+      })
+      .catch(error => {
+        console.error('Failed to fetch currency lookup:', error);
+      });
+
+
+    LookupParamService.fetchLookupData("MSDT_FORMPRJT", authToken, branchId)
+      .then(data => {
+        console.log('Project lookup data:', data);
+
+        // Transform keys to uppercase directly in the received data
+        const transformedData = data.data.map(item =>
+          Object.keys(item).reduce((acc, key) => {
+            acc[key.toUpperCase()] = item[key];
+            return acc;
+          }, {})
+        );
+        console.log('Transformed data project:', transformedData);
+
+        const options = transformedData.map(item => ({
+          value: item.NAME,
+          label: item.NAME,
+          project_contract_number: item.CONTRACT_NUMBER,
+          customer: item.CUSTOMER
+        }));
+        setProjectOptions(options);
+      })
+      .catch(error => {
+        console.error('Failed to fetch currency lookup:', error);
+      });
+
+    LookupParamService.fetchLookupData("MSDT_FORMPRDT", authToken, branchId)
+      .then(data => {
+        console.log('Currency lookup data:', data);
+
+        // Transform keys to uppercase directly in the received data
+        const transformedData = data.data.map(item =>
+          Object.keys(item).reduce((acc, key) => {
+            acc[key.toUpperCase()] = item[key];
+            return acc;
+          }, {})
+        );
+        //console.log('Transformed data:', transformedData);
+
+        const options = transformedData.map(item => ({
+          value: item.NAME,
+          label: item.NAME
+        }));
+        setProductOptions(options);
+      })
+      .catch(error => {
+        console.error('Failed to fetch currency lookup:', error);
+      });
+
+    // LookupParamService.fetchLookupData("MSDT_FORMCUST", authToken, branchId)
+    //   .then(data => {
+    //     console.log('Currency lookup data:', data);
+
+    //     // Transform keys to uppercase directly in the received data
+    //     const transformedData = data.data.map(item =>
+    //       Object.keys(item).reduce((acc, key) => {
+    //         acc[key.toUpperCase()] = item[key];
+    //         return acc;
+    //       }, {})
+    //     );
+    //     //console.log('Transformed data:', transformedData);
+
+    //     const options = transformedData.map(item => ({
+    //       value: item.NAME,
+    //       label: item.NAME
+    //     }));
+    //     setCustomerOptions(options);
+    //   })
+    //   .catch(error => {
+    //     console.error('Failed to fetch currency lookup:', error);
+    //   });
+
+    LookupParamService.fetchLookupData("MSDT_FORMCUST", authToken, branchId)
+      .then(data => {
+        console.log('Currency lookup data:', data);
+
+        // Transform keys to uppercase directly in the received data
+        const transformedData = data.data.map(item =>
+          Object.keys(item).reduce((acc, key) => {
+            acc[key.toUpperCase()] = item[key];
+            return acc;
+          }, {})
+        );
+        //console.log('Transformed data:', transformedData);
+
+        const filteredData = transformedData.filter(item =>
+          item.ENTITY_TYPE === 'BOTH' || item.ENTITY_TYPE === 'Vendor'
+        );
+
+        const options = filteredData.map(item => ({
+          value: item.NAME,
+          label: item.NAME
+        }));
+        setVendorOptions(options);
+      })
+      .catch(error => {
+        console.error('Failed to fetch currency lookup:', error);
+      });
+
+    LookupParamService.fetchLookupData("MSDT_FORMPYTM", authToken, branchId)
+      .then(data => {
+        console.log('Currency lookup data:', data);
+
+        // Transform keys to uppercase directly in the received data
+        const transformedData = data.data.map(item =>
+          Object.keys(item).reduce((acc, key) => {
+            acc[key.toUpperCase()] = item[key];
+            return acc;
+          }, {})
+        );
+        //console.log('Transformed data:', transformedData);
+
+        const options = transformedData.map(item => ({
+          value: item.COUNT,
+          label: item.NAME,
+          dateType: item.DATE_TYPE
+        }));
+        setPaymentTermOptions(options);
+      })
+      .catch(error => {
+        console.error('Failed to fetch currency lookup:', error);
+      });
   }, []);
 
-  useEffect(() => {
-    if (selectedData) {
-      const { ID, PR_NUMBER } = selectedData[0];
-      // Set data awal dari selectedData
-      console.log('id and pr number', ID, PR_NUMBER);
-      setPrNumber(PR_NUMBER);
-
-      // Panggil API untuk mendapatkan data berdasarkan ID
-      LookupService.fetchLookupData(`PURC_FORMPUREQ&filterBy=PR_NUMBER&filterValue=${PR_NUMBER}&operation=EQUAL`, authToken, branchId)
-        .then(response => {
-          const data = response.data[0];
-          console.log('Data:', data);
-          setRequestDate(data.request_date);
-          setScheduleDate(data.schedule_date);
-          setDocReff(data.doc_reff);
-          setRequestor(data.requestor);
-          setCompany(data.company);
-          setDescription(data.description);
-          setStatusRequest(data.status_request);
-          setPaymentTerm(data.payment_term);
-          setEntoendid(data.endtoendid);
-        })
-        .catch(error => {
-          console.error('Failed to load purchase request data:', error);
-        });
-      LookupService.fetchLookupData(`PURC_FORMPUREQD&filterBy=PR_NUMBER&filterValue=${PR_NUMBER}&operation=EQUAL`, authToken, branchId)
-        .then(response => {
-          const fetchedItems = response.data || [];
-          console.log('Items fetched:', fetchedItems);
-
-          // Set fetched items to state
-          const sortedItems = fetchedItems.sort((a, b) => a.ID - b.ID);
-
-          console.log('Items fetched (after sorting):', sortedItems);
-          setItems(sortedItems);
-
-          // Fetch product lookup data
-          LookupParamService.fetchLookupData("MSDT_FORMPRDT", authToken, branchId)
-            .then(productData => {
-              console.log('Product lookup data:', productData);
-
-              // Transform and map product data to options
-              const transformedProductData = productData.data.map(item =>
-                Object.keys(item).reduce((acc, key) => {
-                  acc[key.toUpperCase()] = item[key];
-                  return acc;
-                }, {})
-              );
-
-              const productOptions = transformedProductData.map(item => ({
-                value: item.NAME,
-                label: item.NAME
-              }));
-
-              setProductOptions(productOptions); // Set product options to state
-
-              // Fetch currency lookup data
-              LookupParamService.fetchLookupData("MSDT_FORMCCY", authToken, branchId)
-                .then(currencyData => {
-                  console.log('Currency lookup data:', currencyData);
-
-                  // Transform and map currency data to options
-                  const transformedCurrencyData = currencyData.data.map(item =>
-                    Object.keys(item).reduce((acc, key) => {
-                      acc[key.toUpperCase()] = item[key];
-                      return acc;
-                    }, {})
-                  );
-
-                  const currencyOptions = transformedCurrencyData.map(item => ({
-                    value: item.CODE,
-                    label: item.CODE
-                  }));
-
-                  setCurrencyOptions(currencyOptions); // Set currency options to state
-
-                  // Update fetched items with selected options
-                  const updatedItems = fetchedItems.map(item => {
-                    const selectedProductOption = productOptions.find(option =>
-                      option.value === item.product
-                    );
-
-                    console.log('Selected product option:', selectedProductOption);
-
-                    const selectedCurrencyOption = currencyOptions.find(option =>
-                      option.value === item.currency
-                    );
-
-                    console.log('Selected currency option:', selectedCurrencyOption);
-                    setSelectedCurrency(selectedCurrencyOption);
-                    setSelectedProduct(selectedProductOption);
-                  });
-
-                  // Set the updated items with selected product and currency options to state
-                  setItems(fetchedItems);
-                })
-                .catch(error => {
-                  console.error('Failed to fetch currency lookup:', error);
-                });
-            })
-            .catch(error => {
-              console.error('Failed to fetch product lookup:', error);
-            });
-        })
-        .catch(error => {
-          console.error('Failed to load items:', error);
-        });
-
-
-
-      // Ambil data lookup untuk currency
-      LookupParamService.fetchLookupData("MSDT_FORMEMPL", authToken, branchId)
-        .then(data => {
-          console.log('Currency lookup data:', data);
-
-          // Transform keys to uppercase directly in the received data
-          const transformedData = data.data.map(item =>
-            Object.keys(item).reduce((acc, key) => {
-              acc[key.toUpperCase()] = item[key];
-              return acc;
-            }, {})
-          );
-          //console.log('Transformed data:', transformedData);
-
-          const options = transformedData.map(item => ({
-            value: item.NAME,
-            label: item.NAME
-          }));
-          setRequestorOptions(options);
-          const selectedRequestorOption = options.find(option => option.value === selectedData[0].REQUESTOR);
-          setSelectedRequestor(selectedRequestorOption || null);
-
-        })
-        .catch(error => {
-          console.error('Failed to fetch currency lookup:', error);
-        });
-
-      LookupParamService.fetchLookupData("MSDT_FORMCCY", authToken, branchId)
-        .then(data => {
-          console.log('Currency lookup data:', data);
-
-          // Transform keys to uppercase directly in the received data
-          const transformedData = data.data.map(item =>
-            Object.keys(item).reduce((acc, key) => {
-              acc[key.toUpperCase()] = item[key];
-              return acc;
-            }, {})
-          );
-          //console.log('Transformed data:', transformedData);
-
-          const options = transformedData.map(item => ({
-            value: item.CODE,
-            label: item.CODE
-          }));
-          setCurrencyOptions(options);
-          // const selectedCurrencyOption = options.find(option => option.value === currency);
-          // setSelectedCurrency(selectedCurrencyOption || null);
-        })
-        .catch(error => {
-          console.error('Failed to fetch currency lookup:', error);
-        });
-      LookupParamService.fetchLookupData("MSDT_FORMDPRT", authToken, branchId)
-        .then(data => {
-          console.log('Currency lookup data:', data);
-
-          // Transform keys to uppercase directly in the received data
-          const transformedData = data.data.map(item =>
-            Object.keys(item).reduce((acc, key) => {
-              acc[key.toUpperCase()] = item[key];
-              return acc;
-            }, {})
-          );
-          //console.log('Transformed data:', transformedData);
-
-          const options = transformedData.map(item => ({
-            value: item.NAME,
-            label: item.NAME
-          }));
-          setDepartementOptions(options);
-          const selectedDepartementOption = options.find(option => option.value === selectedData[0].DEPARTEMENT);
-          setSelectedDepartement(selectedDepartementOption || null);
-        })
-        .catch(error => {
-          console.error('Failed to fetch currency lookup:', error);
-        });
-
-      LookupParamService.fetchLookupData("MSDT_FORMPRJT", authToken, branchId)
-        .then(data => {
-          console.log('Currency lookup data:', data);
-
-          // Transform keys to uppercase directly in the received data
-          const transformedData = data.data.map(item =>
-            Object.keys(item).reduce((acc, key) => {
-              acc[key.toUpperCase()] = item[key];
-              return acc;
-            }, {})
-          );
-          //console.log('Transformed data:', transformedData);
-
-          const options = transformedData.map(item => ({
-            value: item.NAME,
-            label: item.NAME,
-            project_contract_number: item.CONTRACT_NUMBER,
-            customer: item.CUSTOMER
-          }));
-          setProjectOptions(options);
-          const selectedProjectOption = options.find(option => option.value === selectedData[0].PROJECT);
-          setSelectedProject(selectedProjectOption || null);
-        })
-        .catch(error => {
-          console.error('Failed to fetch currency lookup:', error);
-        });
-
-      LookupParamService.fetchLookupData("MSDT_FORMPRDT", authToken, branchId)
-        .then(data => {
-          console.log('Currency lookup data:', data);
-
-          // Transform keys to uppercase directly in the received data
-          const transformedData = data.data.map(item =>
-            Object.keys(item).reduce((acc, key) => {
-              acc[key.toUpperCase()] = item[key];
-              return acc;
-            }, {})
-          );
-          //console.log('Transformed data:', transformedData);
-
-          const options = transformedData.map(item => ({
-            value: item.NAME,
-            label: item.NAME
-          }));
-          setProductOptions(options);
-          console.log('Product :', options);
-          const selectedProductOption = options.find(option => option.value === selectedData[0].PRODUCT);
-          console.log('product : ', selectedProductOption);
-          setSelectedProduct(selectedProductOption || null);
-        })
-        .catch(error => {
-          console.error('Failed to fetch currency lookup:', error);
-        });
-
-      LookupParamService.fetchLookupData("MSDT_FORMCUST", authToken, branchId)
-        .then(data => {
-          console.log('Currency lookup data:', data);
-
-          // Transform keys to uppercase directly in the received data
-          const transformedData = data.data.map(item =>
-            Object.keys(item).reduce((acc, key) => {
-              acc[key.toUpperCase()] = item[key];
-              return acc;
-            }, {})
-          );
-          //console.log('Transformed data:', transformedData);
-          const filteredData = transformedData.filter(item =>
-            item.ENTITY_TYPE === 'BOTH' || item.ENTITY_TYPE === 'Vendor'
-          );
-
-          const options = filteredData.map(item => ({
-            value: item.NAME,
-            label: item.NAME
-          }));
-
-          console.log('Vendor ops :', options);
-
-
-          setVendorOptions(options);
-
-          const selectedVendorOption = options.find(option => option.value === selectedData[0].VENDOR);
-          console.log('Vendor :', selectedVendorOption);
-          setSelectedVendor(selectedVendorOption || null);
-        })
-        .catch(error => {
-          console.error('Failed to fetch currency lookup:', error);
-        });
-
-
-
-      LookupParamService.fetchLookupData("MSDT_FORMPYTM", authToken, branchId)
-        .then(data => {
-          console.log('Currency lookup data:', data);
-
-          // Transform keys to uppercase directly in the received data
-          const transformedData = data.data.map(item =>
-            Object.keys(item).reduce((acc, key) => {
-              acc[key.toUpperCase()] = item[key];
-              return acc;
-            }, {})
-          );
-          //console.log('Transformed data:', transformedData);
-
-          const options = transformedData.map(item => ({
-            value: item.COUNT,
-            label: item.NAME,
-            dateType: item.DATE_TYPE
-          }));
-          setPaymentTermOptions(options);
-          console.log('Payment Term :', options);
-          const selectedPaymentTermOption = options.find(option => option.value === selectedData[0].PAYMENT_TERM);
-          console.log('Payment Term :', selectedPaymentTermOption);
-          setSelectedPaymentTerm(selectedPaymentTermOption || null);
-        })
-        .catch(error => {
-          console.error('Failed to fetch currency lookup:', error);
-        });
-    } else {
-      generatePrNumber("DRAFT_PR");
-
-      LookupParamService.fetchLookupData("MSDT_FORMCCY", authToken, branchId)
-        .then(data => {
-          console.log('Currency lookup data:', data);
-
-          // Transform keys to uppercase directly in the received data
-          const transformedData = data.data.map(item =>
-            Object.keys(item).reduce((acc, key) => {
-              acc[key.toUpperCase()] = item[key];
-              return acc;
-            }, {})
-          );
-          //console.log('Transformed data:', transformedData);
-
-          const options = transformedData.map(item => ({
-            value: item.CODE,
-            label: item.CODE
-          }));
-          setCurrencyOptions(options);
-        })
-        .catch(error => {
-          console.error('Failed to fetch currency lookup:', error);
-        });
-      LookupParamService.fetchLookupData("MSDT_FORMDPRT", authToken, branchId)
-        .then(data => {
-          console.log('Currency lookup data:', data);
-
-          // Transform keys to uppercase directly in the received data
-          const transformedData = data.data.map(item =>
-            Object.keys(item).reduce((acc, key) => {
-              acc[key.toUpperCase()] = item[key];
-              return acc;
-            }, {})
-          );
-          //console.log('Transformed data:', transformedData);
-
-          const options = transformedData.map(item => ({
-            value: item.NAME,
-            label: item.NAME
-          }));
-          setDepartementOptions(options);
-        })
-        .catch(error => {
-          console.error('Failed to fetch currency lookup:', error);
-        });
-
-
-      LookupParamService.fetchLookupData("MSDT_FORMPRJT", authToken, branchId)
-        .then(data => {
-          console.log('Project lookup data:', data);
-
-          // Transform keys to uppercase directly in the received data
-          const transformedData = data.data.map(item =>
-            Object.keys(item).reduce((acc, key) => {
-              acc[key.toUpperCase()] = item[key];
-              return acc;
-            }, {})
-          );
-          console.log('Transformed data project:', transformedData);
-
-          const options = transformedData.map(item => ({
-            value: item.NAME,
-            label: item.NAME,
-            project_contract_number: item.CONTRACT_NUMBER,
-            customer: item.CUSTOMER
-          }));
-          setProjectOptions(options);
-        })
-        .catch(error => {
-          console.error('Failed to fetch currency lookup:', error);
-        });
-
-      LookupParamService.fetchLookupData("MSDT_FORMPRDT", authToken, branchId)
-        .then(data => {
-          console.log('Currency lookup data:', data);
-
-          // Transform keys to uppercase directly in the received data
-          const transformedData = data.data.map(item =>
-            Object.keys(item).reduce((acc, key) => {
-              acc[key.toUpperCase()] = item[key];
-              return acc;
-            }, {})
-          );
-          //console.log('Transformed data:', transformedData);
-
-          const options = transformedData.map(item => ({
-            value: item.NAME,
-            label: item.NAME
-          }));
-          setProductOptions(options);
-        })
-        .catch(error => {
-          console.error('Failed to fetch currency lookup:', error);
-        });
-
-      LookupParamService.fetchLookupData("MSDT_FORMCUST", authToken, branchId)
-        .then(data => {
-          console.log('Currency lookup data:', data);
-
-          // Transform keys to uppercase directly in the received data
-          const transformedData = data.data.map(item =>
-            Object.keys(item).reduce((acc, key) => {
-              acc[key.toUpperCase()] = item[key];
-              return acc;
-            }, {})
-          );
-          //console.log('Transformed data:', transformedData);
-
-          const filteredData = transformedData.filter(item =>
-            item.ENTITY_TYPE === 'BOTH' || item.ENTITY_TYPE === 'Vendor'
-          );
-
-          const options = filteredData.map(item => ({
-            value: item.NAME,
-            label: item.NAME
-          }));
-          setVendorOptions(options);
-        })
-        .catch(error => {
-          console.error('Failed to fetch currency lookup:', error);
-        });
-    }
-  }, [selectedData]);
-
-  const handleDepartementChange = (selectedOption, index) => {
-    setSelectedDepartement(selectedOption); // Optional: If you need to use the selected option elsewhere
-    const updatedItems = [...items]; // Copy the current items array
-
-    // Update the specific item at the provided index
-    updatedItems[index] = {
-      ...updatedItems[index], // Copy the existing fields
-      departement: selectedOption ? selectedOption.value : '' // Update the department field
-    };
-
-    setItems(updatedItems); // Set the updated items array in state
+  // const handleRequestorChange = (selectedOption) => {
+  //   setSelectedRequestor(selectedOption);
+  //   setRequestor(selectedOption ? selectedOption.value : '');
+  // };
+
+  const handleDeppartementChange = (selectedOption) => {
+    setSelectedDepartement(selectedOption);
+    setDepartment(selectedOption ? selectedOption.value : '');
   };
 
 
-
-  const handleProjectChange = (selectedOption, index) => {
+  const handleProjectChange = (selectedOption) => {
     console.log(selectedOption);
-
-    // Copy the items array
-    const updatedItems = [...items];
-
-    // Update the specific item at the provided index
-    updatedItems[index] = {
-      ...updatedItems[index], // Copy the existing fields
-      project: selectedOption ? selectedOption.value : '', // Set the project
-      project_contract_number: selectedOption ? selectedOption.project_contract_number : '', // Set project contract number
-      customer: selectedOption ? selectedOption.customer : '' // Set the customer
-    };
-
-    // Update the items array in state
-    setItems(updatedItems);
-
-    // Optionally, update any other states related to selected project if needed
     setSelectedProject(selectedOption);
+    setProject(selectedOption ? selectedOption.value : '');
+    setProjectContractNumber(selectedOption.project_contract_number);
+    setCustomer(selectedOption ? selectedOption.customer : '');
   };
 
-  const handleVendorChange = (selectedOption, index) => {
-    const updatedItems = [...items]; // Copy the items array
-    updatedItems[index] = {
-      ...updatedItems[index], // Copy the existing item fields
-      vendor: selectedOption ? selectedOption.value : '' // Update the vendor field
-    };
-    setItems(updatedItems); // Set the new state
-    setSelectedVendor(selectedOption); // Optionally update this if you need it elsewhere
-  };
+  // const handleCustomerChange = (selectedOption) => {
+  //   setSelectedCustomer(selectedOption);
+  //   setCustomer(selectedOption ? selectedOption.value : '');
+  // }
 
-  const fetchPaymentTermData = async (data) => {
-    console.log('Fetching payment term data', data);
-    console.log('Request date:', request_date);
-    const today = new Date().toISOString().split('T')[0];
+  const handleVendorChange = (selectedOption) => {
+    setSelectedVendor(selectedOption);
+    setVendor(selectedOption ? selectedOption.value : '');
+  }
+
+  const handlePaymentTermChange = async (selectedOption) => {
+    console.log('pay term select', selectedOption);
+    console.log(request_date);
+    setSelectedPaymentTerm(selectedOption);
+    setPaymentTerm(selectedOption ? selectedOption.value : '');
 
     const payload = {
-      date: today,
-      count: data ? data.value : '',
-      dateType: data ? data.dateType : ''
+      date: request_date,
+      count: selectedOption ? selectedOption.value : '',
+      dateType: selectedOption ? selectedOption.dateType : ''
     };
 
-    console.log('Payload:', payload);
-
+    console.log(payload);
     try {
       // Hit the API with the required data and Bearer token in the headers
       const response = await axios.post(`${GENERATED_DUE_DATE}`, payload, {
@@ -559,98 +274,60 @@ const AddPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, select
           Authorization: `Bearer ${headers}`
         }
       });
-
+      
       // Process the response if needed
       console.log('API response:', response.data.dueDate);
       setDueDate(response.data.dueDate);
-      setScheduleDate(response.data.dueDate);
-
+  
     } catch (error) {
       // Handle any errors
       console.error('Error calling API:', error);
     }
-  };
-
-  useEffect(() => {
-    // Hardcoded payment term to simulate a selected option
-    const hardcodedPaymentTerm = {
-      value: '7',
-      dateType: 'Weekday' // Example date type
-    };
-
-    // Call the API when the component loads
-    fetchPaymentTermData(hardcodedPaymentTerm);
-  }, []);
-
-
+  }
 
   const handleAddItem = () => {
-    setItems([...items, { doc_reff_no: '', doc_source: '', vendor: '', project: '', project_contract_number: '', customer: '', departement: '', product: '', product_note: '', quantity: '', currency: 'IDR', unit_price: 0, total_price: 0, id_upload: '' }]);
+    setItems([...items, { product: '', product_note: '', quantity: '', currency: 'IDR', unit_price: 0, total_price: 0 }]);
   };
 
-  const handleItemChange = async (index, field, value) => {
+  // const handleItemChange = (index, field, value) => {
+  //   const newItems = [...items];
+  //   if (field === 'product' || field === 'currency') {
+  //     newItems[index][field] = value ? value.value : null;
+  //   } else {
+  //     newItems[index][field] = value;
+  //   }
+
+  //   if (field === 'quantity' || field === 'unit_price') {
+  //     newItems[index].total_price = newItems[index].quantity * newItems[index].unit_price;
+  //   }
+
+  //   setItems(newItems);
+  // };
+
+  const handleItemChange = (index, field, value) => {
     const newItems = [...items];
 
-    // Handle 'product' or 'currency' fields
     if (field === 'product' || field === 'currency') {
       newItems[index][field] = value ? value.value : null;
-    }
-
-    // Handle file input field
-    else if (field === 'file') {
-      const file = value.target.files[0]; // Get the uploaded file
-      if (file) {
-        try {
-          // Generate the upload ID asynchronously
-          const id_upload = await generateUploadId("UPLOAD");
-
-          // Store the file name and id_upload in the item
-          newItems[index].doc_source = file.name;
-          newItems[index].id_upload = id_upload;
-
-          // Update the items state before uploading the file
-          setItems(newItems);
-
-          // Prepare upload request
-          const request = {
-            idTrx: id_upload,
-            code: 'PUREQD',
-          };
-
-          const formData = new FormData();
-          formData.append('request', JSON.stringify(request));
-          formData.append('file', file);
-
-          // Upload the file
-          const uploadResponse = await axios.post(`${UPLOAD_FILES}`, formData, {
-            headers: {
-              Authorization: `Bearer ${authToken}`,
-              'Content-Type': 'multipart/form-data',
-            },
-          });
-
-          console.log('File uploaded successfully', uploadResponse.data);
-        } catch (error) {
-          console.error('File upload failed', error);
-        }
-      }
-    }
-
-    // Handle other fields
-    else {
+    } else {
       newItems[index][field] = value;
     }
 
-    // Calculate total price if the 'quantity' or 'unit_price' is updated
+    // if (field === 'quantity' || field === 'unit_price') {
+    //   newItems[index].total_price = newItems[index].quantity * newItems[index].unit_price;
+    // }
     if (field === 'quantity' || field === 'unit_price') {
-      newItems[index].quantity = newItems[index].quantity || 1; // Default quantity to 1 if empty or 0
+      // Check if quantity is 0 and set it to 1
+      if (newItems[index].quantity === 0 || newItems[index].quantity === '') {
+        newItems[index].quantity = 1;
+      }
+
+      // Calculate total price
       newItems[index].total_price = newItems[index].quantity * newItems[index].unit_price;
     }
 
-    // Update the items state for all changes
     setItems(newItems);
   };
-
 
 
 
@@ -715,14 +392,16 @@ const AddPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, select
     // setSelectedCustomer(null);
   };
 
+
+
   const handleSave = async (event) => {
     event.preventDefault();
 
     if (schedule_date !== due_date && (!description || description.trim() === '')) {
       messageAlertSwal('Warning', 'Description is required !!!', 'warning');
-      return;
+      return; // Exit the function if validation fails
     }
-
+    // Show SweetAlert2 confirmation
     const result = await Swal.fire({
       title: 'Are you sure?',
       text: "Do you want to save the Purchase Request?",
@@ -736,174 +415,71 @@ const AddPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, select
     if (result.isConfirmed) {
       setIsLoading(true);
       try {
-        const createBy = sessionStorage.getItem('userId');
         const total_amount = calculateTotalAmount();
-        const endtoendid = await generateEndtoEndId("PURC");
-
+        // Save general information and description
+        const createBy = sessionStorage.getItem('userId');
         const generalInfo = {
           pr_number,
-          request_date,
-          schedule_date,
+          request_date, // Converts to date format
+          customer,
+          schedule_date, // Converts to date format
           doc_no,
           doc_reff,
+          doc_reff_no,
           requestor,
+          departement,
+          vendor,
           payment_term,
-          description,
           company,
+          project,
+          description,
           total_amount,
           status_request: 'DRAFT',
+          project_contract_number,
           due_date,
-          endtoendid
         };
 
-        // Check if pr_number exists in API
-        const lookupResponse = await LookupService.fetchLookupData(
-          `PURC_FORMPUREQ&filterBy=pr_number&filterValue=${pr_number}&operation=EQUAL`,
-          authToken,
-          branchId
-        );
+        console.log('Master', generalInfo);
 
-        if (lookupResponse.data.length > 0) {
-          // pr_number exists, handle as edit
-          console.log("PR number exists, updating data...");
-          const id = lookupResponse.data[0].ID;
+        const response = await InsertDataService.postData(generalInfo, "PUREQ", authToken, branchId);
+        console.log('Data posted successfully:', response);
 
-          const response = await UpdateDataService.postData(generalInfo, `PUREQ&column=id&value=${id}`, authToken, branchId);
-          console.log('Data updated successfully:', response);
+        if (response.message === "insert Data Successfully") {
+          // Iterate over items array and post each item individually
+          for (const item of items) {
+            const updatedItem = {
+              ...item,
+              pr_number
+            };
 
-
-          if (response.message === "Update Data Successfully") {
-            await handleItemsUpdate(pr_number);
-            messageAlertSwal('Success', response.message, 'success');
-            // resetForm();
+            const itemResponse = await InsertDataService.postData(updatedItem, "PUREQD", authToken, branchId);
+            console.log('Item posted successfully:', itemResponse);
           }
 
-        } else {
-          // pr_number does not exist, handle as new save
-          console.log("PR number does not exist, creating new data...");
-          const response = await InsertDataService.postData(generalInfo, "PUREQ", authToken, branchId);
-          console.log('Data posted successfully:', response);
-
-          LookupService.fetchLookupData(`PURC_FORMPUREQ&filterBy=endtoendid&filterValue=${endtoendid}&operation=EQUAL`, authToken, branchId)
-            .then(response => {
-              const data = response.data[0];
-              console.log('Data:', data);
-
-              // Check if data exists
-              const requestData = {
-                idTrx: data.ID, // Menggunakan ID dari data terpilih
-                status: "DRAFT", // Ganti dengan nilai status yang sesuai, atau sesuaikan sesuai kebutuhan
-              };
-              UpdateStatusService.postData(requestData, "PUREQ", authToken, branchId)
-                .then(response => {
-                  console.log('Data updated successfully:', response);
-                })
-                .catch(error => {
-                  console.error('Failed to update data:', error);
-                });
-
-            })
-            .catch(error => {
-              console.error('Failed to load purchase request data:', error);
-            });
-
-          console.log('Data posted successfully:', response);
-
-          if (response.message === "insert Data Successfully") {
-            await handleItemsInsert(pr_number);
-            messageAlertSwal('Success', response.message, 'success');
-            // resetForm();
-          }
+          messageAlertSwal('Success', response.message, 'success');
+          resetForm();
         }
-
-        // Log activity
-        await ActivityLogger({
-          userId: idUser,
-          userName: createBy,
-          action: 'SAVE',
-          description: `Saved Purchase Request ${pr_number}`,
-          entityName: 'PURC',
-          entityId: endtoendid,
-          status: 'SUCCESS',
-          authToken,
-          branchId
-        });
-
       } catch (err) {
         console.error(err);
-        await ActivityLogger({
-          userId: idUser,
-          userName: createBy,
-          action: 'SAVE',
-          description: `Failed to save Purchase Request ${pr_number}`,
-          entityName: 'PURC',
-          entityId: endtoendid,
-          status: 'FAILED',
-          authToken,
-          branchId
-        });
+        setIsLoading(false);
         messageAlertSwal('Error', err.message, 'error');
       } finally {
-        setIsLoading(false);
+        setIsLoading(false); // Set loading state back to false after completion
       }
     } else {
       console.log('Form submission was canceled.');
     }
   };
 
-  const handleItemsUpdate = async (pr_number) => {
-    try {
-      // Fetch the ID using the pr_number
-      const lookupResponse = await LookupService.fetchLookupData(
-        `PURC_FORMPUREQD&filterBy=pr_number&filterValue=${pr_number}&operation=EQUAL`,
-        authToken,
-        branchId
-      );
-
-      const ids = lookupResponse.data.map(item => item.ID); // Dapatkan semua ID dari respons array
-      console.log('IDs to delete:', ids);
-
-      // Delete each item based on fetched IDs
-      for (const id of ids) {
-        try {
-          await DeleteDataService.postData(`column=id&value=${id}`, "PUREQD", authToken, branchId);
-          console.log('Item deleted successfully:', id);
-        } catch (error) {
-          console.error('Error deleting item:', id, error);
-        }
-      }
-
-      // Insert updated items with the fetched ID
-      for (const item of items) {
-        const { rwnum, ID, status, id_trx, ...rest } = item;
-        const updatedItem = { ...rest, pr_number };
-        await InsertDataService.postData(updatedItem, "PUREQD", authToken, branchId);
-        console.log('Item inserted successfully:', updatedItem);
-      }
-
-    } catch (error) {
-      console.error('Error in handleItemsUpdate:', error);
-    }
-  };
-  // Helper function for inserting new items
-  const handleItemsInsert = async (pr_number) => {
-    for (const item of items) {
-      const updatedItem = { ...item, pr_number };
-      await InsertDataService.postData(updatedItem, "PUREQD", authToken, branchId);
-      console.log('Item posted successfully:', updatedItem);
-    }
-  };
-
   const handleSubmit = async (event) => {
     event.preventDefault();
 
-    console.log('Form submitted:', pr_number);
-
     if (schedule_date !== due_date && (!description || description.trim() === '')) {
       messageAlertSwal('Warning', 'Description is required !!!', 'warning');
-      return;
+      return; // Exit the function if validation fails
     }
 
+    // Show SweetAlert2 confirmation
     const result = await Swal.fire({
       title: 'Are you sure?',
       text: "Do you want to submit the Purchase Request?",
@@ -917,127 +493,63 @@ const AddPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, select
     if (result.isConfirmed) {
       setIsLoading(true);
       try {
+        const pr_number = await generatePrNumber("PR");
+
+        console.log('pr_number', pr_number);
+
         const total_amount = calculateTotalAmount();
+        // Save general information and description
+        const createBy = sessionStorage.getItem('userId');
+        const generalInfo = {
+          pr_number,
+          request_date, // Converts to date format
+          customer,
+          schedule_date, // Converts to date format
+          doc_no,
+          doc_reff,
+          doc_reff_no,
+          requestor,
+          departement,
+          company,
+          project,
+          description,
+          total_amount,
+          status_request: 'IN_PROCESS',
+          project_contract_number,
+          due_date
+        };
 
-        // Check if pr_number exists
-        const lookupResponse = await LookupService.fetchLookupData(
-          `PURC_FORMPUREQ&filterBy=pr_number&filterValue=${pr_number}&operation=EQUAL`,
-          authToken,
-          branchId
-        );
+        console.log('Master', generalInfo);
 
+        const response = await InsertDataService.postData(generalInfo, "PUREQ", authToken, branchId);
+        console.log('Data posted successfully:', response);
 
-        if (lookupResponse.data.length > 0) {
-          // pr_number exists, handle as edit
-          if (pr_number.startsWith('DRAFT_PR')) {
-            console.log("Draft PR number detected, generating a new PR number...");
-            const newPrNumber = await generatePrNumber('PR');
-            console.log("New PR number generated:", newPrNumber);
-            setPrNumber(newPrNumber);
-          }
-
-          console.log("PR number exists, updating data...", pr_number);
-
-          const id = lookupResponse.data[0].ID;
-          const generalInfo = {
-            pr_number,
-            request_date,
-            schedule_date,
-            doc_no,
-            doc_reff,
-            requestor,
-            payment_term,
-            description,
-            company,
-            total_amount,
-            status_request: 'IN_PROCESS',
-            due_date,
-            endtoendid
-          };
-
-          const response = await UpdateDataService.postData(generalInfo, `PUREQ&column=id&value=${id}`, authToken, branchId);
-
-          const endtoendidLookupResponse = await LookupService.fetchLookupData(`PURC_FORMPUREQ&filterBy=endtoendid&filterValue=${endtoendid}&operation=EQUAL`, authToken, branchId);
-
-          if (endtoendidLookupResponse.data[0]?.status === "DRAFT") {
-            const requestData = {
-              idTrx: endtoendidLookupResponse.data[0].ID,
-              status: "PENDING",
+        if (response.message === "insert Data Successfully") {
+          // Iterate over items array and post each item individually
+          for (const item of items) {
+            const updatedItem = {
+              ...item,
+              pr_number
             };
-            await UpdateStatusService.postData(requestData, "PUREQ", authToken, branchId);
+
+            const itemResponse = await InsertDataService.postData(updatedItem, "PUREQD", authToken, branchId);
+            console.log('Item posted successfully:', itemResponse);
           }
 
-          if (response.message === "Update Data Successfully") {
-            await handleItemsUpdate(pr_number);
-            messageAlertSwal('Success', response.message, 'success');
-          }
-        } else {
-          // pr_number does not exist, handle as new save
-
-          let endtoendid = '';
-          const newPrNumber = await generatePrNumber('PR');
-          setPrNumber(newPrNumber);
-          endtoendid = await generateEndtoEndId("PURC");
-
-          const generalInfo = {
-            pr_number: newPrNumber,
-            request_date,
-            schedule_date,
-            doc_no,
-            doc_reff,
-            requestor,
-            payment_term,
-            description,
-            company,
-            total_amount,
-            status_request: 'IN_PROCESS',
-            due_date,
-            endtoendid
-          };
-
-          const response = await InsertDataService.postData(generalInfo, "PUREQ", authToken, branchId);
-
-          if (response.message === "insert Data Successfully") {
-            await handleItemsInsert(newPrNumber);
-            messageAlertSwal('Success', response.message, 'success');
-          }
+          messageAlertSwal('Success', response.message, 'success');
+          resetForm();
         }
-
-        await ActivityLogger({
-          userId: idUser,
-          userName: sessionStorage.getItem('userId'),
-          action: 'SUBMIT',
-          description: `Submit Purchase Request ${pr_number}`,
-          entityName: 'PURC',
-          entityId: endtoendid,
-          status: 'SUCCESS',
-          authToken,
-          branchId
-        });
       } catch (err) {
         console.error(err);
         setIsLoading(false);
-        await ActivityLogger({
-          userId: idUser,
-          userName: sessionStorage.getItem('userId'),
-          action: 'SUBMIT',
-          description: `Submit Purchase Request ${pr_number}`,
-          entityName: 'PURC',
-          entityId: endtoendid,
-          status: 'FAILED',
-          authToken,
-          branchId
-        });
         messageAlertSwal('Error', err.message, 'error');
       } finally {
-        setIsLoading(false);
+        setIsLoading(false); // Set loading state back to false after completion
       }
     } else {
       console.log('Form submission was canceled.');
     }
   };
-
-
 
   const generatePrNumber = async (code) => {
     try {
@@ -1050,296 +562,19 @@ const AddPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, select
     }
   };
 
-  const generateEndtoEndId = async (code) => {
-    try {
-      const uniquePrNumber = await generateUniqueId(`${GENERATED_NUMBER}?code=${code}`, authToken);
-      setEntoendid(uniquePrNumber); // Updates state, if needed elsewhere in your component
-      return uniquePrNumber; // Return the generated PR number for further use
-    } catch (error) {
-      console.error('Failed to generate PR Number:', error);
-      throw error; // Rethrow the error for proper handling in the calling function
-    }
-  };
 
-  const generateUploadId = async (code) => {
-    try {
-      const uniquePrNumber = await generateUniqueId(`${GENERATED_NUMBER}?code=${code}`, authToken); // Updates state, if needed elsewhere in your component
-      return uniquePrNumber; // Return the generated PR number for further use
-    } catch (error) {
-      console.error('Failed to generate PR Number:', error);
-      throw error; // Rethrow the error for proper handling in the calling function
-    }
-  };
+  useEffect(() => {
 
-  const handleEditSave = async (event) => {
-    event.preventDefault();
+    generatePrNumber("DRAFT_PR");
+  }, []);
 
-    if (schedule_date !== due_date && (!description || description.trim() === '')) {
-      messageAlertSwal('Warning', 'Description is required !!!', 'warning');
-      return; // Exit the function if validation fails
-    }
-
-    // Show SweetAlert2 confirmation
-    const result = await Swal.fire({
-      title: 'Are you sure?',
-      text: "Do you want to save the Purchase Request?",
-      icon: 'warning',
-      showCancelButton: true,
-      confirmButtonText: 'Yes, Save It!',
-      cancelButtonText: 'No, Cancel!',
-      reverseButtons: true,
-    });
-
-    if (result.isConfirmed) {
-      setIsLoading(true);
-      try {
-        console.log('Status: ', status_request);
-        const total_amount = calculateTotalAmount();
-        // Save general information and description
-        const createBy = sessionStorage.getItem('userId');
-        const id = selectedData[0].ID; // Assuming you use selectedData to get the ID for updating
-
-        const generalInfo = {
-          pr_number,
-          request_date,
-          schedule_date, // Converts to date format
-          doc_no,
-          doc_reff,
-          requestor,
-          payment_term,
-          description,
-          company,
-          total_amount,
-          status_request: 'DRAFT',
-          due_date,
-          endtoendid
-        };
-
-
-
-        console.log('Master', generalInfo);
-        console.log('Items', items);
-
-        //Update general information
-        const response = await UpdateDataService.postData(generalInfo, `PUREQ&column=id&value=${id}`, authToken, branchId);
-        console.log('General data posted successfully:', response);
-
-        if (response.message === "Update Data Successfully") {
-          // Iterate over items array and attempt to delete each item
-          for (const item of items) {
-            if (item.ID) {
-              const itemId = item.ID;
-              try {
-                const itemResponse = await DeleteDataService.postData(`column=id&value=${itemId}`, "PUREQD", authToken, branchId);
-                console.log('Item deleted successfully:', itemResponse);
-              } catch (error) {
-                console.error('Error deleting item:', itemId, error);
-              }
-            } else {
-              console.log('No ID found, skipping delete for this item:', item);
-            }
-          }
-
-          // After deletion, insert updated items
-          for (const item of items) {
-            // Exclude rwnum, ID, status, and id_trx fields
-            const { rwnum, ID, status, id_trx, ...rest } = item;
-
-            const updatedItem = {
-              ...rest,
-              pr_number
-            };
-
-            try {
-              const itemResponse = await InsertDataService.postData(updatedItem, "PUREQD", authToken, branchId);
-              console.log('Item inserted successfully:', itemResponse);
-            } catch (error) {
-              console.error('Error inserting item:', updatedItem, error);
-            }
-          }
-
-          // Show success message and reset form
-          messageAlertSwal('Success', response.message, 'success');
-          resetForm();
-        }
-
-      } catch (err) {
-        console.error(err);
-        setIsLoading(false);
-        messageAlertSwal('Error', err.message, 'error');
-      } finally {
-        setIsLoading(false);
-        setIsEditingPurchaseRequest(false);
-        handleRefresh(); // Set loading state back to false after completion
-      }
-    } else {
-      console.log('Form submission was canceled.');
-    }
-  };
-
-
-  const handleEditSubmit = async (event) => {
-    event.preventDefault();
-    console.log("Log", selectedData);
-
-
-    // Show SweetAlert2 confirmation
-    if (schedule_date !== due_date && (!description || description.trim() === '')) {
-      messageAlertSwal('Warning', 'Description is required !!!', 'warning');
-      return; // Exit the function if validation fails
-    }
-    // Show SweetAlert2 confirmation
-    const result = await Swal.fire({
-      title: 'Are you sure?',
-      text: "Do you want to submit the Purchase Request?",
-      icon: 'warning',
-      showCancelButton: true,
-      confirmButtonText: 'Yes, Submit It!',
-      cancelButtonText: 'No, Cancel!',
-      reverseButtons: true,
-    });
-
-    if (result.isConfirmed) {
-      setIsLoading(true);
-      try {
-        // Generate PR number
-        let pr_number = selectedData[0].PR_NUMBER;
-        console.log('pr_number', pr_number);
-
-        if (pr_number.slice(0, 2) !== 'PR') {
-          pr_number = await generatePrNumber('PR');
-        } else {
-          pr_number
-        }
-
-        const total_amount = calculateTotalAmount();
-        // Save general information and description
-        const id = selectedData[0].ID; // Assuming you use selectedData to get the ID for updating
-
-        const generalInfo = {
-          pr_number,
-          request_date,
-          schedule_date, // Converts to date format
-          doc_no,
-          doc_reff,
-          requestor,
-          payment_term,
-          description,
-          company,
-          total_amount,
-          status_request: 'IN_PROCESS',
-          due_date,
-          endtoendid
-        };
-
-        console.log('Master', generalInfo);
-        console.log('Items', items);
-
-        //Update general information
-        const response = await UpdateDataService.postData(generalInfo, `PUREQ&column=id&value=${id}`, authToken, branchId);
-        console.log('General data posted successfully:', response);
-
-        if (response.message === "Update Data Successfully") {
-          // Iterate over items array and attempt to delete each item
-          for (const item of items) {
-            if (item.ID) {
-              const itemId = item.ID;
-              try {
-                const itemResponse = await DeleteDataService.postData(`column=id&value=${itemId}`, "PUREQD", authToken, branchId);
-                console.log('Item deleted successfully:', itemResponse);
-              } catch (error) {
-                console.error('Error deleting item:', itemId, error);
-              }
-            } else {
-              console.log('No ID found, skipping delete for this item:', item);
-            }
-          }
-
-          // After deletion, insert updated items
-          for (const item of items) {
-            // Exclude rwnum, ID, status, and id_trx fields
-            const { rwnum, ID, status, id_trx, ...rest } = item;
-
-            const updatedItem = {
-              ...rest,
-              pr_number
-            };
-
-            try {
-              const itemResponse = await InsertDataService.postData(updatedItem, "PUREQD", authToken, branchId);
-              console.log('Item inserted successfully:', itemResponse);
-            } catch (error) {
-              console.error('Error inserting item:', updatedItem, error);
-            }
-          }
-
-          //Set status workflow VERIFIED
-          LookupService.fetchLookupData(`PURC_FORMPUREQ&filterBy=endtoendid&filterValue=${endtoendid}&operation=EQUAL`, authToken, branchId)
-            .then(response => {
-              const data = response.data[0];
-              console.log('Data:', data);
-
-              // Check if data exists
-              if (data.status === "DRAFT") {
-                const requestData = {
-                  idTrx: data.ID, // Menggunakan ID dari data terpilih
-                  status: "PENDING", // Ganti dengan nilai status yang sesuai, atau sesuaikan sesuai kebutuhan
-                };
-                UpdateStatusService.postData(requestData, "PUREQ", authToken, branchId)
-                  .then(response => {
-                    console.log('Data updated successfully:', response);
-                  })
-                  .catch(error => {
-                    console.error('Failed to update data:', error);
-                  });
-              }
-            })
-            .catch(error => {
-              console.error('Failed to load purchase request data:', error);
-            });
-
-          // Show success message and reset form
-          messageAlertSwal('Success', response.message, 'success');
-          resetForm();
-        }
-
-      } catch (err) {
-        console.error(err);
-        setIsLoading(false);
-        messageAlertSwal('Error', err.message, 'error');
-      } finally {
-        setIsLoading(false);
-        setIsEditingPurchaseRequest(false);
-        handleRefresh(); // Set loading state back to false after completion
-      }
-    } else {
-      console.log('Form submission was canceled.');
-    }
-  };
-
+  useEffect(() => {
+    const today = new Date().toISOString().split('T')[0]; // Get today's date in YYYY-MM-DD format
+    setRequestDate(today);
+  }, []);
 
   return (
     <Fragment>
-      <section className="content-header">
-        <div className="container-fluid">
-          <div className="row mb-2">
-            <div className="col-sm-6">
-              <h1>{selectedData ? "Edit Purchase Request" : "Add Purchase Request"}</h1>
-            </div>
-            <div className="col-sm-6">
-              <ol className="breadcrumb float-sm-right">
-                <li className="breadcrumb-item">
-                  <a href="/">Home</a>
-                </li>
-                <li className="breadcrumb-item active">
-                  {selectedData ? "Edit Purchase Request" : "Add Purchase Request"}
-                </li>
-              </ol>
-            </div>
-          </div>
-        </div>
-      </section>
-
 
       <section className="content">
 
@@ -1349,26 +584,19 @@ const AddPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, select
               <Card.Header className="d-flex justify-content-between align-items-center">
                 <Card.Title>General Information</Card.Title>
                 <div className="ml-auto">
-                  {setIsEditingPurchaseRequest && (
-                    <>
-                      <Button
-                        variant="secondary"
-                        className="mr-2"
-                        onClick={() => {
-                          handleRefresh();
-                          setIsEditingPurchaseRequest(false);
-                        }}
-                      >
-                        <i className="fas fa-arrow-left"></i> Go Back
-                      </Button>
-                    </>
-                  )}
-
-                  <Button variant="primary" className="mr-2" onClick={setIsEditingPurchaseRequest ? handleEditSave : handleSave}>
-                    <i className="fas fa-save"></i> {setIsEditingPurchaseRequest ? 'Save Changes' : 'Save'}
+                  <Button variant="secondary" className="mr-2"
+                    onClick={() => {
+                      handleRefresh();
+                      setIsAddingNewPurchaseRequest(false);
+                    }}
+                  >
+                    <i className="fas fa-arrow-left"></i> Go Back
                   </Button>
-                  <Button variant="primary" onClick={setIsEditingPurchaseRequest ? handleEditSubmit : handleSubmit}>
-                    <i className="fas fa-check"></i> {setIsEditingPurchaseRequest ? 'Submit Changes' : 'Submit'}
+                  <Button variant="primary" className="mr-2" onClick={handleSave}>
+                    <i className="fas fa-save"></i> Save
+                  </Button>
+                  <Button variant="primary" onClick={handleSubmit}>
+                    <i className="fas fa-check"></i> Submit
                   </Button>
                 </div>
               </Card.Header>
@@ -1389,6 +617,21 @@ const AddPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, select
                         />
                       </Form.Group>
                     </Col>
+
+                    
+                    <Col md={6}>
+                      <Form.Group controlId="formDocNo">
+                        <Form.Label>Doc. No</Form.Label>
+                        <Form.Control
+                          type="text"
+                          placeholder="Enter Document Number"
+                          value={doc_no}
+                          onChange={(e) => setDocNo(e.target.value)}
+                          disabled
+                        />
+                      </Form.Group>
+                    </Col>
+
                     <Col md={6}>
                       <Form.Group controlId="formDocReff">
                         <Form.Label>Doc. Reference</Form.Label>
@@ -1401,17 +644,15 @@ const AddPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, select
                         />
                       </Form.Group>
                     </Col>
-
-
                     <Col md={6}>
-                      <Form.Group controlId="formDocNo">
-                        <Form.Label>Doc. No</Form.Label>
+                      <Form.Group controlId="formDocReffNo">
+                        <Form.Label>Doc. Reference No</Form.Label>
                         <Form.Control
                           type="text"
-                          placeholder="Enter Document Number"
-                          value={doc_no}
-                          onChange={(e) => setDocNo(e.target.value)}
-                          disabled
+                          placeholder="Enter Document Reference"
+                          value={doc_reff_no}
+                          onChange={(e) => setDocReffNo(e.target.value)}
+
                         />
                       </Form.Group>
                     </Col>
@@ -1444,11 +685,13 @@ const AddPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, select
                     <Col md={6}>
                       <Form.Group controlId="formPaymentTerm">
                         <Form.Label>Payment Term</Form.Label>
-                        <Form.Control
-                          type="text"
-                          value={payment_term}
-                          onChange={(e) => setPaymentTerm(e.target.value)}
-                          disabled
+                        <Select
+                          id="paymentTerm"
+                          value={selectedPaymentTerm}
+                          onChange={handlePaymentTermChange}
+                          options={paymentTermOptions}
+                          isClearable
+                          placeholder="Select..."
                           required
                         />
                       </Form.Group>
@@ -1461,6 +704,132 @@ const AddPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, select
                           type="date"
                           value={schedule_date}
                           onChange={(e) => setScheduleDate(e.target.value)}
+                          required
+                        />
+                      </Form.Group>
+                    </Col>
+                    {/* <Col md={6}><Form.Group controlId="formRequestor">
+                        <Form.Label>Requestor</Form.Label>
+                        <CreatableSelect
+                          id="requestor"
+                          value={selectedRequestor}
+                          onChange={handleRequestorChange}
+                          options={requestorOptions}
+                          isClearable
+                          placeholder="Select or type to create..."
+                          onCreateOption={(inputValue) => {
+                            const newOption = { value: inputValue, label: inputValue };
+                            setRequestorOptions((prevOptions) => [...prevOptions, newOption]);
+                            setSelectedRequestor(newOption);
+                          }}
+                          required
+                        />
+                      </Form.Group>
+                    </Col> */}
+
+                    <Col md={6}>
+                      <Form.Group controlId="formDepartment">
+                        <Form.Label>Departement</Form.Label>
+                        <Select
+                          id="departement"
+                          value={selectedDepartement}
+                          onChange={handleDeppartementChange}
+                          options={departementOptions}
+                          isClearable
+                          placeholder="Select..."
+                          required
+                        />
+                      </Form.Group>
+                    </Col>
+
+                    <Col md={6}>
+                      <Form.Group controlId="formVendor">
+                        <Form.Label>Vendor</Form.Label>
+                        <Select
+                          id="vendor"
+                          value={selectedVendor}
+                          onChange={handleVendorChange}
+                          options={vendorOptions}
+                          isClearable
+                          placeholder="Select..."
+                          required
+                        />
+                      </Form.Group>
+                    </Col>
+                    {/* <Col md={6}>
+                      <Form.Group controlId="formCustomer">
+                        <Form.Label>Customer</Form.Label>
+                        <Select
+                          id="customer"
+                          value={selectedCustomer}
+                          onChange={handleCustomerChange}
+                          options={customerOptions}
+                          isClearable
+                          placeholder="Select..."
+                          required
+                        />
+                      </Form.Group>
+                    </Col> */}
+
+                    {/* <Col md={6}>
+                      <Form.Group controlId="formCompany">
+                        <Form.Label>Company</Form.Label>
+                        <Form.Control
+                          type="text"
+                          // placeholder="Enter Document Number"
+                          value={company}
+                          onChange={(e) => setCompany(e.target.value)}
+                          disabled
+                        />
+                      </Form.Group>
+                    </Col> */}
+                    <Col md={6}>
+                      <Form.Group controlId="formProject">
+                        <Form.Label>Project</Form.Label>
+                        <Select
+                          id="project"
+                          value={selectedProject}
+                          onChange={handleProjectChange}
+                          options={projectOptions}
+                          isClearable
+                          placeholder="Select..."
+                          required
+                        />
+                      </Form.Group>
+                    </Col>
+                    <Col md={6}>
+                      <Form.Group controlId="formCustomer">
+                        <Form.Label>Customer</Form.Label>
+                        <Form.Control
+                          type="text"
+                          placeholder="Enter Customer"
+                          value={customer}
+                          onChange={(e) => setCustomer(e.target.value)}
+                          disabled
+                        />
+                      </Form.Group>
+                    </Col>
+                    <Col md={6}>
+                      <Form.Group controlId="formProjectContactNumber">
+                        <Form.Label>Project Contact No.</Form.Label>
+                        <Form.Control
+                          type="text"
+                          placeholder="Enter Project Contact Number"
+                          value={project_contract_number}
+                          onChange={(e) => setProjectContractNumber(e.target.value)}
+                          disabled
+                        />
+                      </Form.Group>
+                    </Col>
+
+                    <Col md={6}>
+                      <Form.Group controlId="formStatusRequest">
+                        <Form.Label>Status Request</Form.Label>
+                        <Form.Control
+                          type="text"
+                          value={status_request}
+                          onChange={(e) => setStatusRequest(e.target.value)}
+                          disabled
                           required
                         />
                       </Form.Group>
@@ -1517,13 +886,6 @@ const AddPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, select
                                   checked={selectedItems.length === items.length && items.length > 0}
                                 />
                               </th>
-                              <th>Document Reference Number</th>
-                              <th>Document Reference Source</th>
-                              <th>Vendor</th>
-                              <th>Project</th>
-                              <th>Project Contract Number</th>
-                              <th>Customer</th>
-                              <th>Departement</th>
                               <th>Product</th>
                               <th>Product Description</th>
                               <th>Quantity</th>
@@ -1536,11 +898,12 @@ const AddPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, select
                           <tbody>
                             {items.length === 0 ? (
                               <tr>
-                                <td colSpan="15" className="text-center">No data available</td>
+                                <td colSpan="7" className="text-center">No data available</td>
                               </tr>
                             ) : (
                               items.map((item, index) => (
                                 <tr key={index} className={selectedItems.includes(index) ? 'table-active' : ''}>
+
                                   <td>
                                     <input
                                       type="checkbox"
@@ -1548,88 +911,6 @@ const AddPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, select
                                       onChange={() => handleSelectItem(index)}
                                     />
                                   </td>
-                                  <td>
-                                    <Form.Control
-                                      type="text"
-                                      placeholder="Enter Document Reference"
-                                      value={item.doc_reff_no}
-                                      onChange={(e) => handleItemChange(index, 'doc_reff_no', e.target.value)}
-                                    />
-                                  </td>
-                                  <td>
-                                    {setIsEditingPurchaseRequest ? (
-                                      <>
-                                        {/* Display the document link and edit button when editing */}
-                                        <a href={item.doc_source} target="_blank" rel="noopener noreferrer">
-                                          {item.doc_source}
-                                        </a>
-                                        {/* <button
-                                          type="button"
-                                          onClick={() => handleEditClick(index)}
-                                          style={{ marginLeft: '10px', border: 'none', background: 'transparent' }}
-                                        >
-                                          <i className="fa fa-edit" aria-hidden="true"></i>
-                                        </button> */}
-                                      </>
-                                    ) : (
-                                      // Display file input when not editing
-                                      <Form.Control
-                                        type="file"
-                                        onChange={(e) => handleItemChange(index, 'file', e)}
-                                      />
-                                    )}
-                                  </td>
-                                  <td>
-                                    <Select
-                                      id={`vendor-${index}`} // unique id for each row
-                                      value={vendorOptions.find(option => option.value === item.vendor)} // Set the selected value
-                                      onChange={(selectedOption) => handleVendorChange(selectedOption, index)} // Pass the index to the handler
-                                      options={vendorOptions}
-                                      isClearable
-                                      placeholder="Select..."
-                                      required
-                                    />
-                                  </td>
-                                  <td>
-                                    <Select
-                                      id={`project-${index}`} // Unique id for each project select
-                                      value={projectOptions.find(option => option.value === item.project)} // Set selected value for project
-                                      onChange={(selectedOption) => handleProjectChange(selectedOption, index)} // Pass the index to handler
-                                      options={projectOptions}
-                                      isClearable
-                                      placeholder="Select a project..."
-                                      required
-                                    />
-                                  </td>
-                                  <td>
-                                    <Form.Control
-                                      type="text"
-                                      placeholder="Enter Project Contract Number"
-                                      value={item.project_contract_number} // Bind to the specific item's field
-                                      onChange={(e) => handleItemChange(index, 'project_contract_number', e.target.value)} // Update the project contract number
-                                      disabled // Keep it disabled if you don't want it to be editable
-                                    />
-                                  </td>
-                                  <td>
-                                    <Form.Control
-                                      type="text"
-                                      value={item.customer} // Bind to the specific item's field
-                                      onChange={(e) => handleItemChange(index, 'customer', e.target.value)} // Update the customer
-                                      disabled // Keep it disabled if it should not be editable
-                                    />
-                                  </td>
-                                  <td>
-                                    <Select
-                                      id={`departement-${index}`} // Unique id for each department select
-                                      value={departementOptions.find(option => option.value === item.departement)} // Set the selected value for department
-                                      onChange={(selectedOption) => handleDepartementChange(selectedOption, index)} // Pass the index to the handler
-                                      options={departementOptions}
-                                      isClearable
-                                      placeholder="Select a department..."
-                                      required
-                                    />
-                                  </td>
-
                                   <td>
                                     <Select
                                       value={productOptions.find(option => option.value === item.product)}
@@ -1672,41 +953,44 @@ const AddPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, select
                                     /> */}
                                     <Form.Control
                                       type="text"
-                                      {...(setIsEditingPurchaseRequest && {
-                                        value: item.unit_price
-                                          ? (item.currency === 'IDR'
-                                            ? item.unit_price.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 }) // Format for IDR without decimals
-                                            : item.unit_price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) // Format for other currencies with 2 decimals
-                                          )
-                                          : '' // Keep empty if it's a new item or unit_price is 0
-                                      })}
+                                      // value={item.unit_price === 0
+                                      //   ? ''  // Show an empty input if the value is 0
+                                      //   : item.currency === 'IDR'
+                                      //     ? item.unit_price.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })  // Format for IDR without decimals
+                                      //     : item.unit_price.toLocaleString('en-US')} // Format for non-IDR with 2 decimals
                                       onChange={(e) => {
-                                        const rawValue = e.target.value.replace(/,/g, ''); // Remove commas for raw number
+                                        const rawValue = e.target.value.replace(/,/g, '');  // Remove commas to get raw number
                                         const value = parseFloat(rawValue);
 
                                         if (!isNaN(value)) {
-                                          handleItemChange(index, 'unit_price', value); // Update state with numeric value
+                                          handleItemChange(index, 'unit_price', value);  // Update state with raw numeric value
                                         } else if (rawValue === '') {
-                                          handleItemChange(index, 'unit_price', 0); // Set to 0 if input is cleared
+                                          handleItemChange(index, 'unit_price', 0);  // Set value to 0 if input is cleared
                                         }
                                       }}
                                       onBlur={(e) => {
-                                        const rawValue = e.target.value.replace(/,/g, ''); // Remove commas
+                                        const rawValue = e.target.value.replace(/,/g, '');  // Remove commas to get raw number
                                         let value = parseFloat(rawValue) || 0;
 
                                         let formattedValue;
                                         if (item.currency === 'IDR') {
+                                          // For IDR: Format without decimals
                                           formattedValue = value.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
                                         } else {
+                                          // For non-IDR: Ensure there are 2 decimal places
                                           formattedValue = value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
                                         }
 
-                                        e.target.value = formattedValue; // Set formatted value in input
+                                        console.log('Formatted value:', formattedValue);
 
-                                        handleItemChange(index, 'unit_price', value); // Update state with parsed value
+                                        e.target.value = formattedValue;  // Set the formatted value in the input field
+
+                                        handleItemChange(index, 'unit_price', value);  // Update state with the parsed value
                                       }}
                                       style={{ textAlign: 'right' }}
                                     />
+
+
                                   </td>
                                   <td className="text-end">{item.total_price.toLocaleString('en-US', { currency: item.currency, minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                                   <td>
@@ -1724,7 +1008,7 @@ const AddPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, select
                           </tbody>
                           <tfoot>
                             <tr>
-                              <td colSpan="13" className="text-right">Total Amount:</td>
+                              <td colSpan="6" className="text-right">Total Amount:</td>
                               <td className="text-end"><strong>{calculateTotalAmount().toLocaleString('en-US', { currency: 'IDR', minimumFractionDigits: 2, maximumFractionDigits: 2 })} </strong></td>
                               <td></td>
                             </tr>
@@ -1765,26 +1049,19 @@ const AddPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, select
 
         <Row className="mt-5">
           <Col md={12} className="d-flex justify-content-end">
-            {setIsEditingPurchaseRequest && (
-              <>
-                <Button
-                  variant="secondary"
-                  className="mr-2"
-                  onClick={() => {
-                    handleRefresh();
-                    setIsEditingPurchaseRequest(false);
-                  }}
-                >
-                  <i className="fas fa-arrow-left"></i> Go Back
-                </Button>
-              </>
-            )}
-
-            <Button variant="primary" className="mr-2" onClick={setIsEditingPurchaseRequest ? handleEditSave : handleSave}>
-              <i className="fas fa-save"></i> {setIsEditingPurchaseRequest ? 'Save Changes' : 'Save'}
+            <Button variant="secondary" className="mr-2"
+              onClick={() => {
+                handleRefresh();
+                setIsAddingNewPurchaseRequest(false);
+              }}
+            >
+              <i className="fas fa-arrow-left"></i> Go Back
             </Button>
-            <Button variant="primary" onClick={setIsEditingPurchaseRequest ? handleEditSubmit : handleSubmit}>
-              <i className="fas fa-check"></i> {setIsEditingPurchaseRequest ? 'Submit Changes' : 'Submit'}
+            <Button variant="primary" className="mr-2" onClick={handleSave}>
+              <i className="fas fa-save"></i> Save
+            </Button>
+            <Button variant="primary" onClick={handleSubmit}>
+              <i className="fas fa-check"></i> Submit
             </Button>
           </Col>
         </Row>

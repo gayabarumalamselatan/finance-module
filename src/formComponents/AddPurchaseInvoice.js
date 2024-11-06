@@ -677,7 +677,7 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
       });
 
     //buat pr baru
-    LookupParamService.fetchLookupData("PURC_FORMPUREQ&showAll=YES&filterBy=STATUS&filterValue=APPROVED&operation=EQUAL&&filterBy=STATUS_REQUEST&filterValue=ORDERED&operation=EQUAL", authToken, branchId)
+    LookupService.fetchLookupData("PURC_FORMPUREQ&filterBy=STATUS_REQUEST&filterValue=ORDERED&operation=EQUAL&branchId=1&filterBy=STATUS&filterValue=APPROVED&operation=EQUAL", authToken, branchId)
       .then((data) => {
         console.log("Currency lookup data:", data);
 
@@ -760,7 +760,7 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
     //   });
 
     // buat po baru
-    LookupParamService.fetchLookupData("PURC_FORMPUOR&showAll=YES&filterBy=STATUS&filterValue=APPROVED&operation=EQUAL&filterBy=STATUS_PO&filterValue=IN_PROCESS&operation=EQUAL", authToken, branchId)
+    LookupService.fetchLookupData("PURC_FORMPUOR&branchId=1&filterBy=STATUS&filterValue=APPROVED&operation=EQUAL  ", authToken, branchId)
       .then((data) => {
         console.log("Currency lookup data:", data);
 
@@ -2890,7 +2890,7 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
         const generalInfo = {
           doc_reff: docRef,
           payment_term,
-          invoice_number,
+          invoice_number: invoice_number.replace("DRAFT_", ""),
           invoice_date,
           invoice_status: "IN_PROCESS",
           term_of_payment,

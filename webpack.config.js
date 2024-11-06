@@ -59,15 +59,20 @@ module.exports = {
             filename: 'financeModule.js',
             exposes: {
                 './Coa': './src/components/Coa',
-                './PurchaseRequest': './src/components/PurchaseRequest',
-                './PurchaseOrder': './src/components/PurchaseOrder',
-                './PurchaseInvoice': './src/components/PurchaseInvoice',
                 './DashboardPr': './src/components/DashboardPr',
-                './AddPurchaseRequest': './src/components/AddPurchaseRequest',
+
+                './AddPurchaseRequest': './src/formComponents/AddPurchaseRequest',
+                './PurchaseRequest': './src/components/PurchaseRequest',
+
+                './PurchaseOrder': './src/formComponents/AddPurchaseOrder',
                 './ListPurchaseOrder': './src/components/PurchaseOrder',
+
+                './PurchaseInvoice': './src/formComponents/AddPurchaseInvoice',
                 './ListPurchaseInvoice': './src/components/PurchaseInvoice',
+
                 './PettyCash': './src/formComponents/AddPettyCash',
                 './ListPettyCash': './src/components/PettyCash',
+                
                 './PurchaseExpanseVoucher': './src/formComponents/AddPurchaseExpanseVoucher',
                 './ListPurchaseExpanseVoucher': './src/components/PurchaseExpanseVoucher',
             },
