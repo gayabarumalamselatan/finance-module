@@ -104,8 +104,8 @@ const PurchaseRequest = () => {
                 filterValueParam = statusParam;
             }
 
-            console.log("permissions", permissions.Purchase?.["Purchase Request"].verify);
-            const checker = permissions.Purchase?.["Purchase Request"].verify;
+            console.log("permissions", permissions.Purchase?.["List Purchase Request"].verify);
+            const checker = permissions.Purchase?.["List Purchase Request"].verify;
             if (checker) {
                 // Do not apply any filter if checker is true
                 console.log("Checker is true, no filter will be applied.");
@@ -235,7 +235,7 @@ const PurchaseRequest = () => {
                         addingNewPurchaseRequest={handleAddNewPurchaseRequest}
                         EditPurchaseRequest={handleEditPurchaseRequest}
                         selectedData={handleSelectData}
-                        checker={permissions.Purchase?.["Purchase Request"].verify}
+                        checker={permissions.Purchase?.["List Purchase Request"].verify}
                     />
                 )}
 

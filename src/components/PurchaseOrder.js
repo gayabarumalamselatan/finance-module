@@ -104,8 +104,8 @@ const PurchaseOrder = () => {
                 filterValueParam = statusParam;
             }
 
-            console.log("permissions", permissions.Purchase?.["Purchase Order"].verify);
-            const checker = permissions.Purchase?.["Purchase Order"].verify;
+            console.log("permissions", permissions.Purchase?.["List Purchase Order"].verify);
+            const checker = permissions.Purchase?.["List Purchase Order"].verify;
             if (checker) {
                 // Do not apply any filter if checker is true
                 console.log("Checker is true, no filter will be applied.");
@@ -245,7 +245,7 @@ const PurchaseOrder = () => {
                         handleEditPurchaseOrder={handleEditPurchaseOrder}
                         selectedData={handleSelectData}
                         EditPurchaseOrder={handleEditPurchaseOrder}
-                        checker={permissions.Purchase?.["Purchase Order"].verify}
+                        checker={permissions.Purchase?.["List Purchase Order"].verify}
                     />
                 )}
 

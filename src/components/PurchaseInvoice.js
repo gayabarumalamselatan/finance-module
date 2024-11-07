@@ -98,8 +98,8 @@ const PurchaseInvoice = () => {
         filterValueParam = statusParam;
       }
 
-      console.log("permissions", permissions.Purchase?.["Purchase Invoice"].verify);
-      const checker = permissions.Purchase?.["Purchase Invoice"].verify;
+      console.log("permissions", permissions.Purchase?.["List Purchase Invoice"].verify);
+      const checker = permissions.Purchase?.["List Purchase Invoice"].verify;
       if (checker) {
         // Do not apply any filter if checker is true
         console.log("Checker is true, no filter will be applied.");
@@ -208,7 +208,7 @@ const PurchaseInvoice = () => {
             isAddingNewPurchaseInvoice={handleAddNewPurchaseInvoice}
             EditPurchaseInvoice={handleEditPurchaseInvoice}
             selectedData={handleSelectData}
-            checker={permissions.Purchase?.["Purchase Invoice"].verify}
+            checker={permissions.Purchase?.["List Purchase Invoice"].verify}
           />
         )}
 
