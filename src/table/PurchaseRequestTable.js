@@ -499,6 +499,7 @@ const PurchaseRequestTable = ({
                                     <th>Total Amount</th>
                                     <th>End to End ID</th>
                                     <th>Status Request</th>
+                                    <th>Status Workflow</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -534,11 +535,12 @@ const PurchaseRequestTable = ({
                                             <td>{item.REQUESTOR}</td>
                                             <td>{item.REQUEST_DATE}</td>
                                             <td>{item.SCHEDULE_DATE}</td>
+                                            <td>{item.DESCRIPTION}</td>
                                             <td style={{ textAlign: "right" }}>{DisplayFormat(item.TOTAL_AMOUNT)}
                                             </td>
-                                            <td>{item.DESCRIPTION}</td>
                                             <td>{item.ENDTOENDID}</td>
                                             <td>{item.STATUS_REQUEST}</td>
+                                            <td>{item.STATUS}</td>
                                         </tr>
                                     ))
                                 )}
@@ -574,24 +576,8 @@ const PurchaseRequestTable = ({
                                         <div className="col-md-8">{selectedRowData.REQUESTOR}</div>
                                     </div>
                                     <div className="row mb-3">
-                                        <div className="col-md-4 font-weight-bold">Departement:</div>
-                                        <div className="col-md-8">{selectedRowData.DEPARTEMENT}</div>
-                                    </div>
-                                    <div className="row mb-3">
                                         <div className="col-md-4 font-weight-bold">Company:</div>
                                         <div className="col-md-8">{selectedRowData.COMPANY}</div>
-                                    </div>
-                                    <div className="row mb-3">
-                                        <div className="col-md-4 font-weight-bold">Project:</div>
-                                        <div className="col-md-8">{selectedRowData.PROJECT}</div>
-                                    </div>
-                                    <div className="row mb-3">
-                                        <div className="col-md-4 font-weight-bold">Project Contract Number:</div>
-                                        <div className="col-md-8">{selectedRowData.PROJECT_CONTRACT_NUMBER}</div>
-                                    </div>
-                                    <div className="row mb-3">
-                                        <div className="col-md-4 font-weight-bold">Customer:</div>
-                                        <div className="col-md-8">{selectedRowData.CUSTOMER}</div>
                                     </div>
                                     <div className="row mb-3">
                                         <div className="col-md-4 font-weight-bold">Request Date:</div>
@@ -602,15 +588,7 @@ const PurchaseRequestTable = ({
                                         <div className="col-md-8">{selectedRowData.SCHEDULE_DATE}</div>
                                     </div>
                                     <div className="row mb-3">
-                                        <div className="col-md-4 font-weight-bold">Document Number:</div>
-                                        <div className="col-md-8">{selectedRowData.DOC_NO}</div>
-                                    </div>
-                                    <div className="row mb-3">
                                         <div className="col-md-4 font-weight-bold">Document Reference:</div>
-                                        <div className="col-md-8">{selectedRowData.DOC_REFF}</div>
-                                    </div>
-                                    <div className="row mb-3">
-                                        <div className="col-md-4 font-weight-bold">Document Reference Number:</div>
                                         <div className="col-md-8">{selectedRowData.DOC_REFF}</div>
                                     </div>
                                     <div className="row mb-3">
@@ -625,36 +603,55 @@ const PurchaseRequestTable = ({
                                         <div className="col-md-4 font-weight-bold">Status Request:</div>
                                         <div className="col-md-8">{selectedRowData.STATUS_REQUEST}</div>
                                     </div>
+                                    <div className="row mb-3">
+                                        <div className="col-md-4 font-weight-bold">Status Workflow:</div>
+                                        <div className="col-md-8">{selectedRowData.STATUS}</div>
+                                    </div>
                                 </div>
                                 {/* Add more fields as needed */}
+                                <div style={{ overflowX: 'auto' }}>
+                                    <Table striped bordered hover>
+                                        <thead>
+                                            <tr>
+                                                <th>Document Reff. No.</th>
+                                                <th>Document Reff. Source</th>
+                                                <th>Vendof</th>
+                                                <th>Project</th>
+                                                <th>Project Contact No.</th>
+                                                <th>Customer</th>
+                                                <th>Departement</th>
+                                                <th>Product</th>
+                                                <th>Product Description</th>
+                                                <th>Currency</th>
+                                                <th>Quantity</th>
+                                                <th>Unit Price</th>
+                                                <th>Total Price</th>
 
-                                <Table striped bordered hover>
-                                    <thead>
-                                        <tr>
-                                            <th>Product</th>
-                                            <th>Product Description</th>
-                                            <th>Currency</th>
-                                            <th>Quantity</th>
-                                            <th>Unit Price</th>
-                                            <th>Total Price</th>
-
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {selectedRowDataItem
-                                            .sort((a, b) => a.ID - b.ID) // Sort by ID in ascending order
-                                            .map((detail) => (
-                                                <tr key={detail.ID}>
-                                                    <td>{detail.product}</td>
-                                                    <td>{detail.product_note}</td>
-                                                    <td>{detail.currency}</td>
-                                                    <td>{detail.quantity}</td>
-                                                    <td style={{ textAlign: "right" }}>{DisplayFormat(detail.unit_price)}</td>
-                                                    <td style={{ textAlign: "right" }}>{DisplayFormat(detail.total_price)}</td>
-                                                </tr>
-                                            ))}
-                                    </tbody>
-                                </Table>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {selectedRowDataItem
+                                                .sort((a, b) => a.ID - b.ID) // Sort by ID in ascending order
+                                                .map((detail) => (
+                                                    <tr key={detail.ID}>
+                                                        <td>{detail.doc_reff_no}</td>
+                                                        <td>{detail.doc_source}</td>
+                                                        <td>{detail.vendor}</td>
+                                                        <td>{detail.project}</td>
+                                                        <td>{detail.project_contact_number}</td>
+                                                        <td>{detail.customer}</td>
+                                                        <td>{detail.department}</td>
+                                                        <td>{detail.product}</td>
+                                                        <td>{detail.product_note}</td>
+                                                        <td>{detail.currency}</td>
+                                                        <td>{detail.quantity}</td>
+                                                        <td style={{ textAlign: "right" }}>{DisplayFormat(detail.unit_price)}</td>
+                                                        <td style={{ textAlign: "right" }}>{DisplayFormat(detail.total_price)}</td>
+                                                    </tr>
+                                                ))}
+                                        </tbody>
+                                    </Table>
+                                </div>
                             </div>
                         ) : (
                             <p>No data selected.</p>

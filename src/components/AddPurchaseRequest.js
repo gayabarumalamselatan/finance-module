@@ -57,10 +57,7 @@ const AddPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, select
   const [selectedVendor, setSelectedVendor] = useState(null);
   const [buttonAfterSubmit, setButtonAfterSubmit] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
-  const [PaymentTermOptions, setPaymentTermOptions] = useState([]);
-  const [requestorOptions ,setRequestorOptions] = useState([]);
-  const [selectedRequestor, setSelectedRequestor] = useState(null);
-  const [selectedPaymentTerm ,setSelectedPaymentTerm] = useState(null); 
+
 
   const authToken = headers;
   useEffect(() => {
@@ -824,6 +821,7 @@ const AddPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, select
         console.error(err);
         await ActivityLogger({
           userId: idUser,
+          userName: createBy,
           action: 'SAVE',
           description: `Failed to save Purchase Request ${pr_number}`,
           entityName: 'PURC',
@@ -1210,6 +1208,7 @@ const AddPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, select
         if (pr_number.slice(0, 2) !== 'PR') {
           pr_number = await generatePrNumber('PR');
         } else {
+          pr_number
         }
 
         const total_amount = calculateTotalAmount();
