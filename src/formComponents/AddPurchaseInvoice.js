@@ -15,7 +15,6 @@ import LookupService from "../service/LookupService";
 import UpdateDataService from "../service/UpdateDataService";
 import DeleteDataService from "../service/DeleteDataService";
 import UpdateStatusService from "../service/UpdateStatusService";
-import ActivityLogger from '../service/ActivityLogger';
 
 const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchaseInvoice, handleRefresh, index, item, selectedData }) => {
   const headers = getToken();
@@ -88,7 +87,7 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
   const [idPr, setIdPr] = useState("");
   const [idPo, setIdPo] = useState("");
   const [cod_cor_skb, SetCodCorSkb] = useState("");
-  const [tax_exchange_rate, setTaxExchangeRate] = useState("");
+  const [tax_exchange_rate, setTaxExchangeRate] = useState("1");
   const [customer_contract, setCustomerContract] = useState("");
   const [file, setFile] = useState("");
   const [vatType, setVatType] = useState(null);
@@ -104,6 +103,7 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
   const [isAddFile, setIsAddFile] = useState(false);
   const [tax_ppn_royalty_option, setTaxPpnRoyaltyOption] = useState([]);
   const [selectedPrNumbers, setSelectedPrNumbers] = useState([]);
+  const [fetchedDetail, setFetchedDetail] = useState([]);
 
   const authToken = headers;
 
@@ -366,40 +366,41 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
           console.error("Failed to fetch currency lookup:", error);
         });
 
-      LookupParamService.fetchLookupDataView("MSDT_FORMPRJT", authToken, branchId)
-        .then((data) => {
-          console.log("Currency lookup data:", data);
+      // LookupParamService.fetchLookupDataView("MSDT_FORMPRJT", authToken, branchId)
+      //   .then((data) => {
+      //     console.log("Currency lookup data:", data);
 
-          // Transform keys to uppercase directly in the received data
-          const transformedData = data.data.map((item) =>
-            Object.keys(item).reduce((acc, key) => {
-              acc[key.toUpperCase()] = item[key];
-              return acc;
-            }, {})
-          );
-          //console.log('Transformed data:', transformedData);
+      //     // Transform keys to uppercase directly in the received data
+      //     const transformedData = data.data.map((item) =>
+      //       Object.keys(item).reduce((acc, key) => {
+      //         acc[key.toUpperCase()] = item[key];
+      //         return acc;
+      //       }, {})
+      //     );
+      //     //console.log('Transformed data:', transformedData);
 
-          const options = transformedData.map((item) => ({
-            value: item.NAME,
-            label: item.NAME,
-            customer: item.CUSTOMER,
-          }));
+      //     const options = transformedData.map((item) => ({
+      //       value: item.NAME,
+      //       label: item.NAME,
+      //       customer: item.CUSTOMER,
+      //       contract_number: item.CONTRACT_NUMBER,
+      //     }));
 
-          const optionsCustomer = transformedData.map((item) => ({
-            value: item.CUSTOMER,
-            label: item.CUSTOMER,
-          }));
-          const contractNumOptions = transformedData.map((item) => ({
-            value: item.CONTRACT_NUMBER,
-            label: item.CONTRACT_NUMBER,
-          }));
-          setProjectOptions(options);
-          setCustomerOptions(optionsCustomer);
-          setContractNumberOptions(contractNumOptions);
-        })
-        .catch((error) => {
-          console.error("Failed to fetch currency lookup:", error);
-        });
+      //     const optionsCustomer = transformedData.map((item) => ({
+      //       value: item.CUSTOMER,
+      //       label: item.CUSTOMER,
+      //     }));
+      //     const contractNumOptions = transformedData.map((item) => ({
+      //       value: item.CONTRACT_NUMBER,
+      //       label: item.CONTRACT_NUMBER,
+      //     }));
+      //     setProjectOptions(options);
+      //     setCustomerOptions(optionsCustomer);
+      //     setContractNumberOptions(contractNumOptions);
+      //   })
+      //   .catch((error) => {
+      //     console.error("Failed to fetch currency lookup:", error);
+      //   });
 
       LookupParamService.fetchLookupDataView("MSDT_FORMPYTM", authToken, branchId)
         .then((data) => {
@@ -677,55 +678,9 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
       });
 
     //buat pr baru
-    LookupService.fetchLookupData("PURC_FORMPUREQ&filterBy=STATUS_REQUEST&filterValue=ORDERED&operation=EQUAL&filterBy=STATUS&filterValue=APPROVED&operation=EQUAL", authToken, branchId)
-      .then((data) => {
-        console.log("Currency lookup data:", data);
-
-        // Transform keys to uppercase directly in the received data
-        const transformedData = data.data.map((item) =>
-          Object.keys(item).reduce((acc, key) => {
-            acc[key.toUpperCase()] = item[key];
-            return acc;
-          }, {})
-        );
-        //console.log('Transformed data:', transformedData);
-
-        const options = transformedData
-          .map((item) => {
-            const label = item.PR_NUMBER;
-            if (label.startsWith("DRAFT")) {
-              return null; // or you can return an empty object {}
-            }
-            return {
-              value: item.PR_NUMBER,
-              label: label.replace("DRAFT ", ""), // remove 'DRAFT ' from the label
-              // REQUESTOR: item.REQUESTOR,
-              project: item.PROJECT,
-              id: item.ID,
-              totalAmount: item.TOTAL_AMOUNT,
-              currency: item.CURRENCY,
-              quantity: item.QUANTITY,
-              description: item.DESCRIPTION,
-              paymentTerm: item.PAYMENT_TERM, // Include payment term in the options
-              dueDate: item.DUE_DATE,
-              vendor: item.VENDOR,
-              ENDTOENDID: item.ENDTOENDID,
-              customer: item.CUSTOMER,
-              departement: item.DEPARTEMENT,
-            };
-          })
-          .filter((option) => option !== null);
-        setPrNumberOptions(options);
-        console.log("Pr number options:", options);
-      })
-      .catch((error) => {
-        console.error("Failed to fetch currency lookup:", error);
-      });
-
-    // buat pr number
-    // LookupParamService.fetchLookupData("PURC_FORMPUREQ&showAll=YES&filterBy=STATUS&filterValue=APPROVED&operation=EQUAL&&filterBy=STATUS_REQUEST&filterValue=IN_PROCESS&operation=EQUAL", authToken, branchId)
+    // LookupService.fetchLookupData("PURC_FORMPUREQ&filterBy=STATUS_REQUEST&filterValue=IN_PROCESS&operation=EQUAL&filterBy=STATUS&filterValue=APPROVED&operation=EQUAL", authToken, branchId)
     //   .then((data) => {
-    //     console.log("PR number lookup data:", data);
+    //     console.log("Currency lookup data:", data);
 
     //     // Transform keys to uppercase directly in the received data
     //     const transformedData = data.data.map((item) =>
@@ -734,34 +689,42 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
     //         return acc;
     //       }, {})
     //     );
+    //     //console.log('Transformed data:', transformedData);
 
-    //     // Filter out PR numbers that start with "DRAFT"
-    //     const filteredData = transformedData.filter((item) => !item.PR_NUMBER.startsWith("DRAFT"));
-
-    //     const options = filteredData.map((item) => ({
-    //       value: item.PR_NUMBER,
-    //       label: item.PR_NUMBER,
-    //       project: item.PROJECT,
-    //       id: item.ID,
-    //       totalAmount: item.TOTAL_AMOUNT,
-    //       currency: item.CURRENCY,
-    //       quantity: item.QUANTITY,
-    //       description: item.DESCRIPTION,
-    //       paymentTerm: item.PAYMENT_TERM, // Include payment term in the options
-    //       dueDate: item.DUE_DATE,
-    //       vendor: item.VENDOR,
-    //       ENDTOENDID: item.ENDTOENDID,
-    //       customer: item.CUSTOMER,
-    //       departement: item.DEPARTEMENT,
-    //     }));
+    //     const options = transformedData
+    //       .map((item) => {
+    //         const label = item.PR_NUMBER;
+    //         if (label.startsWith("DRAFT")) {
+    //           return null; // or you can return an empty object {}
+    //         }
+    //         return {
+    //           value: item.PR_NUMBER,
+    //           label: label.replace("DRAFT ", ""), // remove 'DRAFT ' from the label
+    //           // REQUESTOR: item.REQUESTOR,
+    //           project: item.PROJECT,
+    //           id: item.ID,
+    //           totalAmount: item.TOTAL_AMOUNT,
+    //           currency: item.CURRENCY,
+    //           quantity: item.QUANTITY,
+    //           description: item.DESCRIPTION,
+    //           paymentTerm: item.PAYMENT_TERM, // Include payment term in the options
+    //           dueDate: item.DUE_DATE,
+    //           vendor: item.VENDOR,
+    //           ENDTOENDID: item.ENDTOENDID,
+    //           customer: item.CUSTOMER,
+    //           departement: item.DEPARTEMENT,
+    //         };
+    //       })
+    //       .filter((option) => option !== null);
     //     setPrNumberOptions(options);
+    //     console.log("Pr number options:", options);
     //   })
     //   .catch((error) => {
-    //     console.error("Failed to fetch PR number lookup:", error);
+    //     console.error("Failed to fetch currency lookup:", error);
     //   });
 
-    // buat po baru
-    LookupService.fetchLookupData("PURC_FORMPUOR&filterBy=STATUS_PO&filterValue=IN_PROCESS&operation=EQUAL&filterBy=STATUS&filterValue=APPROVED&operation=EQUAL", authToken, branchId)
+    // buat pr number status request in_process dan partial requested
+    LookupService.fetchLookupData("PURC_FORMPUREQ&filterBy=STATUS&filterValue=APPROVED&operation=EQUAL", authToken, branchId)
       .then((data) => {
         console.log("Currency lookup data:", data);
 
@@ -772,23 +735,23 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
             return acc;
           }, {})
         );
-        //console.log('Transformed data:', transformedData);
 
-        const options = transformedData
+        // Filter the transformed data based on STATUS_REQUEST
+        const filteredData = transformedData.filter((item) => item.STATUS_REQUEST === "IN_PROCESS" || item.STATUS_REQUEST === "PARTIAL_REQUESTED");
+        console.log("status baru", filteredData);
+
+        const options = filteredData
           .map((item) => {
-            const label = item.PO_NUMBER;
-            // if (label.startsWith('DRAFT')) {
-            //   return null; // or you can return an empty object {}
-            // }
+            const label = item.PR_NUMBER;
+            if (label.startsWith("DRAFT")) {
+              return null; // or you can return an empty object {}
+            }
             return {
-              value: item.PO_NUMBER,
+              value: item.PR_NUMBER,
               label: label.replace("DRAFT ", ""), // remove 'DRAFT ' from the label
-              // REQUESTOR: item.REQUESTOR,
               id: item.ID,
               project: item.PROJECT,
               totalAmount: item.TOTAL_AMOUNT,
-              // currency: item.CURRENCY, // Add the currency property
-              // quantity: item.QUANTITY,
               description: item.DESCRIPTION,
               title: item.TITLE,
               vendor: item.VENDOR,
@@ -804,7 +767,56 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
               departement: item.DEPARTEMENT,
             };
           })
-          .filter((option) => option !== null);
+          .filter((option) => option !== null); // Filter out null options
+
+        setPrNumberOptions(options);
+        console.log("Pr number options:", options);
+      })
+      .catch((error) => {
+        console.error("Failed to fetch currency lookup:", error);
+      });
+
+    // buat po baru
+    LookupService.fetchLookupData("PURC_FORMPUOR&filterBy=STATUS&filterValue=APPROVED&operation=EQUAL", authToken, branchId)
+      .then((data) => {
+        console.log("Currency lookup data:", data);
+
+        // Transform keys to uppercase directly in the received data
+        const transformedData = data.data.map((item) =>
+          Object.keys(item).reduce((acc, key) => {
+            acc[key.toUpperCase()] = item[key];
+            return acc;
+          }, {})
+        );
+
+        // Filter the transformed data based on STATUS_PO
+        const filteredData = transformedData.filter((item) => item.STATUS_PO === "IN_PROCESS" || item.STATUS_PO === "PARTIAL_ORDERED");
+        console.log("Filtered data based on STATUS_PO:", filteredData);
+
+        const options = filteredData.map((item) => {
+          const label = item.PO_NUMBER;
+          return {
+            value: item.PO_NUMBER,
+            label: label.replace("DRAFT ", ""), // remove 'DRAFT ' from the label
+            id: item.ID,
+            project: item.PROJECT,
+            totalAmount: item.TOTAL_AMOUNT,
+            description: item.DESCRIPTION,
+            title: item.TITLE,
+            vendor: item.VENDOR,
+            ENDTOENDID: item.ENDTOENDID,
+            vatType: item.TYPE_OF_VAT,
+            tax_ppn: item.TAX_PPN,
+            discount: item.DISCOUNT,
+            currency: item.CURRENCY,
+            quantity: item.QUANTITY,
+            paymentTerm: item.PAYMENT_TERM, // Include payment term in the options
+            dueDate: item.DUE_DATE,
+            customer: item.CUSTOMER,
+            departement: item.DEPARTEMENT,
+          };
+        });
+
         setPoNumberOptions(options);
       })
       .catch((error) => {
@@ -877,6 +889,7 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
         console.error("Failed to fetch currency lookup:", error);
       });
 
+    // buar project dll
     LookupParamService.fetchLookupDataView("MSDT_FORMPRJT", authToken, branchId)
       .then((data) => {
         console.log("Currency lookup data:", data);
@@ -894,6 +907,7 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
           value: item.NAME,
           label: item.NAME,
           customer: item.CUSTOMER,
+          contract_number: item.CONTRACT_NUMBER,
         }));
 
         const optionsCustomer = transformedData.map((item) => ({
@@ -1273,6 +1287,10 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
           const fetchedItems = response.data || [];
           console.log("Items fetched:", fetchedItems);
 
+          // Filter fetched items where status_detail is null
+          const filteredItems = fetchedItems.filter((item) => item.status_detail === null);
+          console.log("Filtered items:", filteredItems);
+
           // Fetch product lookup data
           LookupParamService.fetchLookupDataView("MSDT_FORMPRDT", authToken, branchId)
             .then((productData) => {
@@ -1314,14 +1332,32 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
                   setCurrencyOptions(currencyOptions); // Set currency options to state
 
                   const newItems = [...items];
+                  const newStored = [...items];
+
+                  const storedItems = fetchedItems.map((item => {
+                    return{
+                      ...item,
+                    }
+                  }));
+
+                  storedItems.forEach((fetchedDetail, i) => {
+                    newStored[index, i] = {
+                      ...newStored[index + i],
+                      ...fetchedDetail,
+                    }
+                  })
+
+                  console.log('storedItems', newStored);
+                  setFetchedDetail(newStored);
+
                   // Update fetched items with selected options
-                  const updatedFetchedItems = fetchedItems.map((item) => {
+                  const updatedFetchedItems = filteredItems.map((item) => {
                     return {
                       ...item,
                       doc_reff_no: item.pr_number,
-                      selectedProduct: productOptions.find((option) => option.value === item.product),
-                      selectedCurrency: currencyOptions.find((option) => option.value === item.currency),
-                      selectedProject: projectOptions.find((option) => option.value === item.project),
+                      // selectedProduct: productOptions.find((option) => option.value === item.product),
+                      // selectedCurrency: currencyOptions.find((option) => option.value === item.currency),
+                      // selectedProject: projectOptions.find((option) => option.value === item.project),
                       // selectedDepartement: departementOptions.find((option) => option.value === item.departement),
                       // selectedCustomer: customerOptions.find((option) => option.value === item.customer),
                     };
@@ -1387,6 +1423,10 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
         .then((response) => {
           const fetchedItems = response.data || [];
           console.log("Items fetched:", fetchedItems);
+
+          // Filter fetched items where status_detail is null
+          const filteredItems = fetchedItems.filter((item) => item.status_detail === null);
+          console.log("Filtered items:", filteredItems);
 
           // Fetch product lookup data
           LookupParamService.fetchLookupDataView("MSDT_FORMPRDT", authToken, branchId)
@@ -1473,16 +1513,34 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
                     });
 
                   const newItems = [...items];
+                  const newStored = [...items];
+                  
+                  const storedPRItems = fetchedItems.map((item => {
+                    return {
+                      ...item,
+                    }
+                  }));
+      
+                  storedPRItems.forEach((fetchedItem, i) => {
+                    newStored[index + i] = {
+                    ...newStored[index + i],
+                    ...fetchedItem,
+                  };
+                });
+
+                console.log('storedPRItems', newStored);
+                setFetchedDetail    (newStored);
+
                   // Update fetched items with selected options
                   const updatedFetchedItems = fetchedItems.map((item) => {
                     return {
                       ...item,
                       doc_reff_no: item.po_number,
                       tax_exchange_rate: tax_exchange_rate,
-                      selectedProduct: productOptions.find((option) => option.value === item.product),
-                      selectedCurrency: currencyOptions.find((option) => option.value === item.currency),
+                      // selectedProduct: productOptions.find((option) => option.value === item.product),
+                      // selectedCurrency: currencyOptions.find((option) => option.value === item.currency),
                       // selectedVendor: allvendoroptions.find((option) => option.value === item.vendor),
-                      selectedProject: projectOptions.find((option) => option.value === item.project),
+                      // selectedProject: projectOptions.find((option) => option.value === item.project),
                       // selectedDepartement: departementOptions.find((option) => option.value === item.departement),
                       // selectedCustomer: customerOptions.find((option) => option.value === item.customer),
                       // selectedContractNumber: contractNumberOption.find((option) => option.value === item.project_contract_number),
@@ -1554,7 +1612,7 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
   //     const vendorValue = selectedOption.vendor || selectedOption.PO_NUMBER;
 
   //     const customerOption = customerOptions.find((option) => option.value === selectedOption.CUSTOMER);
-  //     setCustomer(customerOption ? customerOption : null);
+  //     setCustomer(c    ustomerOption ? customerOption : null);
 
   //     const departementOption = departementOptions.find((option) => option.value === selectedOption.DEPARTEMENT);
   //     setDepartement(departementOption ? departementOption : null);
@@ -1831,18 +1889,38 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
     setVendor(selectedOption ? selectedOption.value : "");
   };
 
-  const handleProjectChange = (selectedOption) => {
+  const handleProjectChange = (index, selectedOption) => {
+    const newItems = [...items]; // Create a copy of the current items array
+
+    // Update the selected project state
     setSelectedProject(selectedOption);
     setProject(selectedOption ? selectedOption.value : "");
 
     if (selectedOption) {
+      // Find the corresponding customer for the selected project
       const customerProject = customerOptions.find((option) => option.value === selectedOption.customer);
       setSelectedCustomer(customerProject);
       setCustomer(customerProject ? customerProject.value : null);
+
+      // Update the project and project_contract_number in the newItems array
+      newItems[index] = {
+        ...newItems[index],
+        project: selectedOption.value, // Set the project value
+        project_contract_number: selectedOption.contract_number || "", // Set the project_contract_number from the selected option
+      };
     } else {
+      // If no project is selected, clear the project and project_contract_number
+      newItems[index] = {
+        ...newItems[index],
+        project: "",
+        project_contract_number: "",
+      };
       setSelectedCustomer(null);
       setCustomer("");
     }
+
+    // Update the items state with the new items array
+    setItems(newItems);
   };
   const handleOptionChange = (setter, stateSetter, selectedOption) => {
     setter(selectedOption);
@@ -1867,7 +1945,7 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
         tax_pph_type: "",
         tax_pph_rate: "",
         tax_pph_amount: 0,
-        tax_base: "IDR 0.00",
+        tax_base: 0,
         total_after_discount: 0,
         total_before_discount: 0,
         total_amount_ppn: 0,
@@ -1876,7 +1954,7 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
         total_price_idr: 0,
         vat_included: false,
         new_unit_price: 0,
-        tax_exchange_rate: 0,
+        tax_exchange_rate: 1,
         vendor: "",
         doc_reff_no: "",
         project_contract_number: "",
@@ -2004,18 +2082,17 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
       newItems[index].total_price = newItems[index].quantity * newItems[index].unit_price;
 
       // Calculate total_price_idr based on exchange rate if currency is not IDR
-      if (newItems[index].currency !== "IDR" && newItems[index].total_price > 0) {
-        newItems[index].total_price_idr = newItems[index].total_price * (newItems[index].exchange_rate || 0);
-      } else if (newItems[index].currency === "IDR") {
+      if (newItems[index].currency === "IDR") {
         newItems[index].total_price_idr = newItems[index].total_price;
       } else {
-        newItems[index].total_price_idr = 0;
+        newItems[index].total_price_idr = newItems[index].total_price * (newItems[index].tax_exchange_rate || 1);
       }
     }
 
     // Calculate New Unit Price based on VAT and PPN
     let pengkali = newItems[index].tax_ppn_rate / 100;
 
+    // Calculate PPN
     if (field === "tax_ppn" || field === "tax_ppn_rate") {
       if (newItems[index].type_of_vat === "include") {
         newItems[index].new_unit_price = newItems[index].unit_price + newItems[index].unit_price * pengkali;
@@ -2026,9 +2103,6 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
         newItems[index].tax_ppn_amount = newItems[index].total_price_idr * (newItems[index].tax_ppn_rate / 100);
         newItems[index].tax_base = newItems[index].total_price_idr;
       }
-
-      // Tetap gunakan total_price_idr yang telah dihitung untuk non-IDR
-      newItems[index].total_price_idr = newItems[index].total_price_idr;
     }
 
     // Calculate PPh based on PPh type and rate
@@ -2048,6 +2122,7 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
 
     // Update VAT type logic
     if (field === "type_of_vat") {
+      // Reset VAT-related fields
       newItems[index].tax_ppn = "";
       newItems[index].tax_ppn_rate = 0;
       newItems[index].tax_base = 0;
@@ -2057,20 +2132,22 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
       newItems[index].type_of_pph = "";
       newItems[index].tax_pph_rate = 0;
 
-      if (newItems[index].type_of_vat === "exclude" && newItems[index].vat_included === true) {
-        newItems[index].new_unit_price = newItems[index].new_unit_price - newItems[index].unit_price * pengkali;
-        newItems[index].vat_included = false;
-      } else if (newItems[index].type_of_vat === "non_ppn") {
-        newItems[index].tax_base = newItems[index].total_price_idr;
+      // Retain total_price_idr for non-IDR currencies
+      if (newItems[index].currency !== "IDR") {
+        const previousTotalPriceIdr = newItems[index].total_price_idr;
+        if (newItems[index].type_of_vat === "exclude" && newItems[index].vat_included === true) {
+          newItems[index].new_unit_price = newItems[index].new_unit_price - newItems[index].unit_price * pengkali;
+          newItems[index].vat_included = false;
+        } else if (newItems[index].type_of_vat === "non_ppn") {
+          newItems[index].tax_base = previousTotalPriceIdr;
+        } else {
+          newItems[index].new_unit_price = newItems[index].unit_price;
+        }
+        newItems[index].total_price = newItems[index].unit_price * newItems[index].quantity;
+        newItems[index].total_price_idr = previousTotalPriceIdr; // Keep the previous value
       } else {
         newItems[index].new_unit_price = newItems[index].unit_price;
-      }
-      newItems[index].total_price = newItems[index].unit_price * newItems[index].quantity;
-
-      // Tetap gunakan total_price_idr yang telah dihitung sebelumnya untuk non-IDR
-      if (newItems[index].currency !== "IDR") {
-        newItems[index].total_price_idr = newItems[index].total_price;
-      } else {
+        newItems[index].total_price = newItems[index].unit_price * newItems[index].quantity;
         newItems[index].total_price_idr = newItems[index].unit_price * newItems[index].quantity;
       }
     }
@@ -2266,6 +2343,7 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
     // Ensure valid total amount
     const validTotalAmount = isNaN(total_amount) ? 0 : total_amount;
 
+    console.log('kols', subTotal);
     return {
       subTotal,
       subtotalAfterDiscount,
@@ -2285,12 +2363,13 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
   };
 
   const resetForm = () => {
-    generatePrNumber("DRAFT_INVC");
+    // generatePrNumber("DRAFT_INVC");
     setPrNumber("");
     setTitle("");
     setInternalMemo("");
     setCustomerContract("");
     setID(null);
+    setDocRef(null);
     setInvoiceNumber("");
     setInvoiceType("");
     setInvoiceDate("");
@@ -2560,10 +2639,10 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
       return; // Prevent form submission
     }
 
-    if (!tax_exchange_rate) {
-      messageAlertSwal("Error", "Tax Exchange Rate cannot be empty.", "error");
-      return;
-    }
+    // if (!tax_exchange_rate) {
+    //   messageAlertSwal("Error", "Tax Exchange Rate cannot be empty.", "error");
+    //   return;
+    // }
 
     // Show SweetAlert2 confirmation
     const result = await Swal.fire({
@@ -2820,8 +2899,8 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
         messageAlertSwal("Error", err.message, "error");
       } finally {
         setIsLoading(false);
-        setIsEditingPurchaseInvoice(false);
-        handleRefresh(); // Set loading state back to false after completion
+        // setIsEditingPurchaseInvoice(false);
+        // handleRefresh(); // Set loading state back to false after completion
       }
     } else {
       console.log("Form submission was canceled.");
@@ -2853,10 +2932,10 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
       return; // Prevent form submission
     }
 
-    if (!tax_exchange_rate) {
-      messageAlertSwal("Error", "Tax Exchange Rate cannot be empty.", "error");
-      return;
-    }
+    // if (!tax_exchange_rate) {
+    //   messageAlertSwal("Error", "Tax Exchange Rate cannot be empty.", "error");
+    //   return;
+    // }
 
     // Show SweetAlert2 confirmation
     const result = await Swal.fire({
@@ -2900,7 +2979,6 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
           total_amount_ppn: totalPPNAmount,
           total_amount_pph: totalPPHAmount,
           tax_exchange_rate,
-          due_date,
           description,
           total_amount: totalAmount,
           endtoendid: endToEndId,
@@ -2921,7 +2999,7 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
 
         console.log("Data posted successfully:", response);
 
-        // Handle file upload if applicable
+        // Handle file upload if applicable applicable
         if (doc_source) {
           const request = {
             idTrx: endToEndId,
@@ -2954,7 +3032,7 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
         }
 
         // Handle item deletion and insertion
-        if (response.message === "Update Data Successfully") {
+        if (response.message === "Update Data Succesfully") {
           // Delete existing items
           for (const item of items) {
             if (item.ID) {
@@ -3027,7 +3105,7 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
               tax_base: item.tax_base,
               tax_ppn_amount: item.tax_ppn_amount,
               tax_pph_amount: item.tax_pph_amount,
-              tax_exchange_rate: item.exchange_rate,
+              tax_exchange_rate: item.tax_exchange_rate,
               total_after_discount: item.subtotalAfterDiscount,
             };
             delete updatedItem.ID;
@@ -3056,7 +3134,165 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
 
             const itemResponse = await InsertDataService.postData(updatedItem, "PUINVCD", authToken, branchId);
             console.log("Item posted successfully:", itemResponse);
-          }
+
+            if(docRef === 'purchaseRequest' || docRef === 'purchaseOrder'){
+              let fetchUrl;
+              let formToDel;
+              let getHeader;
+              let formHeader;
+
+              if(docRef === 'purchaseRequest'){
+                fetchUrl = `PURC_FORMPUREQD&filterBy=pr_number&filterValue=${item.pr_number}&operation=EQUAL`;
+                formToDel = 'PUREQD';
+                formHeader = 'PUREQ';
+                getHeader = `PURC_FORMPUREQ&filterBy=pr_number&filterValue=${item.doc_reff_no}&operation=EQUAL`
+              }else if(docRef === 'purchaseOrder'){
+                fetchUrl = `PURC_FORMPUORD&filterBy=po_number&filterValue=${item.po_number}&operation=EQUAL`;
+                formToDel = 'PUORD';
+                formHeader = 'PUOR';
+                getHeader = `PURC_FORMPUOR&filterBy=po_number&filterValue=${item.doc_reff_no}&operation=EQUAL`
+              }
+              
+              const fetchCheckIsUsed = await LookupService.fetchLookupData(fetchUrl, authToken, branchId);
+              const checkIsUsedData = fetchCheckIsUsed.data;
+              console.log('fetchedisuseddata', checkIsUsedData);
+
+              const dels = fetchCheckIsUsed.data.map(item => item.ID);
+              console.log('idtoChange', dels);
+
+              let hasNullStatus = false;
+
+              for (const del of dels) {
+                try {
+                  // Now, find the corresponding stored item to update/insert
+                  const storedItem = fetchedDetail.find(item => item.ID === del);
+                  
+                  if (storedItem) {
+
+                    // Delete the item first
+                    await DeleteDataService.postData(`column=id&value=${del}`, formToDel, authToken, branchId);
+                    console.log('Item deleted successfully:', del);
+
+                    const { rwnum, ID, status, id_trx, ...stored } = storedItem;
+
+                    console.log('storeditem', storedItem);
+                    console.log('itemsa', item);
+
+                    let statusDetail;
+                    let matchfound = false;
+
+                    for (const item of items) { // Assuming 'items' is an array of items to check against
+                      if (storedItem.ID === item.ID || storedItem.status_detail === "USED") {
+                        statusDetail = "USED";
+                        matchfound = true
+                        break; // Exit the loop early if we find a match
+                      }
+                    }
+
+                    if (!matchfound) {
+                      hasNullStatus = true;
+                    }
+              
+                    const updatedStoredItem = {
+                      ...stored,
+                      status_detail: statusDetail,
+                    };
+                    console.log('updatedstatus', updatedStoredItem.status_detail);
+              
+                    // Remove unwanted fields
+                    const fieldsToDelete = [
+                      'rwnum',
+                      'ID',
+                      'id',
+                      'status',
+                      'id_trx',
+                      'original_unit_price',
+                      'type_of_vat',
+                      'tax_ppn',
+                      'tax_pph',
+                      'tax_pph_type',
+                      'total_amount_ppn',
+                      'total_amount_pph',
+                      'total_price_idr',
+                      'tax_exchange_rate',
+                      'total_after_discount',
+                      'total_before_discount',
+                      'tax_ppn_amount',
+                      'tax_pph_amount',
+                      'tax_ppn_rate',
+                      'tax_pph_rate',
+                      'subtotal',
+                      'subTotal',
+                      'tax_base',
+                      'discount',
+                      'vat_included',
+                      'new_unit_price',
+                      'requestor',
+                    ];
+
+                    fieldsToDelete.forEach(field => delete updatedStoredItem[field]);
+
+                    // Insert the updated stored item
+                    const storedItemResponse = await InsertDataService.postData(updatedStoredItem, formToDel, authToken, branchId);
+                    console.log('Stored item posted successfully:', storedItemResponse);
+                    
+                  } else {
+                    console.log('No corresponding stored item found for ID:', del);
+                  }
+              
+                } catch (error) {
+                  console.error('Error processing item:', del, error);
+                }
+              }
+  
+              const getDocRefList = await LookupService.fetchLookupData(getHeader, authToken, branchId);
+              const prID = getDocRefList.data[0].ID;
+              console.log('PRid', prID);
+
+              let updateStatusData;
+              if(docRef === 'purchaseRequest'){
+                updateStatusData = {
+                  status_request: hasNullStatus ? "PARTIAL_REQUESTED" : "REQUESTED",
+                }
+              }else if(docRef === 'purchaseOrder') {
+                updateStatusData = {
+                  status_po: hasNullStatus ? "PARTIAL_ORDERED" : "ORDERED ",
+                }
+              }
+
+              // Update Status
+                const updatePRStatus = await axios.post(`${FORM_SERVICE_UPDATE_DATA}?f=${formHeader}&column=id&value=${prID}&branchId=${branchId}`, updateStatusData, {
+                  headers: {
+                    Authorization: `Bearer ${authToken}`,
+                  }
+                });
+                await updatePRStatus;
+            }
+          } 
+
+          //Set status workflow VERIFIED
+          // LookupService.fetchLookupData(`PURC_FORMPUOR&filterBy=endtoendid&filterValue=${endToEndId}&operation=EQUAL`, authToken, branchId)
+          // .then(response => {
+          //   const data = response.data[0];
+          //   console.log('Data:', data);
+
+          //   const requestData = {
+          //     idTrx: data.ID, 
+          //     status: "IN_PROCESS", 
+          //   };
+          //   UpdateStatusService.postData(requestData, "PUOR", authToken, branchId)
+          //     .then(response => {
+          //       console.log('Data updated successfully:', response);
+          //     })
+          //     .catch(error => {
+          //       console.error('Failed to update data:', error);
+          //     });
+
+          // })
+          // .catch(error => {
+          //   console.error('Failed to load purchase request data:', error);
+          // });
+          
 
           messageAlertSwal("Success", response.message, "success");
           resetForm();
@@ -3067,8 +3303,8 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
         messageAlertSwal("Error", err.message, "error");
       } finally {
         setIsLoading(false);
-        setIsEditingPurchaseInvoice(false);
-        handleRefresh(); // Set loading state back to false after completion
+        // setIsEditingPurchaseInvoice(false);
+        // handleRefresh(); // Set loading state back to false after completion
       }
     } else {
       console.log("Form submission was canceled.");
@@ -3522,9 +3758,11 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
                         <Form.Control
                           type="text"
                           placeholder="Enter Tax Exchange Rate"
-                          value={tax_exchange_rate}
+                          min="0"
+                          value={tax_exchange_rate.toLocaleString('en-US')}
                           onChange={(e) => {
-                            taxExchangeChange(e.target.value);
+                            const newPrice = parseFloat(e.target.value.replace(/[^\d.-]/g, '')) || 0;
+                            taxExchangeChange(newPrice);
                           }}
                         />
                       </Form.Group>
@@ -3929,11 +4167,30 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
                                         {/* <Form.Label>Project</Form.Label> */}
                                         <Select
                                           value={projectOptions.find((option) => option.value === item.project)}
-                                          onChange={(selectedOption) => handleItemChange(index, "project", selectedOption ? selectedOption.value : null)}
+                                          onChange={(selectedOption) => {
+                                            handleItemChange(index, "project", selectedOption ? selectedOption.value : null);
+
+                                            if (selectedOption) {
+                                              const prjtNum = selectedOption.contract_number || ""; // Check for null
+                                              handleItemChange(index, "project_contract_number", prjtNum);
+
+                                              // Assuming selectedOption contains customer information
+                                              const customer = selectedOption.customer || ""; // Adjust this based on your data structure
+                                              handleItemChange(index, "customer", customer);
+                                            } else {
+                                              handleItemChange(index, "customer", ""); // Clear if null
+                                              handleItemChange(index, "project_contract_number", ""); // Clear if null
+                                            }
+                                          }}
                                           options={projectOptions}
                                           isClearable
                                           placeholder="Select Project..."
-                                          // isDisabled={true} // Field is disabled for "purchaseRequest"
+                                          styles={{
+                                            placeholder: (base) => ({
+                                              ...base,
+                                              color: "#8d8080",
+                                            }),
+                                          }}
                                         />
                                       </Form.Group>
                                     </td>
@@ -3943,11 +4200,30 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
                                         {/* <Form.Label>Project</Form.Label> */}
                                         <Select
                                           value={projectOptions.find((option) => option.value === item.project)}
-                                          onChange={(selectedOption) => handleItemChange(index, "project", selectedOption ? selectedOption.value : null)}
+                                          onChange={(selectedOption) => {
+                                            handleItemChange(index, "project", selectedOption ? selectedOption.value : null);
+
+                                            if (selectedOption) {
+                                              const prjtNum = selectedOption.contract_number || ""; // Check for null
+                                              handleItemChange(index, "project_contract_number", prjtNum);
+
+                                              // Assuming selectedOption contains customer information
+                                              const customer = selectedOption.customer || ""; // Adjust this based on your data structure
+                                              handleItemChange(index, "customer", customer);
+                                            } else {
+                                              handleItemChange(index, "customer", ""); // Clear if null
+                                              handleItemChange(index, "project_contract_number", ""); // Clear if null
+                                            }
+                                          }}
                                           options={projectOptions}
                                           isClearable
                                           placeholder="Select Project..."
-                                          // isDisabled={docRef === "purchaseOrder"} // Field is disabled for "purchaseOrder"
+                                          styles={{
+                                            placeholder: (base) => ({
+                                              ...base,
+                                              color: "#8d8080",
+                                            }),
+                                          }}
                                         />
                                       </Form.Group>
                                     </td>
@@ -3964,6 +4240,12 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
                                       placeholder="Project Contract Number..."
                                       isClearable
                                       required
+                                      styles={{
+                                        placeholder: (base) => ({
+                                          ...base,
+                                          color: "#8d8080",
+                                        }),
+                                      }}
                                     />
                                   </td>
 
@@ -4044,7 +4326,28 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
                                   </td>
 
                                   <td>
-                                    <Form.Control type="number" value={tax_exchange_rate} min="0" onChange={(e) => handleItemChange(index, "tax_exchange_rate", parseFloat(e.target.value))} disabled />
+                                    <Form.Control
+                                      className="text-left"
+                                      type="text"
+                                      value={item.tax_exchange_rate !== undefined && item.tax_exchange_rate !== null ? item.tax_exchange_rate.toLocaleString("en-US") : "0"}
+                                      onChange={(e) => {
+                                        const input = e.target.value;
+
+                                        // Allow only numbers, periods, and remove unwanted characters
+                                        const sanitizedInput = input.replace(/[^0-9.]/g, "");
+
+                                        // Update the state with sanitized input
+                                        handleItemChange(index, "tax_exchange_rate", sanitizedInput);
+
+                                        // Optional: Adjust the width dynamically based on the input
+                                        dynamicFormWidth(e);
+                                      }}
+                                      onBlur={() => {
+                                        const rate = parseFloat(item.tax_exchange_rate) || 0;
+                                        handleItemChange(index, "tax_exchange_rate", rate); // Convert back to number on blur
+                                      }}
+                                      disabled
+                                    />
                                   </td>
 
                                   <td>
@@ -4355,15 +4658,22 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
                               <td colSpan="25">Total PPN Amount:</td>
                               <td>
                                 <Form.Control
-                                  type="number"
-                                  value={calculateTotalAmount().totalPPNAmount}
+                                  className="text-right"
+                                  type="text"
+                                  value={calculateTotalAmount().totalPPNAmount.toLocaleString("en-US") || 0}
                                   onChange={(e) => {
+                                    // dynamicFormWidth(e.target.value, index);
                                     const newItems = [...items];
-                                    const totalPPNAmount = e.target.value;
+                                    const totalPPNAmount = parseFloat(e.target.value.replace(/[^\d.-]/g, "")) || 0;
                                     newItems.forEach((item) => {
                                       item.tax_ppn_amount = totalPPNAmount / newItems.length;
                                     });
                                     setItems(newItems);
+                                  }}
+                                  style={{
+                                    textAlign: "right",
+                                    marginLeft: "auto",
+                                    display: "flex",
                                   }}
                                 />
                               </td>

@@ -36,7 +36,6 @@ import FormService from '../service/FormService';
     const [selectedItems, setSelectedItems] = useState([]);
     const [isLoading, setIsLoading] = useState(false);
     const [currencyOptions, setCurrencyOptions] = useState([]);
-    const [selectedCurrency, setSelectedCurrency] = useState(null);
 
     // PO Fields
     const [po_number, setPoNumber] = useState('');
@@ -52,7 +51,6 @@ import FormService from '../service/FormService';
     const [billToAddress, setBillToAddress] = useState('Menara Batavia, 5th Floor, DKI Jakarta, 10220, ID');
     const [termConditions, setTermConditions] = useState('');
     const [endToEnd,setEndToEnd] = useState('');
-    const [idPr, setIdPr] = useState(''); 
     const [discount, setDiscount] = useState(0);
     const [formattedDiscount, setFormattedDiscount] = useState('IDR 0.00');
     const [statusPo, setStatusPo] = useState('');
@@ -78,7 +76,8 @@ import FormService from '../service/FormService';
     const [selectedToAddress, setSelectedToAddress] = useState(null);
     const [contractNumberOption, setContractNumberOptions]= useState([]);
     const [file, setFile] = useState(null);
-    const [isPOAvailable, setIsPoAvailable] = useState(false);
+    const [fetchedPRDetail, setFetchedPRDetail] = useState([]);
+    const [isSubmited, setIsSubmited] = useState(false);
 
     // Dynamic Form Field Width
     const [inputWidth, setInputWidth] = useState(Array(items.length).fill(0));
@@ -206,7 +205,7 @@ import FormService from '../service/FormService';
 
 
       // Lookup Purchase Request
-      LookupService.fetchLookupData("PURC_FORMPUREQ&filterBy=STATUS_REQUEST&filterValue=IN_PROCESS&operation=EQUAL&branchId=1&filterBy=STATUS&filterValue=APPROVED&operation=EQUAL", authToken, branchId)
+      LookupService.fetchLookupData("PURC_FORMPUREQ&filterBy=STATUS&filterValue=APPROVED&operation=EQUAL", authToken, branchId)
       .then(data => {
         console.log('Currency lookup data:', data);
 
@@ -219,11 +218,11 @@ import FormService from '../service/FormService';
         );
         //console.log('Transformed data:', transformedData);
 
-        const options = transformedData.map(item => {
+        const options = transformedData.filter(item => item.STATUS_REQUEST === 'PARTIAL_REQUESTED' || item.STATUS_REQUEST === 'IN_PROCESS').map(item => {
           const label = item.PR_NUMBER;
-          // if (label.startsWith('DRAFT')) {
-          //   return null; // or you can return an empty object {}
-          // }
+          if (label.startsWith('DRAFT')) {
+            return null; // or you can return an empty object {}
+          }
           return {
             value: item.PR_NUMBER,
             label: label.replace('DRAFT ', ''), // remove 'DRAFT ' from the label
@@ -438,7 +437,6 @@ import FormService from '../service/FormService';
 
 
     
-    
     // To Handler untuk autofill address
     const handleToChange = (selectedOption) => {
       setSelectedTo(selectedOption);
@@ -462,7 +460,8 @@ import FormService from '../service/FormService';
         // Lookup PR Detail
         LookupService.fetchLookupData(`PURC_FORMPUREQD&filterBy=PR_NUMBER&filterValue=${selectedOption.value}&operation=EQUAL`, authToken, branchId)
         .then(response => {
-          const fetchedItems = response.data || [];
+          const fetchAllPRItem = response.data||[];
+          const fetchedItems = Array.isArray(response.data) ? response.data.filter(item => item.status_detail === null) : [];
           console.log('Itemd fetched:', response.data);
           dynamicFormWidth(response.data[0].unit_price.toString()+5, index);
 
@@ -516,6 +515,26 @@ import FormService from '../service/FormService';
             });
 
             const newItems = [...items];
+            const newStored = [...items];
+
+            const storedPRItems = fetchAllPRItem.map((item => {
+              return {
+                ...item,
+              }
+            }));
+
+            storedPRItems.forEach((fetchedItem, i) => {
+              newStored[index + i] = {
+              ...newStored[index + i],
+              ...fetchedItem,
+            };
+          });
+            
+            console.log('storedPRItems', newStored);
+
+
+            setFetchedPRDetail(newStored);
+
             // Update fetched items with selected options
             const updatedFetchedItems = fetchedItems.map(item => {
               return {
@@ -524,6 +543,8 @@ import FormService from '../service/FormService';
                 doc_source: item.doc_source,
               };
             });
+
+            console.log('fetvhedf', fetchedItems);
 
             updatedFetchedItems.forEach((fetchedItem, i) => {
                 newItems[index + i] = {
@@ -688,7 +709,7 @@ import FormService from '../service/FormService';
         newItems[index].total_price = newItems[index].unit_price * newItems[index].quantity;
       }
 
-
+      console.log('taxPPN', newItems[index].tax_ppn_amount);
       setItems(newItems);
     };
 
@@ -776,6 +797,7 @@ import FormService from '../service/FormService';
       setItems([]);
       setSelectedItems([]);
       setEndToEnd('');
+      setIsSubmited(false);
     };
 
    
@@ -1167,7 +1189,7 @@ import FormService from '../service/FormService';
 
               const updatedItem = {
                 ...rest,
-                po_number
+                po_number,
               };
 
               delete updatedItem.rwnum; 
@@ -1186,6 +1208,100 @@ import FormService from '../service/FormService';
                 console.log('Item inserted successfully:', itemResponse);
               } catch (error) {
                 console.error('Error inserting item:', updatedItem, error);
+              }
+              if(datacek){
+                const fetchCheckIsUsed = await LookupService.fetchLookupData(`PURC_FORMPUREQD&filterBy=pr_number&filterValue=${item.pr_number}&operation=EQUAL`, authToken, branchId);
+                const checkIsUsedData = fetchCheckIsUsed.data;
+                console.log('fetchedisuseddata', checkIsUsedData);
+  
+                const dels = fetchCheckIsUsed.data.map(item => item.ID);
+                console.log('idtoChange', dels);
+  
+                let hasNullStatus = false;
+  
+                for (const del of dels) {
+                  try {
+                    // Now, find the corresponding stored item to update/insert
+                    const storedItem = fetchedPRDetail.find(item => item.ID === del);
+                    
+                    if (storedItem) {
+  
+                      // Delete the item first
+                      await DeleteDataService.postData(`column=id&value=${del}`, "PUREQD", authToken, branchId);
+                      console.log('Item deleted successfully:', del);
+  
+                      const { rwnum, ID, status, id_trx, ...stored } = storedItem;
+  
+                      console.log('storeditem', storedItem);
+                      console.log('itemsa', item);
+  
+                      let statusDetail;
+                      let matchfound = false;
+  
+                      for (const item of items) { // Assuming 'items' is an array of items to check against
+                        if (storedItem.ID === item.ID || storedItem.status_detail === "USED") {
+                          statusDetail = "USED";
+                          matchfound = true
+                          break; // Exit the loop early if we find a match
+                        }
+                      }
+  
+                      if (!matchfound) {
+                        hasNullStatus = true;
+                      }
+                
+                      const updatedStoredItem = {
+                        ...stored,
+                        status_detail: statusDetail,
+                      };
+                      console.log('updatedstatus', updatedStoredItem.status_detail);
+                
+                      // Remove unwanted fields
+                      delete updatedStoredItem.rwnum; 
+                      delete updatedStoredItem.ID; 
+                      delete updatedStoredItem.status; 
+                      delete updatedStoredItem.id_trx;
+                      delete updatedStoredItem.original_unit_price;
+                      delete updatedStoredItem.type_of_vat;
+                      delete updatedStoredItem.tax_ppn;
+                      delete updatedStoredItem.tax_ppn_amount;
+                      delete updatedStoredItem.tax_ppn_rate;
+                      delete updatedStoredItem.subtotal;
+                      delete updatedStoredItem.subTotal;
+                      delete updatedStoredItem.tax_base;
+                      delete updatedStoredItem.discount;
+                      delete updatedStoredItem.vat_included;
+                      delete updatedStoredItem.new_unit_price;
+                      delete updatedStoredItem.requestor;
+                
+                      // Insert the updated stored item
+                      const storedItemResponse = await InsertDataService.postData(updatedStoredItem, "PUREQD", authToken, branchId);
+                      console.log('Stored item posted successfully:', storedItemResponse);
+                      
+                    } else {
+                      console.log('No corresponding stored item found for ID:', del);
+                    }
+                
+                  } catch (error) {
+                    console.error('Error processing item:', del, error);
+                  }
+                }
+  
+                // Update Status PR Detail 
+                const getPRList = await LookupService.fetchLookupData(`PURC_FORMPUREQ&filterBy=pr_number&filterValue=${item.doc_reff_no}&operation=EQUAL`, authToken, branchId);
+                const prID = getPRList.data[0].ID;
+                console.log('PRid', prID);
+                // Update Status
+                const updatePrStatusData = {
+                  status_request: hasNullStatus ? "PARTIAL_REQUESTED" : "REQUESTED",
+                }
+  
+                  const updatePRStatus = await axios.post(`${FORM_SERVICE_UPDATE_DATA}?f=PUREQ&column=id&value=${prID}&branchId=${branchId}`, updatePrStatusData, {
+                    headers: {
+                      Authorization: `Bearer ${authToken}`,
+                    }
+                  });
+                  await updatePRStatus;
               }
             }
 
@@ -1242,20 +1358,101 @@ import FormService from '../service/FormService';
 
               const itemResponse = await InsertDataService.postData(updatedItem, "PUORD", authToken, branchId);
               console.log('Item posted successfully:', itemResponse);
-              // Update Status
-
-              const updatePrStatusData = {
-                status_request: "ORDERED",
-              }
-
-              if(idPr){
-                const updatePRStatus = await axios.post(`${FORM_SERVICE_UPDATE_DATA}?f=PUREQ&column=id&value=${idPr}&branchId=${branchId}`, updatePrStatusData, {
-                  headers: {
-                    Authorization: `Bearer ${authToken}`,
+              
+              if(docRef === 'purchaseRequest'){
+                const fetchCheckIsUsed = await LookupService.fetchLookupData(`PURC_FORMPUREQD&filterBy=pr_number&filterValue=${item.pr_number}&operation=EQUAL`, authToken, branchId);
+                const checkIsUsedData = fetchCheckIsUsed.data;
+                console.log('fetchedisuseddata', checkIsUsedData);
+  
+                const dels = fetchCheckIsUsed.data.map(item => item.ID);
+                console.log('idtoChange', dels);
+  
+                let hasNullStatus = false;
+  
+                for (const del of dels) {
+                  try {
+                    // Now, find the corresponding stored item to update/insert
+                    const storedItem = fetchedPRDetail.find(item => item.ID === del);
+                    
+                    if (storedItem) {
+  
+                      // Delete the item first
+                      await DeleteDataService.postData(`column=id&value=${del}`, "PUREQD", authToken, branchId);
+                      console.log('Item deleted successfully:', del);
+  
+                      const { rwnum, ID, status, id_trx, ...stored } = storedItem;
+  
+                      console.log('storeditem', storedItem);
+                      console.log('itemsa', item);
+  
+                      let statusDetail;
+                      let matchfound = false;
+  
+                      for (const item of items) { // Assuming 'items' is an array of items to check against
+                        if (storedItem.ID === item.ID || storedItem.status_detail === "USED") {
+                          statusDetail = "USED";
+                          matchfound = true
+                          break; // Exit the loop early if we find a match
+                        }
+                      }
+  
+                      if (!matchfound) {
+                        hasNullStatus = true;
+                      }
+                
+                      const updatedStoredItem = {
+                        ...stored,
+                        status_detail: statusDetail,
+                      };
+                      console.log('updatedstatus', updatedStoredItem.status_detail);
+                
+                      // Remove unwanted fields
+                      delete updatedStoredItem.rwnum; 
+                      delete updatedStoredItem.ID; 
+                      delete updatedStoredItem.status; 
+                      delete updatedStoredItem.id_trx;
+                      delete updatedStoredItem.original_unit_price;
+                      delete updatedStoredItem.type_of_vat;
+                      delete updatedStoredItem.tax_ppn;
+                      delete updatedStoredItem.tax_ppn_amount;
+                      delete updatedStoredItem.tax_ppn_rate;
+                      delete updatedStoredItem.subtotal;
+                      delete updatedStoredItem.subTotal;
+                      delete updatedStoredItem.tax_base;
+                      delete updatedStoredItem.discount;
+                      delete updatedStoredItem.vat_included;
+                      delete updatedStoredItem.new_unit_price;
+                      delete updatedStoredItem.requestor;
+                
+                      // Insert the updated stored item
+                      const storedItemResponse = await InsertDataService.postData(updatedStoredItem, "PUREQD", authToken, branchId);
+                      console.log('Stored item posted successfully:', storedItemResponse);
+                      
+                    } else {
+                      console.log('No corresponding stored item found for ID:', del);
+                    }
+                
+                  } catch (error) {
+                    console.error('Error processing item:', del, error);
                   }
-                });
-                await updatePRStatus;
-              };
+                }
+  
+                // Update Status PR Detail 
+                const getPRList = await LookupService.fetchLookupData(`PURC_FORMPUREQ&filterBy=pr_number&filterValue=${item.doc_reff_no}&operation=EQUAL`, authToken, branchId);
+                const prID = getPRList.data[0].ID;
+                console.log('PRid', prID);
+                // Update Status
+                const updatePrStatusData = {
+                  status_request: hasNullStatus ? "PARTIAL_REQUESTED" : "REQUESTED",
+                }
+  
+                  const updatePRStatus = await axios.post(`${FORM_SERVICE_UPDATE_DATA}?f=PUREQ&column=id&value=${prID}&branchId=${branchId}`, updatePrStatusData, {
+                    headers: {
+                      Authorization: `Bearer ${authToken}`,
+                    }
+                  });
+                  await updatePRStatus;
+              }
             }
 
             //Set status workflow VERIFIED
@@ -1282,7 +1479,7 @@ import FormService from '../service/FormService';
             });
 
             messageAlertSwal('Success', response.message, 'success');
-            resetForm();
+            setIsSubmited(true);
           }
         } catch (err) {
           console.error(err);
@@ -1410,12 +1607,22 @@ import FormService from '../service/FormService';
                       :
                       <></>
                     }
-                    <Button variant="primary" className='mr-2' onClick={handleSave}>
-                      <i className="fas fa-save"></i> Save
-                    </Button>
-                    <Button variant="primary" onClick={handleSubmit}>
-                    <i className="fas fa-check"></i> Submit
-                  </Button>
+                     {isSubmited === true ?
+                      <Button
+                      onClick={resetForm}
+                      >
+                        <i className="fas fa-plus"></i> Add New
+                      </Button>
+                      :
+                      <>
+                      <Button variant="primary" className='mr-2' onClick={handleSave}>
+                        <i className="fas fa-save"></i> Save
+                      </Button>
+                      <Button variant="primary" onClick={handleSubmit}>
+                        <i className="fas fa-check"></i> Submit
+                      </Button>
+                      </>
+                      }
                   </div>
                 </Card.Header>
 
@@ -1885,8 +2092,14 @@ import FormService from '../service/FormService';
                                       <Form.Control
                                         type="number"
                                         value={item.quantity}
-                                        onChange={(e) => handleItemChange(index, 'quantity', Math.max(0, parseFloat(e.target.value) || 1))}
-                                        style={{width: '75px'}}
+                                        onChange={(e) => {
+                                          handleItemChange(index, 'quantity', Math.max(0, parseFloat(e.target.value) || 1))
+                                          // dynamicFormWidth(e.target.value, index)
+                                        }}
+                                        style={{
+                                          // width: `${inputWidth[index] || 75}px`,
+                                          width: '75px',
+                                        }}
                                       />
                                     </td>
                                     
@@ -1910,11 +2123,7 @@ import FormService from '../service/FormService';
                                           value={item.unit_price !== undefined && item.unit_price !== null ? item.unit_price.toLocaleString('en-US') : 0}
                                           onChange={(e) => {
                                             const newPrice = parseFloat(e.target.value.replace(/[^\d.-]/g, '')) || 0;
-                                            dynamicFormWidth(e.target.value , index);
                                             handleItemChange(index, 'unit_price',  newPrice);
-                                          }}
-                                          style={{
-                                            width: `${inputWidth[index] || 100}px`,
                                           }}
                                         />
                                       : 
@@ -1927,7 +2136,6 @@ import FormService from '../service/FormService';
                                               : '0'
                                           }
                                           onChange={(e) => {
-                                            dynamicFormWidth(e, index);
                                             const input = e.target.value;
                                             const sanitizedInput = input.replace(/[^0-9.]/g, '');
                                             handleItemChange(index, 'unit_price', sanitizedInput);
@@ -1936,9 +2144,9 @@ import FormService from '../service/FormService';
                                             const price = parseFloat(item.unit_price) || 0;
                                             handleItemChange(index, 'unit_price', price);
                                           }}
-                                          style={{
-                                            width: `${inputWidth[index] || 100}px`,
-                                          }}
+                                          // style={{
+                                          //   width: `${inputWidth[index] || 100}px`,
+                                          // }}
                                         />
                                       }
                                     </td>
@@ -2009,7 +2217,6 @@ import FormService from '../service/FormService';
                                           disabled
                                           style={{
                                             textAlign: 'right',
-                                            width: `${inputWidth[index] || 100}px`,
                                             marginLeft: 'auto',  
                                             display: 'flex',
                                           }}
@@ -2017,7 +2224,6 @@ import FormService from '../service/FormService';
                                           onChange={(e) => {
                                             const newTaxBase = parseFloat(e.target.value.replace(/[^\d.-]/g, '')) || 0;
                                             handleItemChange(index, 'tax_base', Math.max(0, newTaxBase));
-                                            dynamicFormWidth(e.target.value, index);
                                           }}
                                         />
                                       :
@@ -2073,12 +2279,10 @@ import FormService from '../service/FormService';
                                     onChange={(e) => {
                                       const newDiscount = parseFloat(e.target.value.replace(/[^\d.-]/g, '')) || 0;
                                       setDiscount(newDiscount);
-                                      dynamicFormWidth(e.target.value, index);
                                       
                                     }}
                                     style={{
                                       textAlign: 'right',
-                                      width: `${inputWidth[index] || 100}px`,
                                       marginLeft: 'auto',  
                                       display: 'flex',
                                     }}
@@ -2111,7 +2315,6 @@ import FormService from '../service/FormService';
                                     }
                                     onChange={
                                       (e) => {
-                                        dynamicFormWidth(e.target.value, index);
                                         const newItems = [...items];
                                         const totalPPNAmount = parseFloat(e.target.value.replace(/[^\d.-]/g, '')) || 0;
                                         newItems.forEach((item)=>{
@@ -2121,7 +2324,6 @@ import FormService from '../service/FormService';
                                     }}
                                     style={{
                                       textAlign: 'right',
-                                      width: `${inputWidth[index] || 100}px`,
                                       marginLeft: 'auto',  
                                       display: 'flex',
                                     }}
@@ -2208,12 +2410,22 @@ import FormService from '../service/FormService';
                 :
                 <></>
               }
+              {isSubmited === true ?
+              <Button
+              onClick={resetForm}
+              >
+                <i className="fas fa-plus"></i> Add New
+              </Button>
+              :
+              <>
               <Button variant="primary" className='mr-2' onClick={handleSave}>
                 <i className="fas fa-save"></i> Save
               </Button>
               <Button variant="primary" onClick={handleSubmit}>
                 <i className="fas fa-check"></i> Submit
               </Button>
+              </>
+              }
             </Col>
           </Row>
         </section>
