@@ -1253,6 +1253,7 @@ import FormService from '../service/FormService';
                       const updatedStoredItem = {
                         ...stored,
                         status_detail: statusDetail,
+                        po_number: po_number,
                       };
                       console.log('updatedstatus', updatedStoredItem.status_detail);
                 
@@ -1329,9 +1330,7 @@ import FormService from '../service/FormService';
 
             // Show success message and reset form
             messageAlertSwal('Success', response.message, 'success');
-            if(isAddingNewPurchaseOrder){
-              resetForm();
-            }
+            setIsSubmited(true);
           }
         
           if (response.message === "insert Data Successfully") {
@@ -1403,6 +1402,7 @@ import FormService from '../service/FormService';
                       const updatedStoredItem = {
                         ...stored,
                         status_detail: statusDetail,
+                        po_number: po_number,
                       };
                       console.log('updatedstatus', updatedStoredItem.status_detail);
                 

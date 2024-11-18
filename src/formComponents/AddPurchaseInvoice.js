@@ -3140,6 +3140,7 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
               let formToDel;
               let getHeader;
               let formHeader;
+              let fetchPRD;
 
               if(docRef === 'purchaseRequest'){
                 fetchUrl = `PURC_FORMPUREQD&filterBy=pr_number&filterValue=${item.pr_number}&operation=EQUAL`;
@@ -3150,12 +3151,99 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
                 fetchUrl = `PURC_FORMPUORD&filterBy=po_number&filterValue=${item.po_number}&operation=EQUAL`;
                 formToDel = 'PUORD';
                 formHeader = 'PUOR';
-                getHeader = `PURC_FORMPUOR&filterBy=po_number&filterValue=${item.doc_reff_no}&operation=EQUAL`
+                getHeader = `PURC_FORMPUOR&filterBy=po_number&filterValue=${item.doc_reff_no}&operation=EQUAL`;
               }
               
               const fetchCheckIsUsed = await LookupService.fetchLookupData(fetchUrl, authToken, branchId);
               const checkIsUsedData = fetchCheckIsUsed.data;
               console.log('fetchedisuseddata', checkIsUsedData);
+
+              if(docRef === 'purchaseOrder'){
+                const prno = checkIsUsedData.map(item => item.doc_reff_no);
+                console.log('pron', prno);
+                fetchPRD = await LookupService.fetchLookupData(`PURC_FORMPUREQD&filterBy=pr_number&filterValue=${prno}&operation=EQUAL`, authToken, branchId);
+                const prToDel = fetchPRD.data.map(item => item.ID);
+                console.log('prtodel', prToDel);
+                console.log('prtodels', fetchPRD);
+                for (const prdel of prToDel) {
+                  try {
+                    // Now, find the corresponding stored item to update/insert
+                    const storedItem = fetchPRD.data.find(item => item.ID === prdel);
+                    
+                    if (prToDel) {
+  
+                      // Delete the item first
+                      await DeleteDataService.postData(`column=id&value=${prdel}`, 'PUREQD', authToken, branchId);
+                      console.log('Item deleted successfully:', prdel);
+                      
+  
+                      const { rwnum, ID, status, id_trx, ...stored } = storedItem;
+  
+                      console.log('storeditem', storedItem);
+                      console.log('itemsa', item);
+  
+                      let invoicenum;
+  
+                      for (const item of items) { // Assuming 'items' is an array of items to check against
+                        if (storedItem.ID === item.ID || storedItem.po_number !== null) {
+                          invoicenum = invoice_number.replace('DRAFT_', "");
+                          break; // Exit the loop early if we find a match
+                        }
+                      }
+  
+                
+                      const updatedStoredItem = {
+                        ...stored,
+                        invoice_number: invoicenum,
+                      };
+                      console.log('updatedstatus', updatedStoredItem.status_detail);
+                
+                      // Remove unwanted fields
+                      const fieldsToDelete = [
+                        'rwnum',
+                        'ID',
+                        'id',
+                        'status',
+                        'id_trx',
+                        'original_unit_price',
+                        'type_of_vat',
+                        'tax_ppn',
+                        'tax_pph',
+                        'tax_pph_type',
+                        'total_amount_ppn',
+                        'total_amount_pph',
+                        'total_price_idr',
+                        'tax_exchange_rate',
+                        'total_after_discount',
+                        'total_before_discount',
+                        'tax_ppn_amount',
+                        'tax_pph_amount',
+                        'tax_ppn_rate',
+                        'tax_pph_rate',
+                        'subtotal',
+                        'subTotal',
+                        'tax_base',
+                        'discount',
+                        'vat_included',
+                        'new_unit_price',
+                        'requestor',
+                      ];
+  
+                      fieldsToDelete.forEach(field => delete updatedStoredItem[field]);
+  
+                      // Insert the updated stored item
+                      const storedItemResponse = await InsertDataService.postData(updatedStoredItem, 'PUREQD', authToken, branchId);
+                      console.log('Stored item posted successfully:', storedItemResponse);
+                      
+                    } else {
+                      console.log('No corresponding stored item found for ID:', prdel);
+                    }
+                
+                  } catch (error) {
+                    console.error('Error processing item:', prdel, error);
+                  }
+                }
+              }
 
               const dels = fetchCheckIsUsed.data.map(item => item.ID);
               console.log('idtoChange', dels);
@@ -3172,6 +3260,7 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
                     // Delete the item first
                     await DeleteDataService.postData(`column=id&value=${del}`, formToDel, authToken, branchId);
                     console.log('Item deleted successfully:', del);
+                    
 
                     const { rwnum, ID, status, id_trx, ...stored } = storedItem;
 
@@ -3196,6 +3285,7 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
                     const updatedStoredItem = {
                       ...stored,
                       status_detail: statusDetail,
+                      invoice_number: invoice_number,
                     };
                     console.log('updatedstatus', updatedStoredItem.status_detail);
               
@@ -4113,7 +4203,7 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
                                     )}
                                   </td>
                                   <td>
-                                    <Form.Control type="number" value={item.invoice_number_vendor} onChange={(e) => handleItemChange(index, "invoice_number_vendor", parseFloat(e.target.value))} />
+                                    <Form.Control type="text" value={item.invoice_number_vendor} onChange={(e) => handleItemChange(index, "invoice_number_vendor")} />
                                   </td>
                                   {/* <td>
                                     <Form.Control type="number" value={item.tax_invoice_number_vendor} onChange={(e) => handleItemChange(index, "tax_invoice_number_vendor", parseFloat(e.target.value))} />
@@ -4599,40 +4689,21 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
                             <tr className="text-right">
                               <td colSpan="25">Discount:</td>
                               <td>
-                                <Form.Control
-                                  className="text-right"
-                                  type="text"
-                                  value={formattedDiscount}
-                                  onChange={(e) => {
-                                    // Remove any non-numeric characters for easy input
-                                    dynamicFormWidth(e);
-                                    const newValue = e.target.value.replace(/[^\d.-]/g, "");
-                                    setDiscount(parseFloat(newValue) || 0); // Update the raw number state
-                                    setFormattedDiscount(e.target.value); // Keep the input as is for display
-                                  }}
-                                  onBlur={() => {
-                                    // When focus is lost, apply the currency format
-                                    const formattedValue = discount.toLocaleString("en-US", {
-                                      style: "currency",
-                                      currency: items.length > 0 ? items[0].currency || "IDR" : "IDR",
-                                    });
-                                    setFormattedDiscount(formattedValue); // Set the formatted value for display
-                                  }}
-                                  onFocus={(e) => {
-                                    // When the input is focused, remove currency formatting for easy editing
-                                    setFormattedDiscount(discount.toString().replace(/[^\d.-]/g, "")); // Display the raw number
-                                    setTimeout(() => {
-                                      // Select the text for easy overwriting
-                                      e.target.select();
-                                    }, 0);
-                                  }}
-                                  style={{
-                                    textAlign: "right",
-                                    width: `${inputWidth}px`,
-                                    marginLeft: "auto",
-                                    display: "flex",
-                                  }}
-                                />
+                              <Form.Control
+                                    className='text-right'
+                                    type="text"
+                                    value={discount !== undefined && discount !== null ? discount.toLocaleString('en-US') : 0}
+                                    onChange={(e) => {
+                                      const newDiscount = parseFloat(e.target.value.replace(/[^\d.-]/g, '')) || 0;
+                                      setDiscount(newDiscount);
+                                      
+                                    }}
+                                    style={{
+                                      textAlign: 'right',
+                                      marginLeft: 'auto',  
+                                      display: 'flex',
+                                    }}
+                                  />
                               </td>
                             </tr>
                             <tr className="text-right" hidden>
@@ -4682,18 +4753,26 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
                               <td colSpan="25">Total PPh Amount:</td>
                               <td>
                                 <Form.Control
-                                  type="number"
-                                  value={calculateTotalAmount().totalPPHAmount}
+                                  className="text-right"
+                                  type="text"
+                                  value={calculateTotalAmount().totalPPHAmount.toLocaleString("en-US") || 0}
                                   onChange={(e) => {
+                                    // dynamicFormWidth(e.target.value, index);
                                     const newItems = [...items];
-                                    const totalPPHAmount = e.target.value;
+                                    const totalPPHAmount = parseFloat(e.target.value.replace(/[^\d.-]/g, "")) || 0;
                                     newItems.forEach((item) => {
                                       item.tax_pph_amount = totalPPHAmount / newItems.length;
                                     });
                                     setItems(newItems);
                                   }}
+                                  style={{
+                                    textAlign: "right",
+                                    marginLeft: "auto",
+                                    display: "flex",
+                                  }}
                                 />
                               </td>
+                              
                             </tr>
                             <tr className="text-right">
                               <td colSpan="25">Total Amount:</td>
