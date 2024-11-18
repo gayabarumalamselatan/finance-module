@@ -2741,9 +2741,9 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
 
         // // Update Status for PR or PO
         // if (idPr) {
-        //   await axios.post(`${FORM_SERVICE_UPDATE_DATA}?f=PUREQ&column=id&value=${idPr}&branchId=${branchId}`, { status_request: "INVOICE" }, { headers: { Authorization: `Bearer ${authToken}` } });
+        //   await axios.post(${FORM_SERVICE_UPDATE_DATA}?f=PUREQ&column=id&value=${idPr}&branchId=${branchId}, { status_request: "INVOICE" }, { headers: { Authorization: Bearer ${authToken} } });
         // } else if (idPo) {
-        //   await axios.post(`${FORM_SERVICE_UPDATE_DATA}?f=PUOR&column=id&value=${idPo}&branchId=${branchId}`, { status_po: "INVOICE" }, { headers: { Authorization: `Bearer ${authToken}` } });
+        //   await axios.post(${FORM_SERVICE_UPDATE_DATA}?f=PUOR&column=id&value=${idPo}&branchId=${branchId}, { status_po: "INVOICE" }, { headers: { Authorization: Bearer ${authToken} } });
         // }
 
         // Handle item deletion and insertion
@@ -2837,7 +2837,7 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
               tax_base: item.tax_base,
               tax_ppn_amount: item.tax_ppn_amount,
               tax_pph_amount: item.tax_pph_amount,
-              tax_exchange_rate: item.exchange_rate,
+              tax_exchange_rate: item.tax_exchange_rate,
               total_after_discount: item.subtotalAfterDiscount,
             };
             delete updatedItem.ID;
