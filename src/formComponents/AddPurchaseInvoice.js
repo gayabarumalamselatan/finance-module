@@ -1529,13 +1529,13 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
                 });
 
                 console.log('storedPRItems', newStored);
-                setFetchedDetail    (newStored);
+                setFetchedDetail(newStored);
 
                   // Update fetched items with selected options
                   const updatedFetchedItems = fetchedItems.map((item) => {
                     return {
                       ...item,
-                      doc_reff_no: item.po_number,
+                      // doc_reff_no: item.po_number,
                       tax_exchange_rate: tax_exchange_rate,
                       // selectedProduct: productOptions.find((option) => option.value === item.product),
                       // selectedCurrency: currencyOptions.find((option) => option.value === item.currency),
@@ -1558,6 +1558,7 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
 
                   // Set the updated items to state
                   setItems(newItems);
+                  console.log('poitems', newItems);
                 })
                 .catch((error) => {
                   console.error("Failed to fetch currency lookup:", error);
@@ -2077,6 +2078,11 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
       }
     }
 
+    if (field === "type_of_pph") {
+      newItems[index].tax_pph = ""; // Reset tax_pph
+      newItems[index].tax_pph_rate = 0; // Reset tax_pph_rate
+    }
+
     // Update total price and total price IDR
     if (field === "quantity" || field === "unit_price") {
       newItems[index].total_price = newItems[index].quantity * newItems[index].unit_price;
@@ -2097,10 +2103,10 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
       if (newItems[index].type_of_vat === "include") {
         newItems[index].new_unit_price = newItems[index].unit_price + newItems[index].unit_price * pengkali;
         newItems[index].tax_base = Math.round(newItems[index].total_price_idr / (1 + newItems[index].tax_ppn_rate / 100));
-        newItems[index].tax_ppn_amount = newItems[index].tax_base * (newItems[index].tax_ppn_rate / 100);
+        newItems[index].tax_ppn_amount = Math.floor(newItems[index].tax_base * (newItems[index].tax_ppn_rate / 100)); // Bottom rounding
         newItems[index].vat_included = true;
       } else if (newItems[index].type_of_vat === "exclude" || newItems[index].type_of_vat === "ppn_royalty") {
-        newItems[index].tax_ppn_amount = newItems[index].total_price_idr * (newItems[index].tax_ppn_rate / 100);
+        newItems[index].tax_ppn_amount = Math.floor(newItems[index].total_price_idr * (newItems[index].tax_ppn_rate / 100)); // Bottom rounding
         newItems[index].tax_base = newItems[index].total_price_idr;
       }
     }
@@ -2109,14 +2115,14 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
     if (field === "tax_pph_type" || field === "tax_pph_rate") {
       if (newItems[index].type_of_pph === "gross") {
         if (newItems[index].type_of_vat === "exclude") {
-          newItems[index].tax_pph_amount = newItems[index].total_price_idr * (newItems[index].tax_pph_rate / 100);
+          newItems[index].tax_pph_amount = Math.floor(newItems[index].total_price_idr * (newItems[index].tax_pph_rate / 100)); // Bottom rounding
         } else {
-          newItems[index].tax_pph_amount = newItems[index].tax_base * (newItems[index].tax_pph_rate / 100);
+          newItems[index].tax_pph_amount = Math.floor(newItems[index].tax_base * (newItems[index].tax_pph_rate / 100)); // Bottom rounding
         }
       } else if (newItems[index].type_of_pph === "nett") {
         let taxWithPPh = newItems[index].tax_base / (1 - newItems[index].tax_pph_rate / 100);
-        newItems[index].tax_pph_amount = taxWithPPh * (newItems[index].tax_pph_rate / 100);
-        newItems[index].tax_ppn_amount = taxWithPPh * (newItems[index].tax_ppn_rate / 100);
+        newItems[index].tax_pph_amount = Math.floor(taxWithPPh * (newItems[index].tax_pph_rate / 100)); // Bottom rounding
+        newItems[index].tax_ppn_amount = Math.floor(taxWithPPh * (newItems[index].tax_ppn_rate / 100)); // Bottom rounding
       }
     }
 
@@ -2979,6 +2985,7 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
           total_amount_ppn: totalPPNAmount,
           total_amount_pph: totalPPHAmount,
           tax_exchange_rate,
+          due_date,
           description,
           total_amount: totalAmount,
           endtoendid: endToEndId,
@@ -3101,6 +3108,7 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
               ...rest,
               invoice_number: invoice_number.replace("DRAFT_", ""),
               type_of_vat: item.type_of_vat,
+              doc_reff_no: docRef=== 'purchaseOrder'? item.po_number : item.pr_number,
               tax_ppn: item.tax_ppn,
               tax_base: item.tax_base,
               tax_ppn_amount: item.tax_ppn_amount,
@@ -3151,99 +3159,115 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
                 fetchUrl = `PURC_FORMPUORD&filterBy=po_number&filterValue=${item.po_number}&operation=EQUAL`;
                 formToDel = 'PUORD';
                 formHeader = 'PUOR';
-                getHeader = `PURC_FORMPUOR&filterBy=po_number&filterValue=${item.doc_reff_no}&operation=EQUAL`;
+                getHeader = `PURC_FORMPUOR&filterBy=po_number&filterValue=${item.po_number}&operation=EQUAL`;
               }
               
               const fetchCheckIsUsed = await LookupService.fetchLookupData(fetchUrl, authToken, branchId);
               const checkIsUsedData = fetchCheckIsUsed.data;
               console.log('fetchedisuseddata', checkIsUsedData);
 
-              if(docRef === 'purchaseOrder'){
+              if (docRef === 'purchaseOrder') {
                 const prno = checkIsUsedData.map(item => item.doc_reff_no);
                 console.log('pron', prno);
-                fetchPRD = await LookupService.fetchLookupData(`PURC_FORMPUREQD&filterBy=pr_number&filterValue=${prno}&operation=EQUAL`, authToken, branchId);
-                const prToDel = fetchPRD.data.map(item => item.ID);
-                console.log('prtodel', prToDel);
-                console.log('prtodels', fetchPRD);
-                for (const prdel of prToDel) {
-                  try {
-                    // Now, find the corresponding stored item to update/insert
-                    const storedItem = fetchPRD.data.find(item => item.ID === prdel);
-                    
-                    if (prToDel) {
-  
-                      // Delete the item first
-                      await DeleteDataService.postData(`column=id&value=${prdel}`, 'PUREQD', authToken, branchId);
-                      console.log('Item deleted successfully:', prdel);
-                      
-  
-                      const { rwnum, ID, status, id_trx, ...stored } = storedItem;
-  
-                      console.log('storeditem', storedItem);
-                      console.log('itemsa', item);
-  
-                      let invoicenum;
-  
-                      for (const item of items) { // Assuming 'items' is an array of items to check against
-                        if (storedItem.ID === item.ID || storedItem.po_number !== null) {
-                          invoicenum = invoice_number.replace('DRAFT_', "");
-                          break; // Exit the loop early if we find a match
+            
+                // Iterate over each pr_number
+                for (const pr_number of prno) {
+                    try {
+                        // Fetch PRD data for the current pr_number
+                        const fetchPRD = await LookupService.fetchLookupData(`PURC_FORMPUREQD&filterBy=pr_number&filterValue=${pr_number}&operation=EQUAL`, authToken, branchId);
+                        const prToDel = fetchPRD.data.map(item => item.ID);
+                        console.log('prtodel', prToDel);
+                        console.log('prtodels', fetchPRD);
+            
+                        for (const prdel of prToDel) {
+                            try {
+                                // Now, find the corresponding stored item to update/insert
+                                const storedItem = fetchPRD.data.find(item => item.ID === prdel);
+            
+                                if (storedItem) {
+                                    // Delete the item first
+                                    await DeleteDataService.postData(`column=id&value=${prdel}`, 'PUREQD', authToken, branchId);
+                                    console.log('Item deleted successfully:', prdel);
+            
+                                    const { rwnum, ID, status, id_trx, ...stored } = storedItem;
+            
+                                    console.log('storeditem', storedItem);
+                                    console.log('itemsa', item);
+            
+                                    let invoicenum;
+            
+                                    const usedDataEntry = fetchPRD.data.find(entry => entry.ID === prdel);
+            
+                                    if (usedDataEntry) {
+                                        // If the status_detail is "USED", use the po_number from the used data
+                                        if (usedDataEntry.status_detail === "USED") {
+                                            invoicenum = usedDataEntry.invoice_number; // Set ponumb from checkIsUsedData
+                                        }
+                                    }
+            
+                                    for (const item of items) { // Assuming 'items' is an array of items to check against
+                                        if (storedItem.po_number === item.po_number && storedItem.pr_number === item.doc_reff_no) {
+                                            invoicenum = invoice_number;
+                                        }
+                                    }
+                                    console.log('invoicenumc', invoice_number);
+            
+                                    const updatedStoredItem = {
+                                        ...stored,
+                                        invoice_number: invoicenum,
+                                    };
+                                    console.log('updatedstatus', updatedStoredItem.status_detail);
+                                    console.log('incovid', invoicenum);
+            
+                                    // Remove unwanted fields
+                                    const fieldsToDelete = [
+                                        'rwnum',
+                                        'ID',
+                                        'id',
+                                        'status',
+                                        'id_trx',
+                                        'original_unit_price',
+                                        'type_of_vat',
+                                        'tax_ppn',
+                                        'tax_pph',
+                                        'tax_pph_type',
+                                        'total_amount_ppn',
+                                        'total_amount_pph',
+                                        'total_price_idr',
+                                        'tax_exchange_rate',
+                                        'total_after_discount',
+                                        'total_before_discount',
+                                        'tax_ppn_amount',
+                                        'tax_pph_amount',
+                                        'tax_ppn_rate',
+                                        'tax_pph_rate',
+                                        'subtotal',
+                                        'subTotal',
+                                        'tax_base',
+                                        'discount',
+                                        'vat_included',
+                                        'new_unit_price',
+                                        'requestor',
+                                    ];
+            
+                                    fieldsToDelete.forEach(field => delete updatedStoredItem[field]);
+            
+                                    // Insert the updated stored item
+                                    const storedItemResponse = await InsertDataService.postData(updatedStoredItem, 'PUREQD', authToken, branchId);
+                                    console.log('Stored item posted successfully:', storedItemResponse);
+                                } else {
+                                    console.log('No corresponding stored item found for ID:', prdel);
+                                }
+            
+                            } catch (error) {
+                                console.error('Error processing item:', prdel, error);
+                            }
                         }
-                      }
-  
-                
-                      const updatedStoredItem = {
-                        ...stored,
-                        invoice_number: invoicenum,
-                      };
-                      console.log('updatedstatus', updatedStoredItem.status_detail);
-                
-                      // Remove unwanted fields
-                      const fieldsToDelete = [
-                        'rwnum',
-                        'ID',
-                        'id',
-                        'status',
-                        'id_trx',
-                        'original_unit_price',
-                        'type_of_vat',
-                        'tax_ppn',
-                        'tax_pph',
-                        'tax_pph_type',
-                        'total_amount_ppn',
-                        'total_amount_pph',
-                        'total_price_idr',
-                        'tax_exchange_rate',
-                        'total_after_discount',
-                        'total_before_discount',
-                        'tax_ppn_amount',
-                        'tax_pph_amount',
-                        'tax_ppn_rate',
-                        'tax_pph_rate',
-                        'subtotal',
-                        'subTotal',
-                        'tax_base',
-                        'discount',
-                        'vat_included',
-                        'new_unit_price',
-                        'requestor',
-                      ];
-  
-                      fieldsToDelete.forEach(field => delete updatedStoredItem[field]);
-  
-                      // Insert the updated stored item
-                      const storedItemResponse = await InsertDataService.postData(updatedStoredItem, 'PUREQD', authToken, branchId);
-                      console.log('Stored item posted successfully:', storedItemResponse);
-                      
-                    } else {
-                      console.log('No corresponding stored item found for ID:', prdel);
+                    } catch (error) {
+                        console.error('Error fetching PRD data for pr_number:', pr_number, error);
                     }
-                
-                  } catch (error) {
-                    console.error('Error processing item:', prdel, error);
-                  }
                 }
-              }
+            }
 
               const dels = fetchCheckIsUsed.data.map(item => item.ID);
               console.log('idtoChange', dels);
@@ -3268,24 +3292,23 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
                     console.log('itemsa', item);
 
                     let statusDetail;
-                    let matchfound = false;
+                    let invnum;
 
                     for (const item of items) { // Assuming 'items' is an array of items to check against
-                      if (storedItem.ID === item.ID || storedItem.status_detail === "USED") {
+                      if(storedItem.status_detail === "USED"){
                         statusDetail = "USED";
-                        matchfound = true
+                      }
+                      if (storedItem.ID === item.ID) {
+                        statusDetail = "USED";
+                        invnum = invoice_number.replace('DRAFT_', '');
                         break; // Exit the loop early if we find a match
                       }
-                    }
-
-                    if (!matchfound) {
-                      hasNullStatus = true;
                     }
               
                     const updatedStoredItem = {
                       ...stored,
                       status_detail: statusDetail,
-                      invoice_number: invoice_number,
+                      invoice_number: invnum,
                     };
                     console.log('updatedstatus', updatedStoredItem.status_detail);
               
@@ -3339,10 +3362,15 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
               const prID = getDocRefList.data[0].ID;
               console.log('PRid', prID);
 
+              // Check if all of the status detail is used
+              const checkNullStatus = await LookupService.fetchLookupData(`PURC_FORMPUREQD&filterBy=pr_number&filterValue=${item.pr_number}&operation=EQUAL`, authToken, branchId);
+              const nullStatusExists = checkNullStatus.data.some(entry => entry.status_detail === null);
+              
+
               let updateStatusData;
               if(docRef === 'purchaseRequest'){
                 updateStatusData = {
-                  status_request: hasNullStatus ? "PARTIAL_REQUESTED" : "REQUESTED",
+                  status_request: nullStatusExists ? "PARTIAL_REQUESTED" : "REQUESTED",
                 }
               }else if(docRef === 'purchaseOrder') {
                 updateStatusData = {
@@ -4441,7 +4469,15 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
                                   </td>
 
                                   <td>
-                                    <Form.Control type="number" value={item.quantity || 0} min="0" onChange={(e) => handleItemChange(index, "quantity", parseFloat(e.target.value))} />
+                                    <Form.Control
+                                      type="number"
+                                      value={item.quantity || 0}
+                                      min="0"
+                                      onChange={(e) => handleItemChange(index, "quantity", parseFloat(e.target.value))}
+                                      style={{
+                                        width: `${inputWidth}px`,
+                                      }}
+                                    />
                                   </td>
                                   <td>
                                     {item.currency === "IDR" ? (
@@ -4454,9 +4490,7 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
                                           handleItemChange(index, "unit_price", newPrice);
                                           dynamicFormWidth(e);
                                         }}
-                                        style={{
-                                          width: `${inputWidth}px`,
-                                        }}
+                                       
                                       />
                                     ) : (
                                       <Form.Control
@@ -4681,6 +4715,8 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
                                     ? calculateTotalAmount().subTotal.toLocaleString("en-US", {
                                         style: "currency",
                                         currency: (item && item[0].currency) || "IDR",
+                                        minimumFractionDigits: 0,
+                                        maximumFractionDigits: 0,
                                       })
                                     : "IDR 0.00"}
                                 </strong>
@@ -4689,21 +4725,20 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
                             <tr className="text-right">
                               <td colSpan="25">Discount:</td>
                               <td>
-                              <Form.Control
-                                    className='text-right'
-                                    type="text"
-                                    value={discount !== undefined && discount !== null ? discount.toLocaleString('en-US') : 0}
-                                    onChange={(e) => {
-                                      const newDiscount = parseFloat(e.target.value.replace(/[^\d.-]/g, '')) || 0;
-                                      setDiscount(newDiscount);
-                                      
-                                    }}
-                                    style={{
-                                      textAlign: 'right',
-                                      marginLeft: 'auto',  
-                                      display: 'flex',
-                                    }}
-                                  />
+                                <Form.Control
+                                  className="text-right"
+                                  type="text"
+                                  value={discount !== undefined && discount !== null ? discount.toLocaleString("en-US") : 0}
+                                  onChange={(e) => {
+                                    const newDiscount = parseFloat(e.target.value.replace(/[^\d.-]/g, "")) || 0;
+                                    setDiscount(newDiscount);
+                                  }}
+                                  style={{
+                                    textAlign: "right",
+                                    marginLeft: "auto",
+                                    display: "flex",
+                                  }}
+                                />
                               </td>
                             </tr>
                             <tr className="text-right" hidden>
@@ -4720,6 +4755,8 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
                                     ? calculateTotalAmount().subtotalAfterDiscount.toLocaleString("en-US", {
                                         style: "currency",
                                         currency: (item && item[0].currency) || "IDR",
+                                        minimumFractionDigits: 0,
+                                        maximumFractionDigits: 0,
                                       })
                                     : "IDR 0.00"}
                                 </strong>
@@ -4772,12 +4809,11 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
                                   }}
                                 />
                               </td>
-                              
                             </tr>
                             <tr className="text-right">
                               <td colSpan="25">Total Amount:</td>
                               <td>
-                                <strong>{calculateTotalAmount().totalAmount.toLocaleString("en-US", { style: "currency", currency: "IDR" })} </strong>
+                                <strong>{calculateTotalAmount().totalAmount.toLocaleString("en-US", { style: "currency", currency: "IDR", minimumFractionDigits: 0, maximumFractionDigits: 0 })} </strong>
                               </td>
                             </tr>
                           </tfoot>

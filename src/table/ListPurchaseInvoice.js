@@ -241,7 +241,7 @@ const ListPurchaseInvoice = ({ selectedRow, onClose }) => {
               <CgAlignBottom /> Journal
             </button>
           </li>
-          <li className="nav-item">
+          {/* <li className="nav-item">
             <button className={`nav-link ${activeTab === "pair" ? "active" : ""}`} onClick={() => handleTabChange("pair")}>
               <CgAlignBottom /> Inquiry Purchase Invoice
             </button>
@@ -250,7 +250,7 @@ const ListPurchaseInvoice = ({ selectedRow, onClose }) => {
             <button className={`nav-link ${activeTab === "pos" ? "active" : ""}`} onClick={() => handleTabChange("pos")}>
               <CgAlignBottom /> Voucher Payment Petty Cash
             </button>
-          </li>
+          </li> */}
         </ul>
         {activeTab === "schedule" && (
           <div className="card">

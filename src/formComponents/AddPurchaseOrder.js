@@ -682,8 +682,8 @@ import FormService from '../service/FormService';
       if (field === 'tax_ppn' || field === 'tax_ppn_rate') {
         if (newItems[index].type_of_vat === 'include'){
           newItems[index].new_unit_price = newItems[index].unit_price + (newItems[index].unit_price * (pengkali));
-          newItems[index].tax_base =  Math.round(newItems[index].unit_price / ((1 + (newItems[index].tax_ppn_rate / 100)) * newItems[index].quantity));
-          newItems[index].tax_ppn_amount = Math.floor(newItems[index].tax_base * (newItems[index].tax_ppn_rate / 100));
+          newItems[index].tax_base =  Math.round(newItems[index].unit_price / (1 + (newItems[index].tax_ppn_rate / 100)) * newItems[index].quantity);
+          newItems[index].tax_ppn_amount = (newItems[index].tax_base * (newItems[index].tax_ppn_rate / 100));
           newItems[index].vat_included = true;
         } else if (newItems[index].type_of_vat === "exclude" || newItems[index].type_of_vat === 'PPNRoyalty'){
           newItems[index].tax_ppn_amount = Math.floor(newItems[index].total_price * (newItems[index].tax_ppn_rate/100));
@@ -747,7 +747,7 @@ import FormService from '../service/FormService';
         return total + taxBase;
       }, 0);
 
-      const subtotalBeforeDiscount = subTotal
+      const subtotalBeforeDiscount = subTotal;
 
       const subtotalAfterDiscount = subTotal - discount;
 
@@ -765,7 +765,7 @@ import FormService from '../service/FormService';
         currency,
         subtotalBeforeDiscount,  
         subtotalAfterDiscount, 
-        totalPPNAmount, 
+        totalPPNAmount: Math.floor(totalPPNAmount), 
         totalAmount: validTotalAmount 
       };
     };
@@ -811,6 +811,38 @@ import FormService from '../service/FormService';
         throw error; // Rethrow the error for proper handling in the calling function
       }
     };
+
+  const fieldsToDelete = [
+    'rwnum',
+    'ID',
+    'status',
+    'id_trx',
+    'pr_number',
+    'original_unit_price',
+    'new_unit_price',
+    'discount',
+    'vat_included',
+    'subTotal'
+  ];
+
+  const storedToDelete = [
+    'rwnum',
+    'ID',
+    'status',
+    'id_trx',
+    'original_unit_price',
+    'type_of_vat',
+    'tax_ppn',
+    'tax_ppn_amount',
+    'tax_ppn_rate',
+    'subtotal',
+    'subTotal',
+    'tax_base',
+    'discount',
+    'vat_included',
+    'new_unit_price',
+    'requestor'
+  ];
 
     // Handle Save
     const handleSave = async (event) => {
@@ -943,16 +975,7 @@ import FormService from '../service/FormService';
                     po_number
                 };
 
-                delete updatedItem.rwnum; 
-                delete updatedItem.ID;
-                delete updatedItem.status;
-                delete updatedItem.id_trx;
-                delete updatedItem.pr_number;
-                delete updatedItem.original_unit_price;
-                delete updatedItem.new_unit_price;
-                delete updatedItem.discount;
-                delete updatedItem.vat_included;
-                delete updatedItem.subTotal;
+                fieldsToDelete.forEach(field => delete updatedItem[field]);
 
                 try {
                     const itemResponse = await InsertDataService.postData(updatedItem, "PUORD", authToken, branchId);
@@ -978,16 +1001,8 @@ import FormService from '../service/FormService';
                 po_number,
                 tax_ppn: item.tax_ppn,
               };
-              delete updatedItem.rwnum; 
-              delete updatedItem.ID;
-              delete updatedItem.status;
-              delete updatedItem.id_trx;
-              delete updatedItem.pr_number;
-              delete updatedItem.original_unit_price;
-              delete updatedItem.new_unit_price;
-              delete updatedItem.discount;
-              delete updatedItem.vat_included;
-              delete updatedItem.subTotal;
+
+              fieldsToDelete.forEach(field => delete updatedItem[field]);
 
 
               const itemResponse = await InsertDataService.postData(updatedItem, "PUORD", authToken, branchId);
@@ -1192,16 +1207,7 @@ import FormService from '../service/FormService';
                 po_number,
               };
 
-              delete updatedItem.rwnum; 
-              delete updatedItem.ID;
-              delete updatedItem.status;
-              delete updatedItem.id_trx;
-              delete updatedItem.pr_number;
-              delete updatedItem.original_unit_price;
-              delete updatedItem.new_unit_price;
-              delete updatedItem.discount;
-              delete updatedItem.vat_included;
-              delete updatedItem.subTotal;
+              fieldsToDelete.forEach(field => delete updatedItem[field]);
 
               try {
                 const itemResponse = await InsertDataService.postData(updatedItem, "PUORD", authToken, branchId);
@@ -1236,11 +1242,25 @@ import FormService from '../service/FormService';
                       console.log('itemsa', item);
   
                       let statusDetail;
+                      let ponumb;
                       let matchfound = false;
+
+                      const usedDataEntry = checkIsUsedData.find(entry => entry.ID === del);
+
+                      if (usedDataEntry) {
+                          // If the status_detail is "USED", use the po_number from the used data
+                          if (usedDataEntry.status_detail === "USED") {
+                              ponumb = usedDataEntry.po_number; // Set ponumb from checkIsUsedData
+                          }
+                      }
   
-                      for (const item of items) { // Assuming 'items' is an array of items to check against
-                        if (storedItem.ID === item.ID || storedItem.status_detail === "USED") {
+                      for (const item of items) { 
+                        if(storedItem.status_detail === "USED"){
                           statusDetail = "USED";
+                        };
+                        if (storedItem.ID === item.ID) {
+                          statusDetail = "USED";
+                          ponumb = po_number;
                           matchfound = true
                           break; // Exit the loop early if we find a match
                         }
@@ -1253,27 +1273,12 @@ import FormService from '../service/FormService';
                       const updatedStoredItem = {
                         ...stored,
                         status_detail: statusDetail,
-                        po_number: po_number,
+                        po_number: ponumb,
                       };
                       console.log('updatedstatus', updatedStoredItem.status_detail);
                 
                       // Remove unwanted fields
-                      delete updatedStoredItem.rwnum; 
-                      delete updatedStoredItem.ID; 
-                      delete updatedStoredItem.status; 
-                      delete updatedStoredItem.id_trx;
-                      delete updatedStoredItem.original_unit_price;
-                      delete updatedStoredItem.type_of_vat;
-                      delete updatedStoredItem.tax_ppn;
-                      delete updatedStoredItem.tax_ppn_amount;
-                      delete updatedStoredItem.tax_ppn_rate;
-                      delete updatedStoredItem.subtotal;
-                      delete updatedStoredItem.subTotal;
-                      delete updatedStoredItem.tax_base;
-                      delete updatedStoredItem.discount;
-                      delete updatedStoredItem.vat_included;
-                      delete updatedStoredItem.new_unit_price;
-                      delete updatedStoredItem.requestor;
+                      storedToDelete.forEach(field => delete updatedStoredItem[field]);
                 
                       // Insert the updated stored item
                       const storedItemResponse = await InsertDataService.postData(updatedStoredItem, "PUREQD", authToken, branchId);
@@ -1292,9 +1297,13 @@ import FormService from '../service/FormService';
                 const getPRList = await LookupService.fetchLookupData(`PURC_FORMPUREQ&filterBy=pr_number&filterValue=${item.doc_reff_no}&operation=EQUAL`, authToken, branchId);
                 const prID = getPRList.data[0].ID;
                 console.log('PRid', prID);
+
+                const checkNullStatus = await LookupService.fetchLookupData(`PURC_FORMPUREQD&filterBy=pr_number&filterValue=${item.pr_number}&operation=EQUAL`, authToken, branchId);
+                const nullStatusExists = checkNullStatus.data.some(entry => entry.status_detail === null);
+
                 // Update Status
                 const updatePrStatusData = {
-                  status_request: hasNullStatus ? "PARTIAL_REQUESTED" : "REQUESTED",
+                  status_request: nullStatusExists ? "PARTIAL_REQUESTED" : "REQUESTED",
                 }
   
                   const updatePRStatus = await axios.post(`${FORM_SERVICE_UPDATE_DATA}?f=PUREQ&column=id&value=${prID}&branchId=${branchId}`, updatePrStatusData, {
@@ -1344,16 +1353,7 @@ import FormService from '../service/FormService';
                 type_of_vat: item.type_of_vat
               };
 
-              delete updatedItem.rwnum; 
-              delete updatedItem.ID;
-              delete updatedItem.status;
-              delete updatedItem.id_trx;
-              delete updatedItem.pr_number;
-              delete updatedItem.original_unit_price;
-              delete updatedItem.new_unit_price;
-              delete updatedItem.discount;
-              delete updatedItem.vat_included;
-              delete updatedItem.subTotal;
+              fieldsToDelete.forEach(field => delete updatedItem[field]);
 
               const itemResponse = await InsertDataService.postData(updatedItem, "PUORD", authToken, branchId);
               console.log('Item posted successfully:', itemResponse);
@@ -1385,15 +1385,30 @@ import FormService from '../service/FormService';
                       console.log('itemsa', item);
   
                       let statusDetail;
+                      let ponumb;
                       let matchfound = false;
+
+                      const usedDataEntry = checkIsUsedData.find(entry => entry.ID === del);
+
+                      if (usedDataEntry) {
+                          // If the status_detail is "USED", use the po_number from the used data
+                          if (usedDataEntry.status_detail === "USED") {
+                              ponumb = usedDataEntry.po_number; // Set ponumb from checkIsUsedData
+                          }
+                      }
   
-                      for (const item of items) { // Assuming 'items' is an array of items to check against
-                        if (storedItem.ID === item.ID || storedItem.status_detail === "USED") {
+                      for (const item of items) { 
+                        if(storedItem.status_detail === "USED"){
                           statusDetail = "USED";
+                        };
+                        if (storedItem.ID === item.ID) {
+                          statusDetail = "USED";
+                          ponumb = po_number;
                           matchfound = true
                           break; // Exit the loop early if we find a match
                         }
                       }
+                      console.log('ponums',ponumb);
   
                       if (!matchfound) {
                         hasNullStatus = true;
@@ -1402,27 +1417,12 @@ import FormService from '../service/FormService';
                       const updatedStoredItem = {
                         ...stored,
                         status_detail: statusDetail,
-                        po_number: po_number,
+                        po_number: ponumb,
                       };
                       console.log('updatedstatus', updatedStoredItem.status_detail);
                 
                       // Remove unwanted fields
-                      delete updatedStoredItem.rwnum; 
-                      delete updatedStoredItem.ID; 
-                      delete updatedStoredItem.status; 
-                      delete updatedStoredItem.id_trx;
-                      delete updatedStoredItem.original_unit_price;
-                      delete updatedStoredItem.type_of_vat;
-                      delete updatedStoredItem.tax_ppn;
-                      delete updatedStoredItem.tax_ppn_amount;
-                      delete updatedStoredItem.tax_ppn_rate;
-                      delete updatedStoredItem.subtotal;
-                      delete updatedStoredItem.subTotal;
-                      delete updatedStoredItem.tax_base;
-                      delete updatedStoredItem.discount;
-                      delete updatedStoredItem.vat_included;
-                      delete updatedStoredItem.new_unit_price;
-                      delete updatedStoredItem.requestor;
+                      storedToDelete.forEach(field => delete updatedStoredItem[field]);
                 
                       // Insert the updated stored item
                       const storedItemResponse = await InsertDataService.postData(updatedStoredItem, "PUREQD", authToken, branchId);
@@ -1441,11 +1441,15 @@ import FormService from '../service/FormService';
                 const getPRList = await LookupService.fetchLookupData(`PURC_FORMPUREQ&filterBy=pr_number&filterValue=${item.doc_reff_no}&operation=EQUAL`, authToken, branchId);
                 const prID = getPRList.data[0].ID;
                 console.log('PRid', prID);
+
+                // Check if all of the status detail is used
+                const checkNullStatus = await LookupService.fetchLookupData(`PURC_FORMPUREQD&filterBy=pr_number&filterValue=${item.pr_number}&operation=EQUAL`, authToken, branchId);
+                const nullStatusExists = checkNullStatus.data.some(entry => entry.status_detail === null);
+
                 // Update Status
                 const updatePrStatusData = {
-                  status_request: hasNullStatus ? "PARTIAL_REQUESTED" : "REQUESTED",
+                  status_request: nullStatusExists ? "PARTIAL_REQUESTED" : "REQUESTED",
                 }
-  
                   const updatePRStatus = await axios.post(`${FORM_SERVICE_UPDATE_DATA}?f=PUREQ&column=id&value=${prID}&branchId=${branchId}`, updatePrStatusData, {
                     headers: {
                       Authorization: `Bearer ${authToken}`,
@@ -1978,6 +1982,15 @@ import FormService from '../service/FormService';
                                     </td>
 
                                     <td>
+                                      <Form.Control
+                                        id='requestor'
+                                        placeholder='Requestor'
+                                        value={item.requestor}
+                                        onChange={(e) => handleItemChange(index, 'requestor', e.target.value)}
+                                      />
+                                    </td>
+
+                                    <td>
                                       <Select
                                         id="project"
                                         value={
@@ -2012,15 +2025,6 @@ import FormService from '../service/FormService';
                                         placeholder='Project Contract Number...'
                                         isClearable
                                         required
-                                      />
-                                    </td>
-
-                                    <td>
-                                      <Form.Control
-                                        id='requestor'
-                                        placeholder='Requestor'
-                                        value={item.requestor}
-                                        onChange={(e) => handleItemChange(index, 'requestor', e.target.value)}
                                       />
                                     </td>
 
@@ -2263,7 +2267,9 @@ import FormService from '../service/FormService';
                                     {items.length > 0 
                                       ? calculateTotalAmount(items[0].currency).subTotal.toLocaleString('en-US', {
                                         style: 'currency',
-                                        currency: items[0].currency || 'IDR'
+                                        currency: items[0].currency || 'IDR',
+                                        minimumFractionDigits: 0,  // No decimal places
+                                        maximumFractionDigits: 0 
                                       })
                                       : 'IDR 0.00'}
                                   </strong>
@@ -2296,7 +2302,9 @@ import FormService from '../service/FormService';
                                     {items.length > 0 ? 
                                       calculateTotalAmount(items[0].currency).subtotalAfterDiscount.toLocaleString('en-US', { 
                                         style: 'currency', 
-                                        currency: items[0].currency || 'IDR'
+                                        currency: items[0].currency || 'IDR',
+                                        minimumFractionDigits: 0,  // No decimal places
+                                        maximumFractionDigits: 0 
                                       })
                                     : 
                                       'IDR 0.00'
@@ -2337,7 +2345,9 @@ import FormService from '../service/FormService';
                                     {items.length > 0 ?
                                       calculateTotalAmount(items[0].currency).totalAmount.toLocaleString('en-US', { 
                                         style: 'currency', 
-                                        currency: items[0].currency || 'IDR' 
+                                        currency: items[0].currency || 'IDR' ,
+                                        minimumFractionDigits: 0,  // No decimal places
+                                        maximumFractionDigits: 0 
                                       })
                                     :
                                       'IDR 0.00'
