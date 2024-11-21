@@ -3590,7 +3590,7 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
                 idTrx: data.ID,
                 status: "PENDING",
               };
-              UpdateStatusService.postData(requestData, "PUOR", authToken, branchId)
+              UpdateStatusService.postData(requestData, "PUINVC", authToken, branchId)
                 .then((response) => {
                   console.log("Data updated successfully:", response);
                 })
