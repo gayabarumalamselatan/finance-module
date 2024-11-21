@@ -545,26 +545,14 @@ const PurchaseInvoiceTable = ({
                   <option value="">Select a column</option>
                   {/* <option value="ENDTOENDID">End To End Id</option> */}
                   <option value="INVOICE_NUMBER">Invoice Number</option>
-                  {/* <option value="TITLE">Title</option> */}
                   <option value="DOC_REFF">Doc Reference</option>
-                  <option value="DOC_REFF_NO">Doc Reference Number</option>
-                  {/* <option value="INVOICE_TYPE">Invoice type</option> */}
                   <option value="INVOICE_DATE">Invoice Date</option>
                   <option value="INVOICE_STATUS">Invoice Status</option>
-                  <option value="Vendor">Vendor</option>
-                  <option value="PROJECT">Project</option>
-                  {/* <option value="TOTAL_AMOUNT">Total Amount</option> */}
                   <option value="DESCRIPTION">Description</option>
-                  <option value="PAYMENT_TERM">Payment Term</option>
                   <option value="DUE_DATE">Due Date</option>
-                  <option value="TERM_OF_PAYMENT">Term Of Payment</option>
-                  <option value="TAX_RATE">Tax Rate</option>
-                  <option value="TAX_INVOICE_NUMBER">Tax Invoice Number</option>
-                  <option value="BI_MIDDLE_RATE">Bi Middle Rate</option>
-                  {/* <option value="TOTAL_TAX_BASE">Total Tax Base</option>
-                  <option value="TOTAL_AMOUNT_PPN">Total Amount Ppn</option>
-                  <option value="TOTAL_AMOUNT_PPH">Total Amount Pph</option> */}
-                  <option value="DOC_SOURCE">Doc Source</option>
+                  <option value="CREATE_BY">Create By</option>
+                  <option value="TOTAL_AMOUNT">Total Amount</option>
+                  <option value="STATUS_WORKFLOW">Status Workflow</option>
                 </select>
               </div>
               <div className="col-md-4 mb-3">
@@ -603,14 +591,17 @@ const PurchaseInvoiceTable = ({
                   <th>Invoice Date</th>
                   <th>Invoice Status</th>
                   <th>Description</th>
-                  <th>Payment Term</th>
-                  <th>Term Of Payment</th>
+                  {/* <th>Payment Term</th>
+                  <th>Term Of Payment</th> */}
                   <th>Due Date</th>
-                  <th>Discount</th>
-                  <th>Total After Discount</th>
-                  <th>Tax Exchange Rate</th>
-                  <th>Total Amount PPN</th>
-                  <th>Total Amount PPH</th>
+                  <th>Create By</th>
+                  <th>Total Amount</th>
+                  <th>Status Workflow</th>
+                  {/* <th>Discount</th> */}
+                  {/* <th>Total After Discount</th> */}
+                  {/* <th>Tax Exchange Rate</th> */}
+                  {/* <th>Total Amount PPN</th>
+                  <th>Total Amount PPH</th> */}
                 </tr>
               </thead>
               <tbody>
@@ -642,14 +633,15 @@ const PurchaseInvoiceTable = ({
                       <td>{item.INVOICE_DATE}</td>
                       <td>{item.INVOICE_STATUS}</td>
                       <td>{item.DESCRIPTION}</td>
-                      <td>{item.PAYMENT_TERM}</td>
-                      <td>{item.TERM_OF_PAYMENT}</td>
                       <td>{item.DUE_DATE}</td>
-                      <td>{item.DISCOUNT}</td>
-                      <td>{item.TOTAL_AFTER_DISCOUNT}</td>
-                      <td>{item.TAX_EXCHANGE_RATE}</td>
-                      <td>{item.TOTAL_AMOUNT_PPN}</td>
-                      <td>{item.TOTAL_AMOUNT_PPH}</td>
+                      <td>{item.CREATE_BY}</td>
+                      <td>{item.TOTAL_AMOUNT}</td>
+                      <td>{item.STATUS}</td>
+                      {/* <td>{item.DISCOUNT}</td> */}
+                      {/* <td>{item.TOTAL_AFTER_DISCOUNT}</td> */}
+                      {/* <td>{item.TAX_EXCHANGE_RATE}</td> */}
+                      {/* <td>{item.TOTAL_AMOUNT_PPN}</td>
+                      <td>{item.TOTAL_AMOUNT_PPH}</td> */}
                     </tr>
                   ))
                 )}
