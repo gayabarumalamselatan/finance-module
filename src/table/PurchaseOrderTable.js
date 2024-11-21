@@ -125,7 +125,7 @@ const PurchaseOrderTable = ({
         const userId = sessionStorage.getItem('userId');
 
         // Check if status_request is 'IN_PROCESS' and userId matches created_by
-        if (!checker && dataSelected[0].STATUS_REQUEST === 'IN_PROCESS' && userId === dataSelected[0].REQUESTOR) {
+        if (!checker && dataSelected[0].STATUS_PO === 'IN_PROCESS' && userId === dataSelected[0].CREATED_BY) {
             Swal.fire({
                 icon: 'warning',
                 title: 'Edit Restricted',
@@ -355,26 +355,29 @@ const PurchaseOrderTable = ({
     };
 
     const tableHeaders = [
-        { value: "END_TO_END_ID", label: "End To End Id" },
         { value: "PO_NUMBER", label: "PO Number" },
-        { value: "STATUS_PO", label: "Status PO" },
-        { value: "DOC_REFF", label: "Doc. Reference" },
+        { value: "CREATED_BY", label: "Created By" },
         { value: "ORDER_DATE", label: "Order Date" },
         { value: "REQUEST_DATE", label: "Request Date" },
-        { value: "CREATED_BY", label: "Created By" },
-        { value: "FORM_TO", label: "To" },
-        { value: "TO_ADDRESS", label: "To Address" },
-        { value: "SHIP_TO", label: "Ship To" },
-        { value: "SHIP_TO_ADDRESS", label: "Ship To Address" },
-        { value: "BILL_TO", label: "Bill To" },
-        { value: "BILL_TO_ADDRESS", label: "Bill To Address" },
-        { value: "TERM_CONDITIONS", label: "Terms & Conditions" },
         { value: "DESCRIPTION", label: "Notes" },
-        { value: "SUB_TOTAL", label: "Subtotal" },
-        { value: "DISCOUNT", label: "Discount" },
-        { value: "SUB_TOTAL_AFTER_DISCOUNT", label: "Subtotal After Discount" },
-        { value: "TOTAL_PPN", label: "Total PPN" },
-        { value: "TOTAL_AMOUNT", label: "Total Amount" }
+        { value: "TOTAL_AMOUNT", label: "Total Amount" },
+        { value: "END_TO_END_ID", label: "End To End Id" },
+        { value: "STATUS_PO", label: "Status PO" },
+        { value: "STATUS_WORKFLOW", label: "Status Workflow" },
+
+        // { value: "DOC_REFF", label: "Doc. Reference" },
+        // { value: "FORM_TO", label: "To" },
+        // { value: "TO_ADDRESS", label: "To Address" },
+        // { value: "SHIP_TO", label: "Ship To" },
+        // { value: "SHIP_TO_ADDRESS", label: "Ship To Address" },
+        // { value: "BILL_TO", label: "Bill To" },
+        // { value: "BILL_TO_ADDRESS", label: "Bill To Address" },
+        // { value: "TERM_CONDITIONS", label: "Terms & Conditions" },
+        // { value: "SUB_TOTAL", label: "Subtotal" },
+        // { value: "DISCOUNT", label: "Discount" },
+        // { value: "SUB_TOTAL_AFTER_DISCOUNT", label: "Subtotal After Discount" },
+        // { value: "TOTAL_PPN", label: "Total PPN" },
+        
     ];
 
     return (
@@ -542,53 +545,11 @@ const PurchaseOrderTable = ({
                                                     onChange={(e) => handleCheckboxSelect(e, item.ID)}
                                                 />
                                             </td>
-                                            <td>{item.ENDTOENDID}</td>
-                                            <td>{item.PO_NUMBER}</td>
-                                            <td>{item.STATUS_PO}</td>
-                                            <td>{item.DOC_REFF}</td>
+                                            <td>{item.PO_NUMBER}</td>               
+                                            <td>{item.CREATED_BY}</td>              
                                             <td>{dateFormat(item.ORDER_DATE)}</td> 
                                             <td>{dateFormat(item.REQUEST_DATE)}</td> 
-                                            <td>{item.CREATED_BY}</td>
-                                            <td>{item.FORM_TO}</td> 
-                                            <td>{item.TO_ADDRESS}</td> 
-                                            <td>{item.SHIP_TO}</td> 
-                                            <td>{item.SHIP_TO_ADDRESS}</td> 
-                                            <td>{item.BILL_TO}</td> 
-                                            <td>{item.BILL_TO_ADDRESS}</td> 
-                                            <td>{item.TERM_CONDITIONS}</td> 
-                                            <td>{item.DESCRIPTION}</td> 
-                                            <td>
-                                                <NumericFormat
-                                                    value={item.TOTAL_BEFORE_DISCOUNT}
-                                                    displayType="text"
-                                                    thousandSeparator=","
-                                                    prefix="Rp "
-                                                />
-                                            </td>
-                                            <td>
-                                                <NumericFormat
-                                                    value={item.DISCOUNT}
-                                                    displayType="text"
-                                                    thousandSeparator=","
-                                                    prefix="Rp "
-                                                />
-                                            </td>
-                                            <td>
-                                                <NumericFormat
-                                                    value={item.TOTAL_AFTER_DISCOUNT}
-                                                    displayType="text"
-                                                    thousandSeparator=","
-                                                    prefix="Rp "
-                                                />
-                                            </td>
-                                            <td>
-                                                <NumericFormat
-                                                    value={item.TOTAL_AMOUNT_PPN}
-                                                    displayType="text"
-                                                    thousandSeparator=","
-                                                    prefix="Rp "
-                                                />
-                                            </td>
+                                            <td>{item.DESCRIPTION}</td>             
                                             <td>
                                                 <NumericFormat
                                                     value={item.TOTAL_AMOUNT}
@@ -596,7 +557,10 @@ const PurchaseOrderTable = ({
                                                     thousandSeparator=","
                                                     prefix="Rp "
                                                 />
-                                            </td>
+                                            </td>                                 
+                                            <td>{item.ENDTOENDID}</td>
+                                            <td>{item.STATUS_PO}</td>                
+                                            <td>{item.STATUS}</td>
                                         </tr>
                                     ))
                                 )}
@@ -634,6 +598,10 @@ const PurchaseOrderTable = ({
                                     <div className="row mb-3">
                                         <div className="col-md-4 font-weight-bold">Status PO:</div>
                                         <div className="col-md-8">{selectedRowData.STATUS_PO}</div>
+                                    </div>
+                                    <div className="row mb-3">
+                                        <div className="col-md-4 font-weight-bold">Status Workflow:</div>
+                                        <div className="col-md-8">{selectedRowData.STATUS}</div>
                                     </div>
                                     <div className="row mb-3">
                                         <div className="col-md-4 font-weight-bold">Doc. Reference:</div>

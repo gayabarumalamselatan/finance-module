@@ -388,17 +388,19 @@ import FormService from '../service/FormService';
         const options = transformedData.map(item => ({
           value: item.NAME,
           label: item.NAME,
-          customer: item.CUSTOMER
+          customer: item.CUSTOMER,
+          project_contract_number: item.CONTRACT_NUMBER,
         }));
 
         const optionsCustomer = transformedData.map(item => ({
           value: item.CUSTOMER,
-          label: item.CUSTOMER
+          label: item.CUSTOMER,
         }))
 
         const contractNumOptions = transformedData.map(item=> ({
           value: item.CONTRACT_NUMBER,
           label: item.CONTRACT_NUMBER,
+          customer: item.CUSTOMER,
         }));
 
         setContractNumberOptions(contractNumOptions);
@@ -662,7 +664,7 @@ import FormService from '../service/FormService';
       // Reset field vat type dan ppn type ketika mengubah unit price dan quantity
       if( field === 'unit_price' || field === 'quantity') {
         newItems[index].type_of_vat = '';
-        newItems[index].tax_ppn_rate= '';
+        newItems[index].tax_ppn_rate= 0;
         setDiscount(0);
         setFormattedDiscount(0);
         newItems[index].tax_ppn = '';
@@ -710,6 +712,7 @@ import FormService from '../service/FormService';
       }
 
       console.log('taxPPN', newItems[index].tax_ppn_amount);
+      console.log('jukasd', newItems[index].project_contract_number);
       setItems(newItems);
     };
 
@@ -758,7 +761,7 @@ import FormService from '../service/FormService';
 
       const hasRoyalty = items.some(item => item.type_of_vat === 'PPNRoyalty');
 
-      const totalAmount  = hasRoyalty ? subtotalAfterDiscount : subtotalAfterDiscount + totalPPNAmount;
+      const totalAmount  = subtotalAfterDiscount + totalPPNAmount;
       const validTotalAmount = isNaN(totalAmount) ? 0 : parseFloat(totalAmount);
       return { 
         subTotal, 
@@ -1243,7 +1246,6 @@ import FormService from '../service/FormService';
   
                       let statusDetail;
                       let ponumb;
-                      let matchfound = false;
 
                       const usedDataEntry = checkIsUsedData.find(entry => entry.ID === del);
 
@@ -1261,13 +1263,8 @@ import FormService from '../service/FormService';
                         if (storedItem.ID === item.ID) {
                           statusDetail = "USED";
                           ponumb = po_number;
-                          matchfound = true
                           break; // Exit the loop early if we find a match
                         }
-                      }
-  
-                      if (!matchfound) {
-                        hasNullStatus = true;
                       }
                 
                       const updatedStoredItem = {
@@ -1323,7 +1320,7 @@ import FormService from '../service/FormService';
 
               const requestData = {
                 idTrx: data.ID, 
-                status: "IN_PROCESS", 
+                status: "PENDING", 
               };
               UpdateStatusService.postData(requestData, "PUOR", authToken, branchId)
                 .then(response => {
@@ -1386,7 +1383,6 @@ import FormService from '../service/FormService';
   
                       let statusDetail;
                       let ponumb;
-                      let matchfound = false;
 
                       const usedDataEntry = checkIsUsedData.find(entry => entry.ID === del);
 
@@ -1404,15 +1400,11 @@ import FormService from '../service/FormService';
                         if (storedItem.ID === item.ID) {
                           statusDetail = "USED";
                           ponumb = po_number;
-                          matchfound = true
-                          break; // Exit the loop early if we find a match
+                          break; 
                         }
                       }
                       console.log('ponums',ponumb);
-  
-                      if (!matchfound) {
-                        hasNullStatus = true;
-                      }
+
                 
                       const updatedStoredItem = {
                         ...stored,
@@ -1467,7 +1459,7 @@ import FormService from '../service/FormService';
 
               const requestData = {
                 idTrx: data.ID, 
-                status: "IN_PROCESS", 
+                status: "PENDING", 
               };
               UpdateStatusService.postData(requestData, "PUOR", authToken, branchId)
                 .then(response => {
@@ -1844,9 +1836,9 @@ import FormService from '../service/FormService';
                                 <th>Document Source</th>
                                 <th>Vendor</th>
                                 <th>Company</th>
+                                <th>Requestor</th>
                                 <th>Project</th>
                                 <th>Project Contract Number</th>
-                                <th>Requestor</th>
                                 <th>Customer</th>
                                 <th>Department</th>
                                 <th>Product</th>
@@ -2001,7 +1993,14 @@ import FormService from '../service/FormService';
                                         }
                                         options={projectOptions}
                                         onChange={(selectedOption) => {
-                                          handleItemChange(index, 'project', selectedOption ? selectedOption.value : null)
+                                          handleItemChange(index, 'project', selectedOption ? selectedOption.value : null);
+                                          if(selectedOption){
+                                            handleItemChange(index, 'project_contract_number', selectedOption.project_contract_number);
+                                            handleItemChange(index, 'customer', selectedOption.customer);
+                                          }else{
+                                            handleItemChange(index, "customer", ""); 
+                                            handleItemChange(index, "project_contract_number", "");
+                                          }
                                         }}
                                         placeholder="Project..."
                                         isClearable 
@@ -2021,6 +2020,11 @@ import FormService from '../service/FormService';
                                         options={contractNumberOption}
                                         onChange={(selectedOption) => {
                                           handleItemChange(index, 'project_contract_number', selectedOption ? selectedOption.value : null);
+                                          if(selectedOption){
+                                            handleItemChange(index, 'customer', selectedOption.customer);
+                                          }else{
+                                            handleItemChange(index, "customer", ""); 
+                                          }
                                         }}
                                         placeholder='Project Contract Number...'
                                         isClearable
