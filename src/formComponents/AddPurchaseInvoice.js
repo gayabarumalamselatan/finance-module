@@ -104,6 +104,8 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
   const [tax_ppn_royalty_option, setTaxPpnRoyaltyOption] = useState([]);
   const [selectedPrNumbers, setSelectedPrNumbers] = useState([]);
   const [fetchedDetail, setFetchedDetail] = useState([]);
+  const [createdBy, setCreatedBy] = useState(userId);
+  const [isSubmited, setIsSubmited] = useState(false);
 
   const authToken = headers;
 
@@ -169,6 +171,7 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
             setDocReference(data.doc_reference);
             setTaxRate(data.tax_rate);
             setTaxExchangeRate(data.tax_exchange_rate);
+            setCreatedBy(data.created_by);
           } else {
             console.log("No data found");
           }
@@ -1334,20 +1337,20 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
                   const newItems = [...items];
                   const newStored = [...items];
 
-                  const storedItems = fetchedItems.map((item => {
-                    return{
+                  const storedItems = fetchedItems.map((item) => {
+                    return {
                       ...item,
-                    }
-                  }));
+                    };
+                  });
 
                   storedItems.forEach((fetchedDetail, i) => {
-                    newStored[index, i] = {
+                    newStored[(index, i)] = {
                       ...newStored[index + i],
                       ...fetchedDetail,
-                    }
-                  })
+                    };
+                  });
 
-                  console.log('storedItems', newStored);
+                  console.log("storedItems", newStored);
                   setFetchedDetail(newStored);
 
                   // Update fetched items with selected options
@@ -1514,22 +1517,22 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
 
                   const newItems = [...items];
                   const newStored = [...items];
-                  
-                  const storedPRItems = fetchedItems.map((item => {
+
+                  const storedPRItems = fetchedItems.map((item) => {
                     return {
                       ...item,
-                    }
-                  }));
-      
+                    };
+                  });
+
                   storedPRItems.forEach((fetchedItem, i) => {
                     newStored[index + i] = {
-                    ...newStored[index + i],
-                    ...fetchedItem,
-                  };
-                });
+                      ...newStored[index + i],
+                      ...fetchedItem,
+                    };
+                  });
 
-                console.log('storedPRItems', newStored);
-                setFetchedDetail(newStored);
+                  console.log("storedPRItems", newStored);
+                  setFetchedDetail(newStored);
 
                   // Update fetched items with selected options
                   const updatedFetchedItems = fetchedItems.map((item) => {
@@ -1558,7 +1561,7 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
 
                   // Set the updated items to state
                   setItems(newItems);
-                  console.log('poitems', newItems);
+                  console.log("poitems", newItems);
                 })
                 .catch((error) => {
                   console.error("Failed to fetch currency lookup:", error);
@@ -2058,7 +2061,110 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
   //   setItems(newItems);
   // };
 
-  // itungan paling baru dan benar
+  // itungan paling baru dan benar dan dijadiin idr
+  // const handleItemChange = (index, field, value) => {
+  //   const newItems = [...items];
+  //   newItems[index][field] = value;
+
+  //   // Reset fields when 'unit_price' or 'quantity' changes
+  //   if (field === "unit_price" || field === "quantity") {
+  //     newItems[index].type_of_vat = "";
+  //     newItems[index].tax_ppn = "";
+  //     newItems[index].tax_base = 0;
+  //     newItems[index].tax_ppn_amount = 0;
+  //     newItems[index].tax_pph_amount = 0;
+  //     newItems[index].tax_pph = "";
+  //     newItems[index].type_of_pph = "";
+  //     newItems[index].tax_pph_rate = 0;
+  //     if (newItems[index].vat_included !== undefined) {
+  //       newItems[index].vat_included = false;
+  //     }
+  //   }
+
+  //   if (field === "type_of_pph") {
+  //     newItems[index].tax_pph = ""; // Reset tax_pph
+  //     newItems[index].tax_pph_rate = 0; // Reset tax_pph_rate
+  //   }
+
+  //   // Update total price and total price IDR
+  //   if (field === "quantity" || field === "unit_price") {
+  //     newItems[index].total_price = newItems[index].quantity * newItems[index].unit_price;
+
+  //     // Calculate total_price_idr based on exchange rate if currency is not IDR
+  //     if (newItems[index].currency === "IDR") {
+  //       newItems[index].total_price_idr = newItems[index].total_price;
+  //     } else {
+  //       newItems[index].total_price_idr = newItems[index].total_price * (newItems[index].tax_exchange_rate || 1);
+  //     }
+  //   }
+
+  //   // Calculate New Unit Price based on VAT and PPN
+  //   let pengkali = newItems[index].tax_ppn_rate / 100;
+
+  //   // Calculate PPN
+  //   if (field === "tax_ppn" || field === "tax_ppn_rate") {
+  //     if (newItems[index].type_of_vat === "include") {
+  //       newItems[index].new_unit_price = newItems[index].unit_price + newItems[index].unit_price * pengkali;
+  //       newItems[index].tax_base = Math.round(newItems[index].total_price_idr / (1 + newItems[index].tax_ppn_rate / 100));
+  //       newItems[index].tax_ppn_amount = Math.floor(newItems[index].tax_base * (newItems[index].tax_ppn_rate / 100)); // Bottom rounding
+  //       newItems[index].vat_included = true;
+  //     } else if (newItems[index].type_of_vat === "exclude" || newItems[index].type_of_vat === "ppn_royalty") {
+  //       newItems[index].tax_ppn_amount = Math.floor(newItems[index].total_price_idr * (newItems[index].tax_ppn_rate / 100)); // Bottom rounding
+  //       newItems[index].tax_base = newItems[index].total_price_idr;
+  //     }
+  //   }
+
+  //   // Calculate PPh based on PPh type and rate
+  //   if (field === "tax_pph_type" || field === "tax_pph_rate") {
+  //     if (newItems[index].type_of_pph === "gross") {
+  //       if (newItems[index].type_of_vat === "exclude") {
+  //         newItems[index].tax_pph_amount = Math.floor(newItems[index].total_price_idr * (newItems[index].tax_pph_rate / 100)); // Bottom rounding
+  //       } else {
+  //         newItems[index].tax_pph_amount = Math.floor(newItems[index].tax_base * (newItems[index].tax_pph_rate / 100)); // Bottom rounding
+  //       }
+  //     } else if (newItems[index].type_of_pph === "nett") {
+  //       let taxWithPPh = newItems[index].tax_base / (1 - newItems[index].tax_pph_rate / 100);
+  //       newItems[index].tax_pph_amount = Math.floor(taxWithPPh * (newItems[index].tax_pph_rate / 100)); // Bottom rounding
+  //       newItems[index].tax_ppn_amount = Math.floor(taxWithPPh * (newItems[index].tax_ppn_rate / 100)); // Bottom rounding
+  //     }
+  //   }
+
+  //   // Update VAT type logic
+  //   if (field === "type_of_vat") {
+  //     // Reset VAT-related fields
+  //     newItems[index].tax_ppn = "";
+  //     newItems[index].tax_ppn_rate = 0;
+  //     newItems[index].tax_base = 0;
+  //     newItems[index].tax_ppn_amount = 0;
+  //     newItems[index].tax_pph_amount = 0;
+  //     newItems[index].tax_pph = "";
+  //     newItems[index].type_of_pph = "";
+  //     newItems[index].tax_pph_rate = 0;
+
+  //     // Retain total_price_idr for non-IDR currencies
+  //     if (newItems[index].currency !== "IDR") {
+  //       const previousTotalPriceIdr = newItems[index].total_price_idr;
+  //       if (newItems[index].type_of_vat === "exclude" && newItems[index].vat_included === true) {
+  //         newItems[index].new_unit_price = newItems[index].new_unit_price - newItems[index].unit_price * pengkali;
+  //         newItems[index].vat_included = false;
+  //       } else if (newItems[index].type_of_vat === "non_ppn") {
+  //         newItems[index].tax_base = previousTotalPriceIdr;
+  //       } else {
+  //         newItems[index].new_unit_price = newItems[index].unit_price;
+  //       }
+  //       newItems[index].total_price = newItems[index].unit_price * newItems[index].quantity;
+  //       newItems[index].total_price_idr = previousTotalPriceIdr; // Keep the previous value
+  //     } else {
+  //       newItems[index].new_unit_price = newItems[index].unit_price;
+  //       newItems[index].total_price = newItems[index].unit_price * newItems[index].quantity;
+  //       newItems[index].total_price_idr = newItems[index].unit_price * newItems[index].quantity;
+  //     }
+  //   }
+
+  //   // Update item state
+  //   setItems(newItems);
+  // };
+
   const handleItemChange = (index, field, value) => {
     const newItems = [...items];
     newItems[index][field] = value;
@@ -2096,26 +2202,42 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
     }
 
     // Calculate New Unit Price based on VAT and PPN
+    // Calculate New Unit Price based on VAT and PPN
+
     let pengkali = newItems[index].tax_ppn_rate / 100;
 
-    // Calculate PPN
+    // Calculate PPN and PPH
+
     if (field === "tax_ppn" || field === "tax_ppn_rate") {
       if (newItems[index].type_of_vat === "include") {
         newItems[index].new_unit_price = newItems[index].unit_price + newItems[index].unit_price * pengkali;
-        newItems[index].tax_base = Math.round(newItems[index].total_price_idr / (1 + newItems[index].tax_ppn_rate / 100));
+        newItems[index].tax_base = Math.round(newItems[index].total_price / (1 + newItems[index].tax_ppn_rate / 100));
         newItems[index].tax_ppn_amount = Math.floor(newItems[index].tax_base * (newItems[index].tax_ppn_rate / 100)); // Bottom rounding
         newItems[index].vat_included = true;
       } else if (newItems[index].type_of_vat === "exclude" || newItems[index].type_of_vat === "ppn_royalty") {
-        newItems[index].tax_ppn_amount = Math.floor(newItems[index].total_price_idr * (newItems[index].tax_ppn_rate / 100)); // Bottom rounding
-        newItems[index].tax_base = newItems[index].total_price_idr;
+        newItems[index].tax_ppn_amount = Math.floor(newItems[index].total_price * (newItems[index].tax_ppn_rate / 100)); // Bottom rounding
+        newItems[index].tax_base = newItems[index].total_price;
       }
     }
 
+    // Handle non_ppn case
+
+    if (newItems[index].type_of_vat === "non_ppn") {
+      // Reset PPN related fields
+      newItems[index].tax_ppn = "";
+      newItems[index].tax_ppn_rate = 0;
+      newItems[index].tax_ppn_amount = 0; // No PPN for non_ppn
+      newItems[index].new_unit_price = newItems[index].unit_price; // Set new unit price to the original unit price
+      newItems[index].tax_base = newItems[index].total_price; // Tax base is the total price
+      newItems[index].tax_pph_amount = Math.floor(newItems[index].tax_base * (newItems[index].tax_pph_rate / 100)); // Calculate PPH only
+    }
+
     // Calculate PPh based on PPh type and rate
+
     if (field === "tax_pph_type" || field === "tax_pph_rate") {
       if (newItems[index].type_of_pph === "gross") {
         if (newItems[index].type_of_vat === "exclude") {
-          newItems[index].tax_pph_amount = Math.floor(newItems[index].total_price_idr * (newItems[index].tax_pph_rate / 100)); // Bottom rounding
+          newItems[index].tax_pph_amount = Math.floor(newItems[index].total_price * (newItems[index].tax_pph_rate / 100)); // Bottom rounding
         } else {
           newItems[index].tax_pph_amount = Math.floor(newItems[index].tax_base * (newItems[index].tax_pph_rate / 100)); // Bottom rounding
         }
@@ -2127,6 +2249,7 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
     }
 
     // Update VAT type logic
+
     if (field === "type_of_vat") {
       // Reset VAT-related fields
       newItems[index].tax_ppn = "";
@@ -2137,28 +2260,14 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
       newItems[index].tax_pph = "";
       newItems[index].type_of_pph = "";
       newItems[index].tax_pph_rate = 0;
+      // Set new unit price to the original unit price
 
-      // Retain total_price_idr for non-IDR currencies
-      if (newItems[index].currency !== "IDR") {
-        const previousTotalPriceIdr = newItems[index].total_price_idr;
-        if (newItems[index].type_of_vat === "exclude" && newItems[index].vat_included === true) {
-          newItems[index].new_unit_price = newItems[index].new_unit_price - newItems[index].unit_price * pengkali;
-          newItems[index].vat_included = false;
-        } else if (newItems[index].type_of_vat === "non_ppn") {
-          newItems[index].tax_base = previousTotalPriceIdr;
-        } else {
-          newItems[index].new_unit_price = newItems[index].unit_price;
-        }
-        newItems[index].total_price = newItems[index].unit_price * newItems[index].quantity;
-        newItems[index].total_price_idr = previousTotalPriceIdr; // Keep the previous value
-      } else {
-        newItems[index].new_unit_price = newItems[index].unit_price;
-        newItems[index].total_price = newItems[index].unit_price * newItems[index].quantity;
-        newItems[index].total_price_idr = newItems[index].unit_price * newItems[index].quantity;
-      }
+      newItems[index].new_unit_price = newItems[index].unit_price;
+      newItems[index].total_price = newItems[index].unit_price * newItems[index].quantity;
     }
 
     // Update item state
+
     setItems(newItems);
   };
 
@@ -2284,6 +2393,83 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
   //   return { subTotal, subtotalAfterDiscount, taxbasePPH, totalPPNAmount, totalPPHAmount, totalAmount: validTotalAmount };
   // };
 
+  // yang benar
+  // const calculateTotalAmount = () => {
+  //   const subTotal = items.reduce((total, item) => {
+  //     const taxBase = isNaN(item.tax_base) ? 0 : item.tax_base;
+  //     return total + taxBase;
+  //   }, 0);
+
+  //   const taxbasePPH = items.reduce((total, item) => {
+  //     if (item.type_of_vat === "include" && item.type_of_pph === "nett") {
+  //       const taxBase = isNaN(item.tax_base) ? 0 : item.tax_base;
+  //       const taxPphRate = isNaN(item.tax_pph_rate) ? 0 : item.tax_pph_rate;
+  //       return total + taxBase / (1 - taxPphRate / 100);
+  //     } else if (item.type_of_vat === "exclude") {
+  //       return total + item.unit_price / (1 - item.tax_pph_rate / 100);
+  //     } else {
+  //       return total + (isNaN(item.tax_base) ? 0 : item.tax_base);
+  //     }
+  //   }, 0);
+
+  //   const subtotalAfterDiscount = subTotal - discount;
+
+  //   const totalPPNAmount = items.reduce((total, item) => {
+  //     const taxPPNAmount = isNaN(item.tax_ppn_amount) ? 0 : item.tax_ppn_amount;
+  //     return total + taxPPNAmount;
+  //   }, 0);
+
+  //   const totalPPHAmount = items.reduce((total, item) => {
+  //     const taxPPHAmount = isNaN(item.tax_pph_amount) ? 0 : item.tax_pph_amount;
+  //     return total + taxPPHAmount;
+  //   }, 0);
+
+  //   // Initialize total_amount
+  //   let total_amount = subtotalAfterDiscount;
+
+  //   // Determine if any items qualify for royalty
+  //   const hasRoyalty = items.some((item) => item.type_of_vat === "ppn_royalty");
+
+  //   // Calculate total_amount based on type_of_vat and type_of_pph
+  //   if (hasRoyalty) {
+  //     // If there are royalties, total amount is just the subtotal after discount
+  //     total_amount = subtotalAfterDiscount;
+  //   } else {
+  //     // Calculate total amount based on the cases
+  //     const case1 = items.some((item) => item.type_of_vat === "include" && item.type_of_pph === "gross");
+  //     const case2 = items.some((item) => item.type_of_vat === "include" && item.type_of_pph === "nett");
+  //     const case3 = items.some((item) => item.type_of_vat === "exclude" && item.type_of_pph === "gross");
+  //     const case4 = items.some((item) => item.type_of_vat === "exclude" && item.type_of_pph === "nett");
+
+  //     if (case1 || case3) {
+  //       total_amount += totalPPNAmount - totalPPHAmount;
+  //     }
+
+  //     if (case2) {
+  //       const taxBasePPNAF = Math.round(taxbasePPH);
+  //       total_amount = taxBasePPNAF - totalPPHAmount + totalPPNAmount;
+  //     }
+
+  //     if (case4) {
+  //       const taxBase = taxbasePPH;
+  //       total_amount = taxBase - totalPPNAmount + totalPPHAmount;
+  //     }
+  //   }
+
+  //   // Ensure valid total amount
+  //   const validTotalAmount = isNaN(total_amount) ? 0 : total_amount;
+
+  //   console.log("kols", subTotal);
+  //   return {
+  //     subTotal,
+  //     subtotalAfterDiscount,
+  //     taxbasePPH,
+  //     totalPPNAmount,
+  //     totalPPHAmount,
+  //     totalAmount: validTotalAmount,
+  //   };
+  // };
+
   const calculateTotalAmount = () => {
     const subTotal = items.reduce((total, item) => {
       const taxBase = isNaN(item.tax_base) ? 0 : item.tax_base;
@@ -2320,10 +2506,16 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
     // Determine if any items qualify for royalty
     const hasRoyalty = items.some((item) => item.type_of_vat === "ppn_royalty");
 
+    // Determine if any items are non_ppn
+    const hasNonPPN = items.some((item) => item.type_of_vat === "non_ppn");
+
     // Calculate total_amount based on type_of_vat and type_of_pph
     if (hasRoyalty) {
-      // If there are royalties, total amount is just the subtotal after discount
-      total_amount = subtotalAfterDiscount;
+      // If there are royalties, total amount is subtotalAfterDiscount + totalPPNAmount
+      total_amount = subtotalAfterDiscount + totalPPNAmount;
+    } else if (hasNonPPN) {
+      // If there are non_ppn items, total amount is subtotalAfterDiscount - totalPPHAmount
+      total_amount = subtotalAfterDiscount - totalPPHAmount;
     } else {
       // Calculate total amount based on the cases
       const case1 = items.some((item) => item.type_of_vat === "include" && item.type_of_pph === "gross");
@@ -2349,7 +2541,7 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
     // Ensure valid total amount
     const validTotalAmount = isNaN(total_amount) ? 0 : total_amount;
 
-    console.log('kols', subTotal);
+    console.log("kols", subTotal);
     return {
       subTotal,
       subtotalAfterDiscount,
@@ -2374,13 +2566,14 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
     setTitle("");
     setInternalMemo("");
     setCustomerContract("");
+    setCreatedBy(createdBy);
     setID(null);
-    setDocRef(null);
+    setDocRef("");
     setInvoiceNumber("");
     setInvoiceType("");
     setInvoiceDate("");
     setVendor(null);
-    setPaymentTerm(null);
+    setPaymentTerm("");
     setDueDate("");
     setTaxRate("");
     setTaxInvoiceNumber("");
@@ -2402,6 +2595,7 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
     setAllVendorOptions(null);
     setVendorOptions(null);
     setPaymentTermOptions(null);
+    setIsSubmited(false);
   };
 
   // Function to handle form submission save
@@ -2699,6 +2893,7 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
           description,
           total_amount: totalAmount,
           endtoendid: endToEndId,
+          created_by: createdBy,
         };
 
         console.log("Master", generalInfo);
@@ -2989,6 +3184,7 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
           description,
           total_amount: totalAmount,
           endtoendid: endToEndId,
+          created_by: createdBy,
         };
 
         console.log("Master", generalInfo);
@@ -3099,7 +3295,7 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
 
           // Show success message and reset form
           messageAlertSwal("Success", response.message, "success");
-          resetForm();
+          setIsSubmited(true);
         } else if (response.message === "insert Data Successfully") {
           // Insert new items
           for (const item of items) {
@@ -3108,7 +3304,7 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
               ...rest,
               invoice_number: invoice_number.replace("DRAFT_", ""),
               type_of_vat: item.type_of_vat,
-              doc_reff_no: docRef=== 'purchaseOrder'? item.po_number : item.pr_number,
+              doc_reff_no: docRef === "purchaseOrder" ? item.po_number : item.pr_number,
               tax_ppn: item.tax_ppn,
               tax_base: item.tax_base,
               tax_ppn_amount: item.tax_ppn_amount,
@@ -3143,277 +3339,271 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
             const itemResponse = await InsertDataService.postData(updatedItem, "PUINVCD", authToken, branchId);
             console.log("Item posted successfully:", itemResponse);
 
-            if(docRef === 'purchaseRequest' || docRef === 'purchaseOrder'){
+            if (docRef === "purchaseRequest" || docRef === "purchaseOrder") {
               let fetchUrl;
               let formToDel;
               let getHeader;
               let formHeader;
               let fetchPRD;
 
-              if(docRef === 'purchaseRequest'){
+              if (docRef === "purchaseRequest") {
                 fetchUrl = `PURC_FORMPUREQD&filterBy=pr_number&filterValue=${item.pr_number}&operation=EQUAL`;
-                formToDel = 'PUREQD';
-                formHeader = 'PUREQ';
-                getHeader = `PURC_FORMPUREQ&filterBy=pr_number&filterValue=${item.doc_reff_no}&operation=EQUAL`
-              }else if(docRef === 'purchaseOrder'){
+                formToDel = "PUREQD";
+                formHeader = "PUREQ";
+                getHeader = `PURC_FORMPUREQ&filterBy=pr_number&filterValue=${item.doc_reff_no}&operation=EQUAL`;
+              } else if (docRef === "purchaseOrder") {
                 fetchUrl = `PURC_FORMPUORD&filterBy=po_number&filterValue=${item.po_number}&operation=EQUAL`;
-                formToDel = 'PUORD';
-                formHeader = 'PUOR';
+                formToDel = "PUORD";
+                formHeader = "PUOR";
                 getHeader = `PURC_FORMPUOR&filterBy=po_number&filterValue=${item.po_number}&operation=EQUAL`;
               }
-              
+
               const fetchCheckIsUsed = await LookupService.fetchLookupData(fetchUrl, authToken, branchId);
               const checkIsUsedData = fetchCheckIsUsed.data;
-              console.log('fetchedisuseddata', checkIsUsedData);
+              console.log("fetchedisuseddata", checkIsUsedData);
 
-              if (docRef === 'purchaseOrder') {
-                const prno = checkIsUsedData.map(item => item.doc_reff_no);
-                console.log('pron', prno);
-            
+              if (docRef === "purchaseOrder") {
+                const prno = checkIsUsedData.map((item) => item.doc_reff_no);
+                console.log("pron", prno);
+
                 // Iterate over each pr_number
                 for (const pr_number of prno) {
-                    try {
-                        // Fetch PRD data for the current pr_number
-                        const fetchPRD = await LookupService.fetchLookupData(`PURC_FORMPUREQD&filterBy=pr_number&filterValue=${pr_number}&operation=EQUAL`, authToken, branchId);
-                        const prToDel = fetchPRD.data.map(item => item.ID);
-                        console.log('prtodel', prToDel);
-                        console.log('prtodels', fetchPRD);
-            
-                        for (const prdel of prToDel) {
-                            try {
-                                // Now, find the corresponding stored item to update/insert
-                                const storedItem = fetchPRD.data.find(item => item.ID === prdel);
-            
-                                if (storedItem) {
-                                    // Delete the item first
-                                    await DeleteDataService.postData(`column=id&value=${prdel}`, 'PUREQD', authToken, branchId);
-                                    console.log('Item deleted successfully:', prdel);
-            
-                                    const { rwnum, ID, status, id_trx, ...stored } = storedItem;
-            
-                                    console.log('storeditem', storedItem);
-                                    console.log('itemsa', item);
-            
-                                    let invoicenum;
-            
-                                    const usedDataEntry = fetchPRD.data.find(entry => entry.ID === prdel);
-            
-                                    if (usedDataEntry) {
-                                        // If the status_detail is "USED", use the po_number from the used data
-                                        if (usedDataEntry.status_detail === "USED") {
-                                            invoicenum = usedDataEntry.invoice_number; // Set ponumb from checkIsUsedData
-                                        }
-                                    }
-            
-                                    for (const item of items) { // Assuming 'items' is an array of items to check against
-                                        if (storedItem.po_number === item.po_number && storedItem.pr_number === item.doc_reff_no) {
-                                            invoicenum = invoice_number;
-                                        }
-                                    }
-                                    console.log('invoicenumc', invoice_number);
-            
-                                    const updatedStoredItem = {
-                                        ...stored,
-                                        invoice_number: invoicenum,
-                                    };
-                                    console.log('updatedstatus', updatedStoredItem.status_detail);
-                                    console.log('incovid', invoicenum);
-            
-                                    // Remove unwanted fields
-                                    const fieldsToDelete = [
-                                        'rwnum',
-                                        'ID',
-                                        'id',
-                                        'status',
-                                        'id_trx',
-                                        'original_unit_price',
-                                        'type_of_vat',
-                                        'tax_ppn',
-                                        'tax_pph',
-                                        'tax_pph_type',
-                                        'total_amount_ppn',
-                                        'total_amount_pph',
-                                        'total_price_idr',
-                                        'tax_exchange_rate',
-                                        'total_after_discount',
-                                        'total_before_discount',
-                                        'tax_ppn_amount',
-                                        'tax_pph_amount',
-                                        'tax_ppn_rate',
-                                        'tax_pph_rate',
-                                        'subtotal',
-                                        'subTotal',
-                                        'tax_base',
-                                        'discount',
-                                        'vat_included',
-                                        'new_unit_price',
-                                        'requestor',
-                                    ];
-            
-                                    fieldsToDelete.forEach(field => delete updatedStoredItem[field]);
-            
-                                    // Insert the updated stored item
-                                    const storedItemResponse = await InsertDataService.postData(updatedStoredItem, 'PUREQD', authToken, branchId);
-                                    console.log('Stored item posted successfully:', storedItemResponse);
-                                } else {
-                                    console.log('No corresponding stored item found for ID:', prdel);
-                                }
-            
-                            } catch (error) {
-                                console.error('Error processing item:', prdel, error);
-                            }
-                        }
-                    } catch (error) {
-                        console.error('Error fetching PRD data for pr_number:', pr_number, error);
-                    }
-                }
-            }
+                  try {
+                    // Fetch PRD data for the current pr_number
+                    const fetchPRD = await LookupService.fetchLookupData(`PURC_FORMPUREQD&filterBy=pr_number&filterValue=${pr_number}&operation=EQUAL`, authToken, branchId);
+                    const prToDel = fetchPRD.data.map((item) => item.ID);
+                    console.log("prtodel", prToDel);
+                    console.log("prtodels", fetchPRD);
 
-              const dels = fetchCheckIsUsed.data.map(item => item.ID);
-              console.log('idtoChange', dels);
+                    for (const prdel of prToDel) {
+                      try {
+                        // Now, find the corresponding stored item to update/insert
+                        const storedItem = fetchPRD.data.find((item) => item.ID === prdel);
+
+                        if (storedItem) {
+                          // Delete the item first
+                          await DeleteDataService.postData(`column=id&value=${prdel}`, "PUREQD", authToken, branchId);
+                          console.log("Item deleted successfully:", prdel);
+
+                          const { rwnum, ID, status, id_trx, ...stored } = storedItem;
+
+                          console.log("storeditem", storedItem);
+                          console.log("itemsa", item);
+
+                          let invoicenum;
+
+                          const usedDataEntry = fetchPRD.data.find((entry) => entry.ID === prdel);
+
+                          if (usedDataEntry) {
+                            // If the status_detail is "USED", use the po_number from the used data
+                            if (usedDataEntry.status_detail === "USED") {
+                              invoicenum = usedDataEntry.invoice_number; // Set ponumb from checkIsUsedData
+                            }
+                          }
+
+                          for (const item of items) {
+                            // Assuming 'items' is an array of items to check against
+                            if (storedItem.po_number === item.po_number && storedItem.pr_number === item.doc_reff_no) {
+                              invoicenum = invoice_number;
+                            }
+                          }
+                          console.log("invoicenumc", invoice_number);
+
+                          const updatedStoredItem = {
+                            ...stored,
+                            invoice_number: invoicenum,
+                          };
+                          console.log("updatedstatus", updatedStoredItem.status_detail);
+                          console.log("incovid", invoicenum);
+
+                          // Remove unwanted fields
+                          const fieldsToDelete = [
+                            "rwnum",
+                            "ID",
+                            "id",
+                            "status",
+                            "id_trx",
+                            "original_unit_price",
+                            "type_of_vat",
+                            "tax_ppn",
+                            "tax_pph",
+                            "tax_pph_type",
+                            "total_amount_ppn",
+                            "total_amount_pph",
+                            "total_price_idr",
+                            "tax_exchange_rate",
+                            "total_after_discount",
+                            "total_before_discount",
+                            "tax_ppn_amount",
+                            "tax_pph_amount",
+                            "tax_ppn_rate",
+                            "tax_pph_rate",
+                            "subtotal",
+                            "subTotal",
+                            "tax_base",
+                            "discount",
+                            "vat_included",
+                            "new_unit_price",
+                            "requestor",
+                          ];
+
+                          fieldsToDelete.forEach((field) => delete updatedStoredItem[field]);
+
+                          // Insert the updated stored item
+                          const storedItemResponse = await InsertDataService.postData(updatedStoredItem, "PUREQD", authToken, branchId);
+                          console.log("Stored item posted successfully:", storedItemResponse);
+                        } else {
+                          console.log("No corresponding stored item found for ID:", prdel);
+                        }
+                      } catch (error) {
+                        console.error("Error processing item:", prdel, error);
+                      }
+                    }
+                  } catch (error) {
+                    console.error("Error fetching PRD data for pr_number:", pr_number, error);
+                  }
+                }
+              }
+
+              const dels = fetchCheckIsUsed.data.map((item) => item.ID);
+              console.log("idtoChange", dels);
 
               let hasNullStatus = false;
 
               for (const del of dels) {
                 try {
                   // Now, find the corresponding stored item to update/insert
-                  const storedItem = fetchedDetail.find(item => item.ID === del);
-                  
-                  if (storedItem) {
+                  const storedItem = fetchedDetail.find((item) => item.ID === del);
 
+                  if (storedItem) {
                     // Delete the item first
                     await DeleteDataService.postData(`column=id&value=${del}`, formToDel, authToken, branchId);
-                    console.log('Item deleted successfully:', del);
-                    
+                    console.log("Item deleted successfully:", del);
 
                     const { rwnum, ID, status, id_trx, ...stored } = storedItem;
 
-                    console.log('storeditem', storedItem);
-                    console.log('itemsa', item);
+                    console.log("storeditem", storedItem);
+                    console.log("itemsa", item);
 
                     let statusDetail;
                     let invnum;
 
-                    for (const item of items) { // Assuming 'items' is an array of items to check against
-                      if(storedItem.status_detail === "USED"){
+                    for (const item of items) {
+                      // Assuming 'items' is an array of items to check against
+                      if (storedItem.status_detail === "USED") {
                         statusDetail = "USED";
                       }
                       if (storedItem.ID === item.ID) {
                         statusDetail = "USED";
-                        invnum = invoice_number.replace('DRAFT_', '');
+                        invnum = invoice_number.replace("DRAFT_", "");
                         break; // Exit the loop early if we find a match
                       }
                     }
-              
+
                     const updatedStoredItem = {
                       ...stored,
                       status_detail: statusDetail,
                       invoice_number: invnum,
                     };
-                    console.log('updatedstatus', updatedStoredItem.status_detail);
-              
+                    console.log("updatedstatus", updatedStoredItem.status_detail);
+
                     // Remove unwanted fields
                     const fieldsToDelete = [
-                      'rwnum',
-                      'ID',
-                      'id',
-                      'status',
-                      'id_trx',
-                      'original_unit_price',
-                      'type_of_vat',
-                      'tax_ppn',
-                      'tax_pph',
-                      'tax_pph_type',
-                      'total_amount_ppn',
-                      'total_amount_pph',
-                      'total_price_idr',
-                      'tax_exchange_rate',
-                      'total_after_discount',
-                      'total_before_discount',
-                      'tax_ppn_amount',
-                      'tax_pph_amount',
-                      'tax_ppn_rate',
-                      'tax_pph_rate',
-                      'subtotal',
-                      'subTotal',
-                      'tax_base',
-                      'discount',
-                      'vat_included',
-                      'new_unit_price',
-                      'requestor',
+                      "rwnum",
+                      "ID",
+                      "id",
+                      "status",
+                      "id_trx",
+                      "original_unit_price",
+                      "type_of_vat",
+                      "tax_ppn",
+                      "tax_pph",
+                      "tax_pph_type",
+                      "total_amount_ppn",
+                      "total_amount_pph",
+                      "total_price_idr",
+                      "tax_exchange_rate",
+                      "total_after_discount",
+                      "total_before_discount",
+                      "tax_ppn_amount",
+                      "tax_pph_amount",
+                      "tax_ppn_rate",
+                      "tax_pph_rate",
+                      "subtotal",
+                      "subTotal",
+                      "tax_base",
+                      "discount",
+                      "vat_included",
+                      "new_unit_price",
+                      "requestor",
                     ];
 
-                    fieldsToDelete.forEach(field => delete updatedStoredItem[field]);
+                    fieldsToDelete.forEach((field) => delete updatedStoredItem[field]);
 
                     // Insert the updated stored item
                     const storedItemResponse = await InsertDataService.postData(updatedStoredItem, formToDel, authToken, branchId);
-                    console.log('Stored item posted successfully:', storedItemResponse);
-                    
+                    console.log("Stored item posted successfully:", storedItemResponse);
                   } else {
-                    console.log('No corresponding stored item found for ID:', del);
+                    console.log("No corresponding stored item found for ID:", del);
                   }
-              
                 } catch (error) {
-                  console.error('Error processing item:', del, error);
+                  console.error("Error processing item:", del, error);
                 }
               }
-  
+
               const getDocRefList = await LookupService.fetchLookupData(getHeader, authToken, branchId);
               const prID = getDocRefList.data[0].ID;
-              console.log('PRid', prID);
+              console.log("PRid", prID);
 
               // Check if all of the status detail is used
               const checkNullStatus = await LookupService.fetchLookupData(`PURC_FORMPUREQD&filterBy=pr_number&filterValue=${item.pr_number}&operation=EQUAL`, authToken, branchId);
-              const nullStatusExists = checkNullStatus.data.some(entry => entry.status_detail === null);
-              
+              const nullStatusExists = checkNullStatus.data.some((entry) => entry.status_detail === null);
 
               let updateStatusData;
-              if(docRef === 'purchaseRequest'){
+              if (docRef === "purchaseRequest") {
                 updateStatusData = {
                   status_request: nullStatusExists ? "PARTIAL_REQUESTED" : "REQUESTED",
-                }
-              }else if(docRef === 'purchaseOrder') {
+                };
+              } else if (docRef === "purchaseOrder") {
                 updateStatusData = {
                   status_po: hasNullStatus ? "PARTIAL_ORDERED" : "ORDERED ",
-                }
+                };
               }
 
               // Update Status
-                const updatePRStatus = await axios.post(`${FORM_SERVICE_UPDATE_DATA}?f=${formHeader}&column=id&value=${prID}&branchId=${branchId}`, updateStatusData, {
-                  headers: {
-                    Authorization: `Bearer ${authToken}`,
-                  }
-                });
-                await updatePRStatus;
+              const updatePRStatus = await axios.post(`${FORM_SERVICE_UPDATE_DATA}?f=${formHeader}&column=id&value=${prID}&branchId=${branchId}`, updateStatusData, {
+                headers: {
+                  Authorization: `Bearer ${authToken}`,
+                },
+              });
+              await updatePRStatus;
             }
-          } 
+          }
 
           //Set status workflow VERIFIED
-          // LookupService.fetchLookupData(`PURC_FORMPUOR&filterBy=endtoendid&filterValue=${endToEndId}&operation=EQUAL`, authToken, branchId)
-          // .then(response => {
-          //   const data = response.data[0];
-          //   console.log('Data:', data);
+          LookupService.fetchLookupData(`PURC_FORMPUINVC&filterBy=endtoendid&filterValue=${endToEndId}&operation=EQUAL`, authToken, branchId)
+            .then((response) => {
+              const data = response.data[0];
+              console.log("Data:", data);
 
-          //   const requestData = {
-          //     idTrx: data.ID, 
-          //     status: "IN_PROCESS", 
-          //   };
-          //   UpdateStatusService.postData(requestData, "PUOR", authToken, branchId)
-          //     .then(response => {
-          //       console.log('Data updated successfully:', response);
-          //     })
-          //     .catch(error => {
-          //       console.error('Failed to update data:', error);
-          //     });
-
-          // })
-          // .catch(error => {
-          //   console.error('Failed to load purchase request data:', error);
-          // });
-          
+              const requestData = {
+                idTrx: data.ID,
+                status: "PENDING",
+              };
+              UpdateStatusService.postData(requestData, "PUOR", authToken, branchId)
+                .then((response) => {
+                  console.log("Data updated successfully:", response);
+                })
+                .catch((error) => {
+                  console.error("Failed to update data:", error);
+                });
+            })
+            .catch((error) => {
+              console.error("Failed to load purchase request data:", error);
+            });
 
           messageAlertSwal("Success", response.message, "success");
-          resetForm();
+          setIsSubmited(true);
         }
       } catch (err) {
         console.error(err);
@@ -3728,12 +3918,20 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
                       </Button>
                     </>
                   )}
-                  <Button variant="primary" className="mr-2" onClick={handleSave}>
-                    <i className="fas fa-save"></i> Save
-                  </Button>
-                  <Button variant="primary" onClick={handleSubmit}>
-                    <i className="fas fa-check"></i> Submit
-                  </Button>
+                  {isSubmited === true ? (
+                    <Button onClick={resetForm}>
+                      <i className="fas fa-plus"></i> Add New
+                    </Button>
+                  ) : (
+                    <>
+                      <Button variant="primary" className="mr-2" onClick={handleSave}>
+                        <i className="fas fa-save"></i> Save
+                      </Button>
+                      <Button variant="primary" onClick={handleSubmit}>
+                        <i className="fas fa-check"></i> Submit
+                      </Button>
+                    </>
+                  )}
                 </div>
               </Card.Header>
 
@@ -3877,12 +4075,19 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
                           type="text"
                           placeholder="Enter Tax Exchange Rate"
                           min="0"
-                          value={tax_exchange_rate.toLocaleString('en-US')}
+                          value={tax_exchange_rate.toLocaleString("en-US")}
                           onChange={(e) => {
-                            const newPrice = parseFloat(e.target.value.replace(/[^\d.-]/g, '')) || 0;
+                            const newPrice = parseFloat(e.target.value.replace(/[^\d.-]/g, "")) || 0;
                             taxExchangeChange(newPrice);
                           }}
                         />
+                      </Form.Group>
+                    </Col>
+
+                    <Col md={6}>
+                      <Form.Group controlId="formCreatedBy">
+                        <Form.Label>Created By</Form.Label>
+                        <Form.Control type="text" placeholder="Insert Created By" value={createdBy} onChange={(e) => setCreatedBy(e.target.value)} disabled />
                       </Form.Group>
                     </Col>
 
@@ -4490,7 +4695,6 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
                                           handleItemChange(index, "unit_price", newPrice);
                                           dynamicFormWidth(e);
                                         }}
-                                       
                                       />
                                     ) : (
                                       <Form.Control
@@ -4537,7 +4741,7 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
                                       <option value="include">Include</option>
                                       <option value="exclude">Exclude</option>
                                       <option value="non_ppn">Non PPN</option>
-                                      <option value="ppn_royalty">PPN Royalty</option>
+                                      <option value="PPNRoyalty">PPN Royalty</option>
                                     </Form.Control>
                                   </td>
 
@@ -4547,7 +4751,7 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
                                   <td>
                                     <Select
                                       value={
-                                        items[index].type_of_vat === "ppn_royalty" ? tax_ppn_royalty_option.find((option) => option.value === item.tax_ppn) : taxPpnTypeOption.find((option) => option.value === items[index].tax_ppn) || null
+                                        items[index].type_of_vat === "PPNRoyalty" ? tax_ppn_royalty_option.find((option) => option.value === item.tax_ppn) : taxPpnTypeOption.find((option) => option.value === items[index].tax_ppn) || null
                                       }
                                       onChange={(selectedOption) => {
                                         // Update the tax_ppn for the specific item
@@ -4562,7 +4766,7 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
                                           setPpnRate(null); // Menghapus RATE jika tidak ada selectedOption
                                         }
                                       }}
-                                      options={items[index].type_of_vat === "ppn_royalty" ? tax_ppn_royalty_option : taxPpnTypeOption}
+                                      options={items[index].type_of_vat === "PPNRoyalty" ? tax_ppn_royalty_option : taxPpnTypeOption}
                                       // options={taxPpnTypeOption}
                                       isClearable
                                       placeholder="Select Tax PPN Type..."
@@ -4712,10 +4916,10 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
                               <td>
                                 <strong>
                                   {items.length > 0
-                                    ? calculateTotalAmount().subTotal.toLocaleString("en-US", {
+                                    ? calculateTotalAmount(items[0].currency).subTotal.toLocaleString("en-US", {
                                         style: "currency",
-                                        currency: (item && item[0].currency) || "IDR",
-                                        minimumFractionDigits: 0,
+                                        currency: items[0].currency || "IDR",
+                                        minimumFractionDigits: 0, // No decimal places
                                         maximumFractionDigits: 0,
                                       })
                                     : "IDR 0.00"}
@@ -4754,7 +4958,7 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
                                   {items.length > 0
                                     ? calculateTotalAmount().subtotalAfterDiscount.toLocaleString("en-US", {
                                         style: "currency",
-                                        currency: (item && item[0].currency) || "IDR",
+                                        currency: items[0].currency || "IDR",
                                         minimumFractionDigits: 0,
                                         maximumFractionDigits: 0,
                                       })
@@ -4813,7 +5017,16 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
                             <tr className="text-right">
                               <td colSpan="25">Total Amount:</td>
                               <td>
-                                <strong>{calculateTotalAmount().totalAmount.toLocaleString("en-US", { style: "currency", currency: "IDR", minimumFractionDigits: 0, maximumFractionDigits: 0 })} </strong>
+                                <strong>
+                                  {items.length > 0
+                                    ? calculateTotalAmount(items[0].currency).totalAmount.toLocaleString("en-US", {
+                                        style: "currency",
+                                        currency: items[0].currency || "IDR",
+                                        minimumFractionDigits: 0, // No decimal places
+                                        maximumFractionDigits: 0,
+                                      })
+                                    : "IDR 0.00"}
+                                </strong>
                               </td>
                             </tr>
                           </tfoot>
@@ -4850,22 +5063,34 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
 
         <Row className="mt-4">
           <Col md={12} className="d-flex justify-content-end">
-            {/* <Button
-              variant="secondary"
-              className="mr-2"
-              onClick={() => {
-                handleRefresh();
-                setIsAddingNewPurchaseInvoice(false);
-              }}
-            >
-              <i className="fas fa-arrow-left"></i>Go Back
-            </Button> */}
-            <Button variant="primary" className="mr-2" onClick={handleSave}>
-              <i className="fas fa-save"></i> Save
-            </Button>
-            <Button variant="primary" onClick={handleSubmit}>
-              <i className="fas fa-check"></i> Submit
-            </Button>
+            {setIsEditingPurchaseInvoice ? (
+              <Button
+                variant="secondary"
+                className="mr-2"
+                onClick={() => {
+                  handleRefresh();
+                  setIsAddingNewPurchaseInvoice(false);
+                }}
+              >
+                <i className="fas fa-arrow-left"></i> Back
+              </Button>
+            ) : (
+              <></>
+            )}
+            {isSubmited === true ? (
+              <Button onClick={resetForm}>
+                <i className="fas fa-plus"></i> Add New
+              </Button>
+            ) : (
+              <>
+                <Button variant="primary" className="mr-2" onClick={handleSave}>
+                  <i className="fas fa-save"></i> Save
+                </Button>
+                <Button variant="primary" onClick={handleSubmit}>
+                  <i className="fas fa-check"></i> Submit
+                </Button>
+              </>
+            )}
           </Col>
         </Row>
       </section>
