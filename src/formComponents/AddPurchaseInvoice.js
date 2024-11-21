@@ -4822,7 +4822,12 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
                                     </td> */}
 
                                   <td>
-                                    <Form.Control as="select" value={item.type_of_pph} onChange={(e) => handleItemChange(index, "type_of_pph", e.target.value)}>
+                                    <Form.Control
+                                      as="select"
+                                      value={item.type_of_pph}
+                                      onChange={(e) => handleItemChange(index, "type_of_pph", e.target.value)}
+                                      disabled={item.type_of_vat === "PPNRoyalty"} // Disable if PPN Royalty is selected
+                                    >
                                       <option value="Select an Option">Select an Option</option>
                                       <option value="gross">Gross</option>
                                       <option value="nett">Nett</option>
@@ -4848,6 +4853,7 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
                                       options={tax_pph_type_option}
                                       isClearable
                                       placeholder="Select Tax PPH Type..."
+                                      isDisabled={item.type_of_vat === "PPNRoyalty"} // Disable if PPN Royalty is selected
                                     />
                                   </td>
 
