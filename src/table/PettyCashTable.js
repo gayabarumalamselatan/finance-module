@@ -69,7 +69,7 @@ const PettyCashTable = ({
     const VOUCHER_NUMBER = rowData.VOUCHER_NUMBER;
     console.log("Fetching data for VOUCHER_NUMBER:", VOUCHER_NUMBER);
 
-    LookupService.fetchLookupData(`PURC_FORMPUEXVO&filterBy=VOUCHER_NUMBER&filterValue=${VOUCHER_NUMBER}&operation=EQUAL`, authToken, branchId)
+    LookupService.fetchLookupData(`VOUC_FORMVCPETTYD&filterBy=VOUCHER_NUMBER&filterValue=${VOUCHER_NUMBER}&operation=EQUAL`, authToken, branchId)
       .then((response) => {
         const fetchedItems = response.data || [];
         console.log("Items fetched from API:", fetchedItems);
@@ -305,7 +305,7 @@ const PettyCashTable = ({
         return;
       }
 
-      const puexvoId = dataSelected[0].ID;
+      const vcpettyId = dataSelected[0].ID;
       const voucher_number = dataSelected[0].VOUCHER_NUMBER;
 
       Swal.fire({
@@ -318,26 +318,26 @@ const PettyCashTable = ({
       }).then(async (result) => {
         if (result.isConfirmed) {
           try {
-            const response = await DeleteDataService.postData(`column=id&value=${puexvoId}`, "PUEXVO", authToken, branchId);
+            const response = await DeleteDataService.postData(`column=id&value=${vcpettyId}`, "VCPETTY", authToken, branchId);
             if (!response.message === "Delete Data Successfully") {
               throw new Error("Failed to delete main request");
             }
 
-            const responseDetail = await LookupService.fetchLookupData(`PURC_FORMPUEXVOD&filterBy=VOUCHER_NUMBER&filterValue=${voucher_number}&operation=EQUAL`, authToken, branchId);
+            const responseDetail = await LookupService.fetchLookupData(`VOUC_FORMVCPETTYD&filterBy=VOUCHER_NUMBER&filterValue=${voucher_number}&operation=EQUAL`, authToken, branchId);
             const fetchedItems = responseDetail.data || [];
 
             if (fetchedItems.length === 0) {
               Swal.fire({
                 icon: "info",
                 title: "No Details Found",
-                text: `No details found for invoice number ${voucher_number}.`,
+                text: `No details found for voucher number ${voucher_number}.`,
                 confirmButtonText: "OK",
               });
             } else {
               for (const item of fetchedItems) {
                 if (item.ID) {
                   try {
-                    const itemResponseDelete = await DeleteDataService.postData(`column=id&value=${item.ID}`, "PUREQD", authToken, branchId);
+                    const itemResponseDelete = await DeleteDataService.postData(`column=id&value=${item.ID}`, "VCPETTYD", authToken, branchId);
                     console.log("Item deleted successfully:", itemResponseDelete);
                   } catch (error) {
                     console.error("Error deleting item:", item, error);
@@ -385,6 +385,7 @@ const PettyCashTable = ({
       });
     }
   };
+
   const handleResetFilters = () => {
     setFilterColumn("");
     setFilterValue("");
@@ -427,7 +428,7 @@ const PettyCashTable = ({
     const VOUCHER_NUMBER = selectedData[0].VOUCHER_NUMBER;
     console.log("Fetching data for VOUCHER_NUMBER:", VOUCHER_NUMBER);
 
-    LookupService.fetchLookupData(`PURC_FORMPUEXVOD&filterBy=VOUCHER_NUMBER&filterValue=${VOUCHER_NUMBER}&operation=EQUAL`, authToken, branchId)
+    LookupService.fetchLookupData(`VOUC_FORMVCPETTYD&filterBy=VOUCHER_NUMBER&filterValue=${VOUCHER_NUMBER}&operation=EQUAL`, authToken, branchId)
       .then((response) => {
         const fetchedItems = response.data || [];
         console.log("Items fetched from API:", fetchedItems);
@@ -474,9 +475,9 @@ const PettyCashTable = ({
                 <button type="button" className="btn btn-default" onClick={handleRefresh}>
                   <FaSyncAlt />
                 </button>
-                <button type="button" className="btn btn-default" onClick={handleNewBond}>
+                {/* <button type="button" className="btn btn-default" onClick={handleNewBond}>
                   <FaAddressBook /> Add New
-                </button>
+                </button> */}
                 {selectedRows.size > 0 && (
                   <>
                     <button type="button" className="btn btn-default" onClick={handleEdit}>
@@ -517,14 +518,13 @@ const PettyCashTable = ({
               <div className="col-md-4 mb-3">
                 <select className="form-control" value={filterColumn} onChange={(e) => setFilterColumn(e.target.value)}>
                   <option value="">Select a column</option>
-                  <option value="ENDTOENDID">End To End Id</option>
                   <option value="INVOICE_NUMBER">Invoice Number</option>
                   {/* <option value="TITLE">Title</option> */}
                   <option value="DOC_REFF">Doc Reference</option>
-                  <option value="DOC_REFF_NO">Doc Reference Number</option>
+                  {/* <option value="DOC_REFF_NO">Doc Reference Number</option> */}
                   {/* <option value="INVOICE_TYPE">Invoice type</option> */}
-                  <option value="INVOICE_DATE">Invoice Date</option>
-                  <option value="INVOICE_STATUS">Invoice Status</option>
+                  {/* <option value="INVOICE_DATE">Invoice Date</option> */}
+                  {/* <option value="INVOICE_STATUS">Invoice Status</option> */}
                   <option value="Vendor">Vendor</option>
                   <option value="PROJECT">Project</option>
                   {/* <option value="TOTAL_AMOUNT">Total Amount</option> */}
@@ -571,43 +571,15 @@ const PettyCashTable = ({
                   <th>
                     <input type="checkbox" onChange={handleSelectAll} checked={selectedRows.size === dataTable.length && dataTable.length > 0} />
                   </th>
-                  <th>Pay To Source</th>
-                  <th>Pay To</th>
-                  <th>Document Source Type</th>
-                  {/* <th>Title</th> */}
-                  <th>Document Source Number</th>
+
+                  <th>Paid To</th>
+                  <th>Document Reference</th>
                   <th>Voucher Number</th>
-                  {/* <th>Invoice Type</th> */}
                   <th>Voucher Status</th>
                   <th>Voucher Date</th>
                   <th>Amount</th>
-                  <th>Code/Account Name</th>
-                  <th>Description</th>
-                  <th>Invoice Number</th>                        <th>Amount</th>
-                  <th>Dr/Cr</th>
-                  <th>Type of VAT</th>
-                  <th>PPN</th>
-                  <th>Total Amount PPN</th>
-                  <th>PPH-1</th>
-                  <th>Total Amount PPH-1</th>
-                  <th>PPH-2</th>
-                  <th>Total Amount PPH-2</th>
-                  <th>Total Amount Paid</th>
-                  <th>Project</th>
-                  <th>Department</th>
-                  {/* <th>Project</th> */}
-                  {/* <th>Total Amount</th> */}
-                  {/* <th>Description</th>
-                  <th>Payment Term</th>
-                  <th>Due Date</th> */}
-                  {/* <th>Term Of Payment</th> */}
-                  {/* <th>Tax rate</th>
-                  <th>Tax Invoice Number</th>
-                  <th>Bi Middle Rate</th>
-                  <th>Total Tax Base</th> */}
-                  {/* <th>Total Amount Ppn</th>
-                  <th>Total Amount Pph</th> */}
-                  {/* <th>Doc Source</th> */}
+                  <th>Total Debt</th>
+                  <th>Total Paid</th>
                 </tr>
               </thead>
               <tbody>
@@ -633,39 +605,14 @@ const PettyCashTable = ({
                       <td onClick={(e) => handleCheckboxSelect(e, item.ID)}>
                         <input type="checkbox" checked={selectedRows.has(item.ID)} onChange={(e) => handleCheckboxSelect(e, item.ID)} />
                       </td>
-                      <td>{item.PAY_TO_SOURCE}</td>
-                      <td>{item.PAY_TO}</td>
+                      <td>{item.PAID_TO}</td>
                       <td>{item.DOC_REFF}</td>
-                      {/* <td>{item.TITLE}</td> */}
-                      {/* <td>{item.DOC_REFF}</td> */}
-                      <td>{item.DOC_REFF_NO}</td>
-                      {/* <td>{item.INVOICE_TYPE}</td> */}
                       <td>{item.VOUCHER_NUMBER}</td>
-                      <td>{item.VOUCHER_STATUS}</td>
+                      <td>{item.STATUS}</td>
                       <td>{item.VOUCHER_DATE}</td>
                       <td>{item.AMOUNT}</td>
-                      {/* <td>
-                        <NumericFormat value={item.TOTAL_AMOUNT} displayType="text" thousandSeparator="," prefix="Rp " />
-                      </td> */}
-                      <td>{item.COA}</td>
-                      <td>{item.DESCRIPTION}</td>
-                      <td>{item.INVOICE_NUMBER}</td>
-                      <td>{item.AMOUNT}</td>
-                      <td>{item.DB_CR}</td>
-                      <td>{item.TYPE_OF_VAT}</td>
-                      <td>{item.TAX_PPN}</td>
-                      <td>{item.TAX_PPN_AMOUNT}</td>
-                      <td>{item.TAX_PPH_RATE}</td>
-                      <td>{item.TAX_PPH_AMOUNT_2}</td>
-                      <td>{item.TAX_PPH_2}</td>
-                      <td>{item.TAX_PPH_RATE_2}</td>
-                      <td>{item.AMOUNT_PAID}</td>
-                      <td>{item.PROJECT}</td>
-                      <td>{item.DEPARTMENT}</td>
-                      {/* <td>{item.TOTAL_TAX_BASE}</td>
-                      <td>{item.TOTAL_AMOUNT_PPN}</td>
-                      <td>{item.TOTAL_AMOUNT_PPH}</td> */}
-                      {/* <td>{item.DOC_SOURCE}</td> */}
+                      <td>{item.TOTAL_DEBT}</td>
+                      <td>{item.TOTAL_PAID}</td>
                     </tr>
                   ))
                 )}
@@ -687,16 +634,16 @@ const PettyCashTable = ({
             {selectedRowData ? (
               <div>
                 <div className="container">
-                <div className="row mb-3">
+                  {/* <div className="row mb-3">
                     <div className="col-md-4 font-weight-bold">Pay To Source:</div>
                     <div className="col-md-8">{selectedRowData.PAY_TO_SOURCE}</div>
+                  </div> */}
+                  <div className="row mb-3">
+                    <div className="col-md-4 font-weight-bold">Paid To:</div>
+                    <div className="col-md-8">{selectedRowData.PAID_TO}</div>
                   </div>
                   <div className="row mb-3">
-                    <div className="col-md-4 font-weight-bold">Pay To:</div>
-                    <div className="col-md-8">{selectedRowData.PAY_TO}</div>
-                  </div>
-                  <div className="row mb-3">
-                    <div className="col-md-4 font-weight-bold">Document Source Type:</div>
+                    <div className="col-md-4 font-weight-bold">Document Reference:</div>
                     <div className="col-md-8">{selectedRowData.DOC_REFF}</div>
                   </div>
                   {/* <div className="row mb-3">
@@ -707,10 +654,10 @@ const PettyCashTable = ({
                     <div className="col-md-4 font-weight-bold">Doc Reference:</div>
                     <div className="col-md-8">{selectedRowData.DOC_REFF}</div>
                   </div> */}
-                  <div className="row mb-3">
+                  {/* <div className="row mb-3">
                     <div className="col-md-4 font-weight-bold">Doc Reference Number:</div>
                     <div className="col-md-8">{selectedRowData.DOC_REFF_NO}</div>
-                  </div>
+                  </div> */}
                   {/* <div className="row mb-3">
                     <div className="col-md-4 font-weight-bold">Invoice Type:</div>
                     <div className="col-md-8">{selectedRowData.INVOICE_TYPE}</div>
@@ -721,7 +668,7 @@ const PettyCashTable = ({
                   </div>
                   <div className="row mb-3">
                     <div className="col-md-4 font-weight-bold">Voucher Status:</div>
-                    <div className="col-md-8">{selectedRowData.VOUCHER_STATUS_STATUS}</div>
+                    <div className="col-md-8">{selectedRowData.STATUS}</div>
                   </div>
 
                   <div className="row mb-3">
@@ -733,116 +680,43 @@ const PettyCashTable = ({
                     <div className="col-md-8">{selectedRowData.AMOUNT}</div>
                   </div>
                   <div className="row mb-3">
-                    <div className="col-md-4 font-weight-bold">Code/Acount Name:</div>
-                    <div className="col-md-8">{selectedRowData.COA}</div>
+                    <div className="col-md-4 font-weight-bold">Total Debt:</div>
+                    <div className="col-md-8">{selectedRowData.TOTAL_DEBT}</div>
                   </div>
                   <div className="row mb-3">
-                    <div className="col-md-4 font-weight-bold">Description:</div>
-                    <div className="col-md-8">{selectedRowData.DESCRIPTION}</div>
+                    <div className="col-md-4 font-weight-bold">Total Paid:</div>
+                    <div className="col-md-8">{selectedRowData.TOTAL_PAID}</div>
                   </div>
-                  <div className="row mb-3">
-                    <div className="col-md-4 font-weight-bold">Invoice Number:</div>
-                    <div className="col-md-8">{selectedRowData.INVOICE_NUMBER}</div>
-                  </div>
-                  <div className="row mb-3">
-                    <div className="col-md-4 font-weight-bold">Amount:</div>
-                    <div className="col-md-8">{selectedRowData.AMOUNT}</div>
-                  </div>
-                  <div className="row mb-3">
-                    <div className="col-md-4 font-weight-bold">Dr/Cr:</div>
-                    <div className="col-md-8">{selectedRowData.DB_CR}</div>
-                  </div>
-                  <div className="row mb-3">
-                    <div className="col-md-4 font-weight-bold">Type Of Vat:</div>
-                    <div className="col-md-8">{selectedRowData.TYPE_OF_VAT}</div>
-                  </div>
-                  <div className="row mb-3">
-                    <div className="col-md-4 font-weight-bold">PPN :</div>
-                    <div className="col-md-8">{selectedRowData.TAX_PPN}</div>
-                  </div>
-                  <div className="row mb-3">
-                    <div className="col-md-4 font-weight-bold">Total Amount PPH 1:</div>
-                    <div className="col-md-8">{selectedRowData.TAX_PPN_AMOUNT}</div>
-                  </div>
-                  <div className="row mb-3">
-                    <div className="col-md-4 font-weight-bold">PPH 1:</div>
-                    <div className="col-md-8">{selectedRowData.TAX_PPH_RATE}</div>
-                  </div>
-                  <div className="row mb-3">
-                    <div className="col-md-4 font-weight-bold">Total Amount PPH 2:</div>
-                    <div className="col-md-8">{selectedRowData.TAX_PPH_AMOUNT_2}</div>
-                  </div>
-                  <div className="row mb-3">
-                    <div className="col-md-4 font-weight-bold"> PPH 2:</div>
-                    <div className="col-md-8">{selectedRowData.TAX_PPH_2}</div>
-                  </div>
-                  <div className="row mb-3">
-                    <div className="col-md-4 font-weight-bold">Total Amount PPH 2:</div>
-                    <div className="col-md-8">{selectedRowData.TAX_PPH_RATE_2}</div>
-                  </div>
-                  <div className="row mb-3">
-                    <div className="col-md-4 font-weight-bold">Total Amount Paid:</div>
-                    <div className="col-md-8">{selectedRowData.AMOUNT_PAID}</div>
-                  </div>
-                  <div className="row mb-3">
-                    <div className="col-md-4 font-weight-bold">Project :</div>
-                    <div className="col-md-8">{selectedRowData.PROJECT}</div>
-                  </div>
-                  <div className="row mb-3">
-                    <div className="col-md-4 font-weight-bold">Depertment :</div>
-                    <div className="col-md-8">{selectedRowData.DEPARTMENT}</div>
-                  </div>
-                  {/* <div className="row mb-3">
-                    <div className="col-md-4 font-weight-bold">Total Tax Base:</div>
-                    <div className="col-md-8">{selectedRowData.TOTAL_TAX_BASE}</div>
-                  </div>
-                  <div className="row mb-3">
-                    <div className="col-md-4 font-weight-bold">Total Amount Ppn:</div>
-                    <div className="col-md-8">{selectedRowData.TOTAL_AMOUNT_PPN}</div>
-                  </div>
-                  <div className="row mb-3">
-                    <div className="col-md-4 font-weight-bold">Total Amount Pph:</div>
-                    <div className="col-md-8">{selectedRowData.TOTAL_AMOUNT_PPH}</div>
-                  </div> */}
-                  {/* <div className="row mb-3">
-                    <div className="col-md-4 font-weight-bold">Description:</div>
-                    <div className="col-md-8">{selectedRowData.DESCRIPTION}</div>
-                  </div> */}
-                  {/* <div className="row mb-3">
-                    <div className="col-md-4 font-weight-bold">Total Amount:</div>
-                    <div className="col-md-8">{DisplayFormat(selectedRowData.TOTAL_AMOUNT)}</div>
-                  </div> */}
                 </div>
                 {/* Add more fields as needed */}
                 <div className="table-responsive" style={{ overflowX: "auto" }}>
                   <Table striped bordered hover>
                     <thead>
                       <tr>
-                      <th>Pay To Source</th>
-                  <th>Pay To</th>
-                  <th>Document Source Type</th>
-                  {/* <th>Title</th> */}
-                  <th>Document Source Number</th>
-                  <th>Voucher Number</th>
-                  {/* <th>Invoice Type</th> */}
-                  <th>Voucher Status</th>
-                  <th>Voucher Date</th>
-                  <th>Amount</th>
-                  <th>Code/Account Name</th>
-                  <th>Description</th>
-                  <th>Invoice Number</th>                        
-                  <th>Amount</th>
-                  <th>Dr/Cr</th>
-                  <th>Type of VAT</th>
-                  <th>PPN</th>
-                  <th>Total Amount PPN</th>
-                  <th>PPH-1</th>
-                  <th>Total Amount PPH-1</th>
-                  <th>PPH-2</th>
-                  <th>Total Amount PPH-2</th>
-                  <th>Total Amount Paid</th>
-                  <th>Project</th>
-                  <th>Department</th>
+                      <th>Document Reference Number</th>
+                              <th>Code/Account Name</th>
+                              <th>Description</th>
+                              <th>Product</th>
+                              <th>Db/Cr</th>
+                              <th>Employee</th>
+                              <th>Vendor</th>
+                              <th>Project</th>
+                              <th>Project Contract Number</th>
+                              <th>Customer</th>
+                              <th>Department</th>
+                              <th>Currency</th>
+                              <th>Quantity</th>
+                              <th>Unit Price</th>
+                              <th>Total Price</th>
+                              <th>Type of VAT</th>
+                              <th>PPN</th>
+                              <th>Tax Ppn Rate</th>
+                              <th>Type of PPh</th>
+                              <th>PPh</th>
+                              <th>Tax PPh Rate </th>
+                              <th>Amount PPN</th>
+                              <th>Amount PPh</th>
+                              <th>Total To Be Paid</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -850,41 +724,30 @@ const PettyCashTable = ({
                         .sort((a, b) => a.ID - b.ID) // Sort by ID in ascending order
                         .map((detail) => (
                           <tr key={detail.ID}>
-                            <td>{detail.pay_to_source}</td>
-                            <td>{detail.pay_to}</td>
-                            <td>{detail.doc_reff}</td>
                             <td>{detail.doc_reff_no}</td>
-                            <td>{detail.voucher_number}</td>
-                            <td>{detail.voucher_status}</td>
-                            <td>{detail.voucher_date}</td>
-                            <td>{detail.amount}</td>
                             <td>{detail.coa}</td>
                             <td>{detail.description}</td>
-                            <td>{detail.invoice_number}</td>
-                            <td>{detail.amount}</td>
+                            <td>{detail.product}</td>
                             <td>{detail.db_cr}</td>
+                            <td>{detail.employee}</td>
+                            <td>{detail.vendor}</td>
+                            <td>{detail.project}</td>
+                            <td>{detail.project_contract_number}</td>
+                            <td>{detail.customer}</td>
+                            <td>{detail.department}</td>
+                            <td>{detail.currency}</td>
+                            <td>{detail.quantity}</td>
+                            <td>{detail.unit_price}</td>
+                            <td>{detail.total_price}</td>
                             <td>{detail.type_of_vat}</td>
                             <td>{detail.tax_ppn}</td>
-                            <td>{detail.tax_ppn_amount}</td>
-                            <td>{detail.tax_pph_rate}</td>
-                            <td>{detail.tax_pph_amount_2}</td>
-                            <td>{detail.tax_pph_2}</td>
-                            <td>{detail.tax_pph_rate_2}</td>
-                            <td>{detail.amount_paid}</td>
-                            <td>{detail.project}</td>
-                            <td>{detail.department}</td>
-                            
-                            {/* <td style={{ textAlign: "right" }}>{DisplayFormat(detail.unit_price)}</td>
-                            <td style={{ textAlign: "right" }}>{DisplayFormat(detail.total_price)}</td>
-                            <td>{detail.product_note}</td>
-                            <td>{detail.tax_ppn}</td>
                             <td>{detail.tax_ppn_rate}</td>
-                            <td style={{ textAlign: "right" }}>{DisplayFormat(detail.tax_ppn_amount)}</td>
+                            <td>{detail.type_of_pph}</td>
                             <td>{detail.tax_pph}</td>
                             <td>{detail.tax_pph_rate}</td>
+                            <td style={{ textAlign: "right" }}>{DisplayFormat(detail.tax_ppn_amount)}</td>
                             <td style={{ textAlign: "right" }}>{DisplayFormat(detail.tax_pph_amount)}</td>
-                            <td style={{ textAlign: "right" }}>{DisplayFormat(detail.tax_base)}</td>
-                            <td>{detail.type_of_vat}</td> */}                     
+                            <td style={{ textAlign: "right" }}>{DisplayFormat(detail.amount_paid)}</td>
                           </tr>
                         ))}
                     </tbody>

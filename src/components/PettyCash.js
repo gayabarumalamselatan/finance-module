@@ -5,7 +5,7 @@ import axios from "axios";
 import { FORM_SERVICE_INSERT_DATA, FORM_SERVICE_LOAD_FIELD, FORM_SERVICE_REPORT_DATA_EXCEL, MM_SERVICE_LIST_FILE_TRADE, MM_SERVICE_LIST_JOURNAL } from "../config/ConfigUrl";
 import { HandleToUppercase } from "../utils/HandleToUpercase";
 import FormService from "../service/FormService";
-import EditPettyCash from "../formComponents/EditPettyCash ";
+import EditPettyCash from "../formComponents/EditPettyCash";
 import AddPettyCash from "../formComponents/AddPettyCash";
 import PettyCashTable from "../table/PettyCashTable";
 
@@ -117,7 +117,7 @@ const PettyCash = () => {
         filterValueParam = userId;
       }
 
-      const fetchFormMmtData = FormService.fetchData("", filterColumnParam, filterOperationParam, filterValueParam, currentPage, pageSize, `PURC_FORM${formCode[0]}`, branchId, authToken, true)
+      const fetchFormMmtData = FormService.fetchData("", filterColumnParam, filterOperationParam, filterValueParam, currentPage, pageSize, `VOUC_FORM${formCode[0]}`, branchId, authToken, true)
         .then((response) => {
           console.log("Form Purchase Request lookup data:", response);
           formMmtData = HandleToUppercase(response.data);
@@ -213,7 +213,7 @@ const PettyCash = () => {
             isAddingNewPettyCash={handleAddNewPettyCash}
             EditPettyCash={handleEditPettyCash}
             selectedData={handleSelectData}
-            checker={permissions.Petty?.["Purchase Invoice"].verify}
+            checker={permissions.Petty?.["Purchase Voucher"].verify}
           />
         )}
 

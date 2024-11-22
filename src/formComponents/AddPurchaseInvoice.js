@@ -51,7 +51,7 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
   const [po_number, setPoNumber] = useState("");
   const [internalmemo, setInternalMemo] = useState("");
   const [tax_rate, setTaxRate] = useState("");
-  const [bi_middle_rate, setBiMiddleRate] = useState("");
+  const [bi_middle_rate, setBiMiddleRate] = useState("1");
   const [tax_invoice_number, setTaxInvoiceNumber] = useState("");
   const [selectedVendor, setSelectedVendor] = useState(null);
   const [selectedCodCorSkb, setSelectedCodCorSkb] = useState(null);
@@ -3999,9 +3999,9 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
 
                     <Col md={6}>
                       <Form.Group controlId="formDocReff">
-                        <Form.Label>Document Reference</Form.Label>
+                        <Form.Label>Document Referance</Form.Label>
                         <Form.Control as="select" placeholder="Enter Document Number" value={docRef} onChange={(e) => setDocRef(e.target.value)}>
-                          <option value="">Select Document Reference</option>
+                          <option value="">Select Document Referance</option>
                           <option value="purchaseRequest">Purchase Request</option>
                           <option value="internalMemo">Internal Memo</option>
                           <option value="purchaseOrder">Purchase Order</option>
@@ -4098,6 +4098,7 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
                         <Form.Control
                           type="number"
                           placeholder="Enter Bi Middle Rate"
+                          min="0"
                           value={bi_middle_rate}
                           onChange={(e) => {
                             const value = parseFloat(e.target.value);
