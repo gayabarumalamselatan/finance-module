@@ -1962,6 +1962,7 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
         vendor: "",
         doc_reff_no: "",
         project_contract_number: "",
+        bi_middle_rate: "",
       },
     ]);
   };
@@ -2894,6 +2895,7 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
           total_amount: totalAmount,
           endtoendid: endToEndId,
           created_by: createdBy,
+          bi_middle_rate,
         };
 
         console.log("Master", generalInfo);
@@ -3185,6 +3187,7 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
           total_amount: totalAmount,
           endtoendid: endToEndId,
           created_by: createdBy,
+          bi_middle_rate,
         };
 
         console.log("Master", generalInfo);
@@ -3877,6 +3880,11 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
     isDisabled: usedOptions.has(option.value),
   }));
 
+  const handleBiMiddleRateChange = (e) => {
+    const value = parseFloat(e.target.value); // Convert to a number
+    setBiMiddleRate(isNaN(value) ? 0 : value); // Set to 0 if NaN
+  };
+
   return (
     <Fragment>
       <section className="content-header">
@@ -4080,6 +4088,22 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
                             const newPrice = parseFloat(e.target.value.replace(/[^\d.-]/g, "")) || 0;
                             taxExchangeChange(newPrice);
                           }}
+                        />
+                      </Form.Group>
+                    </Col>
+
+                    <Col md={6}>
+                      <Form.Group controlId="formBiMiddleRate">
+                        <Form.Label>Bi Middle Rate</Form.Label>
+                        <Form.Control
+                          type="number"
+                          placeholder="Enter Bi Middle Rate"
+                          value={bi_middle_rate}
+                          onChange={(e) => {
+                            const value = parseFloat(e.target.value);
+                            setBiMiddleRate(isNaN(value) ? 0 : value);
+                          }}
+                          required
                         />
                       </Form.Group>
                     </Col>
