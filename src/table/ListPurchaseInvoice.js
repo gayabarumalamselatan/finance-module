@@ -241,12 +241,12 @@ const ListPurchaseInvoice = ({ selectedRow, onClose }) => {
               <CgAlignBottom /> Journal
             </button>
           </li>
-           <li className="nav-item">
+          {/* <li className="nav-item">
             <button className={`nav-link ${activeTab === "pair" ? "active" : ""}`} onClick={() => handleTabChange("pair")}>
-              <CgAlignBottom /> Voucher
+              <CgAlignBottom /> Inquiry Purchase Invoice
             </button>
           </li>
-          {/*<li className="nav-item">
+          <li className="nav-item">
             <button className={`nav-link ${activeTab === "pos" ? "active" : ""}`} onClick={() => handleTabChange("pos")}>
               <CgAlignBottom /> Voucher Payment Petty Cash
             </button>
@@ -330,6 +330,10 @@ const ListPurchaseInvoice = ({ selectedRow, onClose }) => {
                     <div className="row mb-3">
                       <div className="col-md-4 font-weight-bold">Description:</div>
                       <div className="col-md-8">{selectedRowData[0].DESCRIPTION}</div>
+                    </div>
+                    <div className="row mb-3">
+                      <div className="col-md-4 font-weight-bold">Bi Middle Rate:</div>
+                      <div className="col-md-8">{selectedRowData[0].BI_MIDDLE_RATE}</div>
                     </div>
                   </div>
                   {/* Add more fields as needed */}
@@ -554,7 +558,7 @@ const ListPurchaseInvoice = ({ selectedRow, onClose }) => {
         {activeTab === "pair" && (
           <div className="card">
             <div className="card-header">
-              <h5 className="card-title">View Voucher</h5>
+              <h5 className="card-title">View Voucher Payment Bank</h5>
               <button type="button" className="close" onClick={onClose}>
                 <span aria-hidden="true">&times;</span>
               </button>

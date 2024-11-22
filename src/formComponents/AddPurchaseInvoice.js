@@ -3016,6 +3016,7 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
             delete updatedItem.id_upload;
             delete updatedItem.total_before_discount;
             delete updatedItem.total_after_discount;
+            delete updatedItem.bi_middle_rate;
 
             try {
               const itemResponse = await InsertDataService.postData(updatedItem, "PUINVCD", authToken, branchId);
@@ -3066,6 +3067,7 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
             delete updatedItem.requestor;
             delete updatedItem.id_upload;
             delete updatedItem.total_before_discount;
+            delete updatedItem.bi_middle_rate;
 
             const itemResponse = await InsertDataService.postData(updatedItem, "PUINVCD", authToken, branchId);
             console.log("Item posted successfully:", itemResponse);
@@ -3287,6 +3289,7 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
             delete updatedItem.id_upload;
             delete updatedItem.total_before_discount;
             delete updatedItem.total_after_discount;
+            delete updatedItem.bi_middle_rate;
 
             try {
               const itemResponse = await InsertDataService.postData(updatedItem, "PUINVCD", authToken, branchId);
@@ -3338,6 +3341,7 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
             delete updatedItem.requestor;
             delete updatedItem.id_upload;
             delete updatedItem.total_before_discount;
+            delete updatedItem.bi_middle_rate;
 
             const itemResponse = await InsertDataService.postData(updatedItem, "PUINVCD", authToken, branchId);
             console.log("Item posted successfully:", itemResponse);
@@ -3539,6 +3543,7 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
                       "vat_included",
                       "new_unit_price",
                       "requestor",
+                      "bi_middle_rate",
                     ];
 
                     fieldsToDelete.forEach((field) => delete updatedStoredItem[field]);
@@ -3999,9 +4004,9 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
 
                     <Col md={6}>
                       <Form.Group controlId="formDocReff">
-                        <Form.Label>Document Referance</Form.Label>
+                        <Form.Label>Document Reference</Form.Label>
                         <Form.Control as="select" placeholder="Enter Document Number" value={docRef} onChange={(e) => setDocRef(e.target.value)}>
-                          <option value="">Select Document Referance</option>
+                          <option value="">Select Document Reference</option>
                           <option value="purchaseRequest">Purchase Request</option>
                           <option value="internalMemo">Internal Memo</option>
                           <option value="purchaseOrder">Purchase Order</option>
@@ -4587,7 +4592,7 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
                                       }}
                                       placeholder="Project Contract Number..."
                                       isClearable
-                                      required
+                                      isDisabled={!!item.project}
                                       styles={{
                                         placeholder: (base) => ({
                                           ...base,
@@ -4606,8 +4611,8 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
                                       }}
                                       options={customerOptions}
                                       placeholder="Customer..."
+                                      isDisabled={!!item.project}
                                       isClearable
-                                      required
                                     />
                                   </td>
                                   <td>
