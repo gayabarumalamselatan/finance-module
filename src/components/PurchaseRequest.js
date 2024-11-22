@@ -99,23 +99,34 @@ const PurchaseRequest = () => {
             // Check if URL parameter `status` is set
             const statusParam = new URLSearchParams(window.location.search).get('status');
             if (statusParam) {
-                dynamicFilters.push({
-                    column: "STATUS",
-                    operation: "EQUAL",
-                    value: statusParam,
-                });
+                // Mengecek apakah filter STATUS sudah ada
+                const isStatusFilterExists = dynamicFilters.some(
+                    (filter) => filter.column === "STATUS" && filter.value === statusParam
+                );
+                if (!isStatusFilterExists) {
+                    dynamicFilters.push({
+                        column: "STATUS",
+                        operation: "EQUAL",
+                        value: statusParam,
+                    });
+                }
             }
     
             console.log("permissions", permissions.Purchase?.["List Purchase Request"].verify);
             const checker = permissions.Purchase?.["List Purchase Request"].verify;
     
             if (!checker && userId) {
-                // Apply additional filter for userId if checker is false
-                dynamicFilters.push({
-                    column: "requestor",
-                    operation: "EQUAL",
-                    value: userId,
-                });
+                // Mengecek apakah filter requestor sudah ada
+                const isRequestorFilterExists = dynamicFilters.some(
+                    (filter) => filter.column === "requestor" && filter.value === userId
+                );
+                if (!isRequestorFilterExists) {
+                    dynamicFilters.push({
+                        column: "requestor",
+                        operation: "EQUAL",
+                        value: userId,
+                    });
+                }
             }
     
             // Fetch data using multiple filters
@@ -165,22 +176,44 @@ const PurchaseRequest = () => {
         setFormData([]);
     };
 
-    const handleFilterSearch = ({filters}) => {
-        console.log('Filter Purchase Request list:', filters);
-        
-        // Menambahkan filter baru ke array filters
-        setFilters(prevFilters => [...prevFilters, ...filters]);
-    
-        setIsFilterSet(!isFilterSet);
-        setIsLoadingTable(true);
-    };
-    
+    // Handle pencarian filter
+const handleFilterSearch = ({ filters }) => {
+    console.log('filter Purchase Request list:', filters);
 
-    const handleResetFilters = () => {
-        setFilters([]); // Reset filters ke array kosong
-        setIsFilterSet(!isFilterSet);
-        setIsLoadingTable(true);
-    };
+    // Periksa filter yang sudah ada sebelum menambahkannya
+    let updatedFilters = [...filters]; // Salin filter yang ada
+
+    // Cek apakah filter baru sudah ada di filters
+    if (filterColumn && filterOperation && filterValue) {
+        const isFilterExists = updatedFilters.some(
+            (filter) =>
+                filter.column === filterColumn &&
+                filter.operation === filterOperation &&
+                filter.value === filterValue
+        );
+
+        // Jika filter belum ada, tambahkan filter baru
+        if (!isFilterExists) {
+            updatedFilters.push({
+                column: filterColumn,
+                operation: filterOperation,
+                value: filterValue,
+            });
+        }
+    }
+
+    // Set filters yang baru untuk pencarian
+    setFilters(updatedFilters); // Update state filters
+    setIsFilterSet(!isFilterSet);
+    setIsLoadingTable(true);
+};
+
+// Reset filters
+const handleResetFilters = () => {
+    setFilters([]); // Reset ke array kosong jika reset
+    setIsFilterSet(!isFilterSet);
+    setIsLoadingTable(true);
+};
     
 
 
