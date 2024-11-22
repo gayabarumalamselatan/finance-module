@@ -19,6 +19,7 @@ const PurchaseOrder = () => {
 
     // Inquiry table variable
     const [dataTable, setDataTable] = useState([]);
+    const [formDetail, setFormDetail] = useState([]);
     const [currentPage, setCurrentPage] = useState(1);
     const [pageSize, setPageSize] = useState(10);
     const [totalItems, setTotalItems] = useState(0);

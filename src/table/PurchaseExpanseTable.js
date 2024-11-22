@@ -177,108 +177,213 @@ const PurchaseExpanseTable = ({
   //     console.log('dataSelected Delete:', dataSelected)  // Pass the selected data for further processing
   // };
 
+  // const handleDelete = async (value) => {
+  //   const dataSelected = getSelectedRowsData(); // Ambil data yang dipilih
+  //   console.log("dataSelected Delete:", dataSelected);
+
+  //   // Cek jika lebih dari satu baris dipilih
+  //   if (dataSelected.length !== 1) {
+  //     Swal.fire({
+  //       icon: "warning",
+  //       title: "Multiple Rows Selected",
+  //       text: "Please select exactly one row to delete.",
+  //       confirmButtonText: "OK",
+  //     });
+  //     return;
+  //   }
+
+  //   const userId = sessionStorage.getItem("userId");
+
+  //   // Cek apakah status IN_PROCESS dan userId cocok dengan REQUESTOR
+  //   if (!checker && dataSelected[0].STATUS_REQUEST === "IN_PROCESS" && userId === dataSelected[0].REQUESTOR) {
+  //     Swal.fire({
+  //       icon: "warning",
+  //       title: "Delete Restricted",
+  //       text: 'You cannot delete this request while it is "IN_PROCESS".',
+  //       confirmButtonText: "OK",
+  //     });
+  //     return;
+  //   }
+
+  //   const vcbankId = dataSelected[0].ID; // ID dari data utama
+  //   const voucher_number = dataSelected[0].VOUCHER_NUMBER;
+
+  //   // Konfirmasi sebelum penghapusan
+  //   Swal.fire({
+  //     title: "Are you sure?",
+  //     text: "Do you really want to delete this request and its details? This process cannot be undone.",
+  //     icon: "warning",
+  //     showCancelButton: true,
+  //     confirmButtonText: "Yes, delete it!",
+  //     cancelButtonText: "Cancel",
+  //   }).then(async (result) => {
+  //     if (result.isConfirmed) {
+  //       try {
+  //         // Panggil API untuk menghapus data master (utama)
+  //         const response = await DeleteDataService.postData(`column=id&value=${vcbankId}`, "VCBANK", authToken, branchId);
+
+  //         if (!response.message === "Delete Data Successfully") {
+  //           throw new Error("Failed to delete main request");
+  //         }
+
+  //         // Jika berhasil hapus master, lanjutkan ke detail berdasarkan VOUCHER_NUMBER
+  //         const responseDetail = await LookupService.fetchLookupData(`VOUC_FORMVCBANKD&filterBy=VOUCHER_NUMBER&filterValue=${voucher_number}&operation=EQUAL`, authToken, branchId);
+
+  //         const fetchedItems = responseDetail.data || [];
+  //         console.log("Items fetch:", fetchedItems);
+
+  //         if (fetchedItems.length > 0) {
+  //           // Hapus setiap detail yang ditemukan
+  //           for (const item of fetchedItems) {
+  //             if (item.ID) {
+  //               try {
+  //                 const itemResponseDelete = await DeleteDataService.postData(`column=id&value=${item.ID}`, "VCBANKD", authToken, branchId);
+  //                 console.log("Item deleted successfully:", itemResponseDelete);
+  //               } catch (error) {
+  //                 console.error("Error deleting item:", item, error);
+  //                 throw new Error("Failed to delete one or more detail items");
+  //               }
+  //             } else {
+  //               console.log("No ID found for this item, skipping delete:", item);
+  //             }
+  //           }
+  //         } else {
+  //           throw new Error("No details found for this VOUCHER_NUMBER");
+  //         }
+
+  //         Swal.fire({
+  //           icon: "success",
+  //           title: "Request and Details Deleted",
+  //           text: "Both the request and its details have been successfully deleted.",
+  //           confirmButtonText: "OK",
+  //         });
+
+  //         handleRefresh();
+
+  //         // Lakukan refresh data atau aksi lain yang diperlukan setelah penghapusan berhasil
+  //       } catch (error) {
+  //         console.error("Error during delete process:", error);
+  //         Swal.fire({
+  //           icon: "error",
+  //           title: "Delete Error",
+  //           text: "Failed to delete the request or its details. Please try again later.",
+  //           confirmButtonText: "OK",
+  //         });
+  //       }
+  //     } else {
+  //       Swal.fire({
+  //         icon: "info",
+  //         title: "Cancelled",
+  //         text: "Your request deletion has been cancelled.",
+  //         confirmButtonText: "OK",
+  //       });
+  //     }
+  //   });
+  // };
+
   const handleDelete = async (value) => {
-    const dataSelected = getSelectedRowsData(); // Ambil data yang dipilih
-    console.log("dataSelected Delete:", dataSelected);
+    try {
+      const dataSelected = getSelectedRowsData();
+      if (dataSelected.length !== 1) {
+        Swal.fire({
+          icon: "warning",
+          title: "Multiple Rows Selected",
+          text: "Please select exactly one row to delete.",
+          confirmButtonText: "OK",
+        });
+        return;
+      }
 
-    // Cek jika lebih dari satu baris dipilih
-    if (dataSelected.length !== 1) {
+      const userId = sessionStorage.getItem("userId");
+      if (!checker && dataSelected[0].STATUS_REQUEST === "IN_PROCESS" && userId === dataSelected[0].REQUESTOR) {
+        Swal.fire({
+          icon: "warning",
+          title: "Delete Restricted",
+          text: 'You cannot delete this request while it is "IN_PROCESS".',
+          confirmButtonText: "OK",
+        });
+        return;
+      }
+
+      const vcbankId = dataSelected[0].ID;
+      const voucher_number = dataSelected[0].VOUCHER_NUMBER;
+
       Swal.fire({
+        title: "Are you sure?",
+        text: "Do you really want to delete this request and its details? This process cannot be undone.",
         icon: "warning",
-        title: "Multiple Rows Selected",
-        text: "Please select exactly one row to delete.",
-        confirmButtonText: "OK",
-      });
-      return;
-    }
+        showCancelButton: true,
+        confirmButtonText: "Yes, delete it!",
+        cancelButtonText: "Cancel",
+      }).then(async (result) => {
+        if (result.isConfirmed) {
+          try {
+            const response = await DeleteDataService.postData(`column=id&value=${vcbankId}`, "VCBANK", authToken, branchId);
+            if (!response.message === "Delete Data Successfully") {
+              throw new Error("Failed to delete main request");
+            }
 
-    const userId = sessionStorage.getItem("userId");
+            const responseDetail = await LookupService.fetchLookupData(`VOUC_FORMVCBANKD&filterBy=VOUCHER_NUMBER&filterValue=${voucher_number}&operation=EQUAL`, authToken, branchId);
+            const fetchedItems = responseDetail.data || [];
 
-    // Cek apakah status IN_PROCESS dan userId cocok dengan REQUESTOR
-    if (!checker && dataSelected[0].STATUS_REQUEST === "IN_PROCESS" && userId === dataSelected[0].REQUESTOR) {
-      Swal.fire({
-        icon: "warning",
-        title: "Delete Restricted",
-        text: 'You cannot delete this request while it is "IN_PROCESS".',
-        confirmButtonText: "OK",
-      });
-      return;
-    }
-
-    const vcbankId = dataSelected[0].ID; // ID dari data utama
-    const voucher_number = dataSelected[0].VOUCHER_NUMBER;
-
-    // Konfirmasi sebelum penghapusan
-    Swal.fire({
-      title: "Are you sure?",
-      text: "Do you really want to delete this request and its details? This process cannot be undone.",
-      icon: "warning",
-      showCancelButton: true,
-      confirmButtonText: "Yes, delete it!",
-      cancelButtonText: "Cancel",
-    }).then(async (result) => {
-      if (result.isConfirmed) {
-        try {
-          // Panggil API untuk menghapus data master (utama)
-          const response = await DeleteDataService.postData(`column=id&value=${vcbankId}`, "VCBANK", authToken, branchId);
-
-          if (!response.message === "Delete Data Successfully") {
-            throw new Error("Failed to delete main request");
-          }
-
-          // Jika berhasil hapus master, lanjutkan ke detail berdasarkan VOUCHER_NUMBER
-          const responseDetail = await LookupService.fetchLookupData(`VOUC_FORMVCBANKD&filterBy=VOUCHER_NUMBER&filterValue=${voucher_number}&operation=EQUAL`, authToken, branchId);
-
-          const fetchedItems = responseDetail.data || [];
-          console.log("Items fetch:", fetchedItems);
-
-          if (fetchedItems.length > 0) {
-            // Hapus setiap detail yang ditemukan
-            for (const item of fetchedItems) {
-              if (item.ID) {
-                try {
-                  const itemResponseDelete = await DeleteDataService.postData(`column=id&value=${item.ID}`, "VCBANKD", authToken, branchId);
-                  console.log("Item deleted successfully:", itemResponseDelete);
-                } catch (error) {
-                  console.error("Error deleting item:", item, error);
-                  throw new Error("Failed to delete one or more detail items");
+            if (fetchedItems.length === 0) {
+              Swal.fire({
+                icon: "info",
+                title: "No Details Found",
+                text: `No details found for invoice number ${voucher_number}.`,
+                confirmButtonText: "OK",
+              });
+            } else {
+              for (const item of fetchedItems) {
+                if (item.ID) {
+                  try {
+                    const itemResponseDelete = await DeleteDataService.postData(`column=id&value=${item.ID}`, "VCBANKD", authToken, branchId);
+                    console.log("Item deleted successfully:", itemResponseDelete);
+                  } catch (error) {
+                    console.error("Error deleting item:", item, error);
+                    throw new Error("Failed to delete one or more detail items");
+                  }
+                } else {
+                  console.log("No ID found for this item, skipping delete:", item);
                 }
-              } else {
-                console.log("No ID found for this item, skipping delete:", item);
               }
             }
-          } else {
-            throw new Error("No details found for this VOUCHER_NUMBER");
+
+            Swal.fire({
+              icon: "success",
+              title: "Request Deleted",
+              text: "The request has been successfully deleted.",
+              confirmButtonText: "OK",
+            });
+
+            handleRefresh();
+          } catch (error) {
+            console.error("Error during delete process:", error);
+            Swal.fire({
+              icon: "error",
+              title: "Delete Error",
+              text: "Failed to delete the request or its details. Please try again later.",
+              confirmButtonText: "OK",
+            });
           }
-
+        } else {
           Swal.fire({
-            icon: "success",
-            title: "Request and Details Deleted",
-            text: "Both the request and its details have been successfully deleted.",
-            confirmButtonText: "OK",
-          });
-
-          handleRefresh();
-
-          // Lakukan refresh data atau aksi lain yang diperlukan setelah penghapusan berhasil
-        } catch (error) {
-          console.error("Error during delete process:", error);
-          Swal.fire({
-            icon: "error",
-            title: "Delete Error",
-            text: "Failed to delete the request or its details. Please try again later.",
+            icon: "info",
+            title: "Cancelled",
+            text: "Your request deletion has been cancelled.",
             confirmButtonText: "OK",
           });
         }
-      } else {
-        Swal.fire({
-          icon: "info",
-          title: "Cancelled",
-          text: "Your request deletion has been cancelled.",
-          confirmButtonText: "OK",
-        });
-      }
-    });
+      });
+    } catch (error) {
+      console.error("Error in handleDelete:", error);
+      Swal.fire({
+        icon: "error",
+        title: "Delete Error",
+        text: "An error occurred while deleting the request. Please try again later.",
+        confirmButtonText: "OK",
+      });
+    }
   };
 
   const handleResetFilters = () => {
@@ -371,9 +476,9 @@ const PurchaseExpanseTable = ({
                 <button type="button" className="btn btn-default" onClick={handleRefresh}>
                   <FaSyncAlt />
                 </button>
-                <button type="button" className="btn btn-default" onClick={handleNewBond}>
+                {/* <button type="button" className="btn btn-default" onClick={handleNewBond}>
                   <FaAddressBook /> Add New
-                </button>
+                </button> */}
                 {selectedRows.size > 0 && (
                   <>
                     <button type="button" className="btn btn-default" onClick={handleEdit}>
@@ -473,6 +578,7 @@ const PurchaseExpanseTable = ({
                   <th>Bank/cash</th>
                   <th>Bank Account Number</th>
                   <th>Check Number/Giro Number</th>
+                  <th>Paid To</th>
                   <th>Exchange Rate Bank</th>
                   <th>Voucher Status</th>
 
@@ -510,6 +616,7 @@ const PurchaseExpanseTable = ({
                       <td>{item.BANK_NAME}</td>
                       <td>{item.ACCOUNT_BANK}</td>
                       <td>{item.NUMBER_CHECK_GIRO}</td>
+                      <td>{item.PAID_TO}</td>
                       <td>{item.EXCHANGE_RATE}</td>
                       <td>{item.STATUS}</td>
                       
@@ -575,12 +682,32 @@ const PurchaseExpanseTable = ({
                     <div className="col-md-8">{selectedRowData.NUMBER_CHECK_GIRO}</div>
                   </div>
                   <div className="row mb-3">
+                    <div className="col-md-4 font-weight-bold">Paid To:</div>
+                    <div className="col-md-8">{selectedRowData.PAID_TO}</div>
+                  </div>
+                  <div className="row mb-3">
                     <div className="col-md-4 font-weight-bold">Exchange Rate:</div>
                     <div className="col-md-8">{selectedRowData.EXCHANGE_RATE}</div>
                   </div>
                   <div className="row mb-3">
                     <div className="col-md-4 font-weight-bold">Voucher Status:</div>
                     <div className="col-md-8">{selectedRowData.STATUS}</div>
+                  </div>
+                  <div className="row mb-3">
+                    <div className="col-md-4 font-weight-bold">Total Amount:</div>
+                    <div className="col-md-8">{selectedRowData.TOTAL_AMOUNT}</div>
+                  </div>
+                  <div className="row mb-3">
+                    <div className="col-md-4 font-weight-bold">Amount IDR:</div>
+                    <div className="col-md-8">{selectedRowData.AMOUNT_IDR}</div>
+                  </div>
+                  <div className="row mb-3">
+                    <div className="col-md-4 font-weight-bold">Total Dept:</div>
+                    <div className="col-md-8">{selectedRowData.TOTAL_DEPT}</div>
+                  </div>
+                  <div className="row mb-3">
+                    <div className="col-md-4 font-weight-bold">Total Paid:</div>
+                    <div className="col-md-8">{selectedRowData.TOTAL_PAID}</div>
                   </div>
                   {/* <div className="row mb-3">
                     <div className="col-md-4 font-weight-bold">Project:</div>
@@ -656,14 +783,17 @@ const PurchaseExpanseTable = ({
                               <th>Customer</th>
                               <th>Department</th>
                               <th>Employee</th>
-
                               <th>Amount</th>
                               <th>Currency</th>
-                              <th>Exchange Rate</th>                       
-                              <th hidden>Amount IDR</th>                      
-                              <th>Tax PPN</th>
+                              <th>Exchange Rate</th> 
+                              <th hidden>Quantity</th>
+                              <th hidden>Unit Price</th>                      
+                              <th hidden>Amount IDR</th>  
+                              <th hidden>Type of Vat</th>      
+                              <th hidden>Tax PPh Type</th>              
+                              <th hidden>Tax PPN</th>
                               <th>Amount PPN</th>                          
-                              <th>Tax PPh</th>
+                              <th hidden>Tax PPh</th>
                               <th>Amount PPh</th> 
                               <th>Tax Base</th>
                               <th>Total Amount to be Paid</th>
@@ -712,9 +842,9 @@ const PurchaseExpanseTable = ({
                             <td style={{ textAlign: "right" }}>{DisplayFormat(detail.amount)}</td>
                             <td>{detail.currency}</td>
                             <td style={{ textAlign: "right" }}>{DisplayFormat(detail.exchange_rate)}</td>
-                            <td>{detail.tax_ppn}</td>
+                            {/* <td>{detail.tax_ppn}</td> */}
                             <td style={{ textAlign: "right" }}>{DisplayFormat(detail.tax_ppn_amount)}</td>
-                            <td>{detail.tax_pph}</td>
+                            {/* <td>{detail.tax_pph}</td> */}
                             <td style={{ textAlign: "right" }}>{DisplayFormat(detail.tax_pph_amount)}</td>
                             {/* <td>{detail.tax_pph_rate}</td> */}
                            
