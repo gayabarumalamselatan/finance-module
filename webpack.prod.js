@@ -60,7 +60,7 @@ module.exports = {
             exposes: {
                 './Coa': './src/components/Coa',
                 './PurchaseRequest': './src/components/PurchaseRequest',
-                './AddPurchaseRequest': './src/components/AddPurchaseRequest',
+                './AddPurchaseRequest': './src/formComponents/AddPurchaseRequest',
                 './ListPurchaseOrder': './src/components/PurchaseOrder',
                 './PurchaseOrder': './src/formComponents/AddPurchaseOrder',
                 './ListPurchaseInvoice': './src/components/PurchaseInvoice',

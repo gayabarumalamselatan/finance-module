@@ -28,6 +28,7 @@ const PurchaseRequest = () => {
     const [filterColumn, setfilterColumn] = useState('');
     const [filterValue, setFilterValue] = useState('');
     const [filterOperation, setFilterOperation] = useState('');
+    const [filters, setFilters] = useState([]);
 
     const [isAddingNewPurchaseRequest, setIsAddingNewPurchaseRequest] = useState(false);
     const [isViewingPurchaseRequest, setIsViewingPurchaseRequest] = useState(false);
@@ -91,42 +92,45 @@ const PurchaseRequest = () => {
     useEffect(() => {
         if (formCode.length > 0) {
             let formMmtData = [];
-
-            let filterColumnParam = filterColumn;
-            let filterOperationParam = filterOperation;
-            let filterValueParam = filterValue;
-
+    
+            // Menggabungkan filter dari URL, permissions, dan input pengguna
+            let dynamicFilters = [...filters]; // Menggunakan filters yang sudah ada
+    
             // Check if URL parameter `status` is set
             const statusParam = new URLSearchParams(window.location.search).get('status');
             if (statusParam) {
-                filterColumnParam = 'STATUS';
-                filterOperationParam = 'EQUAL';
-                filterValueParam = statusParam;
+                dynamicFilters.push({
+                    column: "STATUS",
+                    operation: "EQUAL",
+                    value: statusParam,
+                });
             }
-
+    
             console.log("permissions", permissions.Purchase?.["List Purchase Request"].verify);
             const checker = permissions.Purchase?.["List Purchase Request"].verify;
-            if (checker) {
-                // Do not apply any filter if checker is true
-                console.log("Checker is true, no filter will be applied.");
-            } else if (userId) {
-                // Apply filter if checker is false and userId is present
-                filterColumnParam = 'requestor';
-                filterOperationParam = 'EQUAL';
-                filterValueParam = userId;
+    
+            if (!checker && userId) {
+                // Apply additional filter for userId if checker is false
+                dynamicFilters.push({
+                    column: "requestor",
+                    operation: "EQUAL",
+                    value: userId,
+                });
             }
-
+    
+            // Fetch data using multiple filters
             const fetchFormMmtData = FormService.fetchData(
                 "",
-                filterColumnParam,
-                filterOperationParam,
-                filterValueParam,
+                "", // filterColumn (not used for multiple filters)
+                "", // filterOperation
+                "", // filterValue
                 currentPage,
                 pageSize,
                 `PURC_FORM${formCode[0]}`,
                 branchId,
                 authToken,
-                true
+                true,
+                dynamicFilters // Pass the filters array
             )
                 .then((response) => {
                     console.log("Form Purchase Request lookup data:", response);
@@ -136,14 +140,15 @@ const PurchaseRequest = () => {
                 .catch((error) => {
                     console.error("Failed to fetch form Purchase Request lookup:", error);
                 });
-
+    
             fetchFormMmtData.then(() => {
                 console.log('MMT DATA', formMmtData);
                 setDataTable(formMmtData);
                 setIsLoadingTable(false);
             });
         }
-    }, [formCode, pageSize, currentPage, refreshTable, isFilterSet]);
+    }, [formCode, pageSize, currentPage, refreshTable, isFilterSet, filters]);  // Add filters to dependency array
+    
 
     const handlePageSizeChange = (event) => {
         setPageSize(parseInt(event.target.value, 10));
@@ -160,23 +165,23 @@ const PurchaseRequest = () => {
         setFormData([]);
     };
 
-    const handleFilterSearch = ({ filterColumn, filterOperation, filterValue }) => {
-        console.log('filter Purchase Request list:', filterColumn, filterOperation, filterValue);
-        setFilterOperation(filterOperation);
-        setfilterColumn(filterColumn);
-        setFilterValue(filterValue);
-        setIsFilterSet(!isFilterSet);
-        setIsLoadingTable(true);
-    }
-
-    const handleResetFilters = () => {
-        setfilterColumn('');
-        setFilterValue('');
-        setFilterOperation('');
+    const handleFilterSearch = ({filters}) => {
+        console.log('Filter Purchase Request list:', filters);
+        
+        // Menambahkan filter baru ke array filters
+        setFilters(prevFilters => [...prevFilters, ...filters]);
+    
         setIsFilterSet(!isFilterSet);
         setIsLoadingTable(true);
     };
+    
 
+    const handleResetFilters = () => {
+        setFilters([]); // Reset filters ke array kosong
+        setIsFilterSet(!isFilterSet);
+        setIsLoadingTable(true);
+    };
+    
 
 
     return (
