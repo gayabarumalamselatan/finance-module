@@ -18,6 +18,11 @@ import UpdateDataService from '../service/UpdateDataService';
 import UpdateStatusService from '../service/UpdateStatusService';
 import { dateFormat } from '../utils/DateFormat';
 import CurrencyInput from 'react-currency-input-field';
+import DatePicker from "react-datepicker";
+import "react-datepicker/dist/react-datepicker.css";
+import { format, parse } from "date-fns";
+import { FaCalendarAlt } from 'react-icons/fa';
+import '../css/DatePicker.css';
 
 const AddPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, selectedData }) => {
   const headers = getToken();
@@ -43,6 +48,7 @@ const AddPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, select
   const [description, setDescription] = useState('');
   const [due_date, setDueDate] = useState('');
   const [endtoendid, setEntoendid] = useState('');
+  const [currency, setCurrency] = useState('IDR');
   const [selectedItems, setSelectedItems] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [currencyOptions, setCurrencyOptions] = useState([]);
@@ -90,6 +96,7 @@ const AddPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, select
           setStatusRequest(data.status_request);
           setPaymentTerm(data.payment_term);
           setEntoendid(data.endtoendid);
+          setCurrency(data.currency);
         })
         .catch(error => {
           console.error('Failed to load purchase request data:', error);
@@ -154,7 +161,7 @@ const AddPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, select
                     console.log('Selected product option:', selectedProductOption);
 
                     const selectedCurrencyOption = currencyOptions.find(option =>
-                      option.value === item.currency
+                      option.value === currency
                     );
 
                     console.log('Selected currency option:', selectedCurrencyOption);
@@ -590,7 +597,7 @@ const AddPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, select
 
 
   const handleAddItem = () => {
-    setItems([...items, { doc_reff_no: '', doc_source: '', vendor: '', project: '', project_contract_number: '', customer: '', departement: '', product: '', product_note: '', quantity: '', currency: 'IDR', unit_price: 0, total_price: 0, id_upload: '' }]);
+    setItems([...items, { doc_reff_no: '', doc_source: '', vendor: '', project: '', project_contract_number: '', customer: '', departement: '', product: '', product_note: '', quantity: '', unit_price: 0, total_price: 0, id_upload: '' }]);
   };
 
   const handleItemChange = async (index, field, value) => {
@@ -734,7 +741,7 @@ const AddPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, select
 
         const generalInfo = {
           pr_number,
-          request_date,
+          request_date: moment().format('YYYY-MM-DD'),
           schedule_date,
           doc_no,
           doc_reff,
@@ -745,7 +752,8 @@ const AddPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, select
           total_amount,
           status_request: 'DRAFT',
           due_date,
-          endtoendid
+          endtoendid,
+          currency
         };
 
         // Check if pr_number exists in API
@@ -936,7 +944,7 @@ const AddPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, select
           const id = lookupResponse.data[0].ID;
           const generalInfo = {
             pr_number: newPrNumber,
-            request_date,
+            request_date: moment().format('YYYY-MM-DD'),
             schedule_date,
             doc_no,
             doc_reff,
@@ -947,7 +955,8 @@ const AddPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, select
             total_amount,
             status_request: 'IN_PROCESS',
             due_date,
-            endtoendid
+            endtoendid,
+            currency
           };
 
           const response = await UpdateDataService.postData(generalInfo, `PUREQ&column=id&value=${id}`, authToken, branchId);
@@ -976,7 +985,7 @@ const AddPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, select
 
           const generalInfo = {
             pr_number: newPrNumber,
-            request_date,
+            request_date: moment().format('YYYY-MM-DD'),
             schedule_date,
             doc_no,
             doc_reff,
@@ -987,7 +996,8 @@ const AddPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, select
             total_amount,
             status_request: 'IN_PROCESS',
             due_date,
-            endtoendid
+            endtoendid,
+            currency
           };
 
           const response = await InsertDataService.postData(generalInfo, "PUREQ", authToken, branchId);
@@ -1104,7 +1114,7 @@ const AddPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, select
 
         const generalInfo = {
           pr_number,
-          request_date,
+          request_date: moment().format('YYYY-MM-DD'),
           schedule_date, // Converts to date format
           doc_no,
           doc_reff,
@@ -1115,7 +1125,8 @@ const AddPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, select
           total_amount,
           status_request: 'DRAFT',
           due_date,
-          endtoendid
+          endtoendid,
+          currency
         };
 
 
@@ -1221,7 +1232,7 @@ const AddPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, select
 
         const generalInfo = {
           pr_number,
-          request_date,
+          request_date: moment().format('YYYY-MM-DD'),
           schedule_date, // Converts to date format
           doc_no,
           doc_reff,
@@ -1319,6 +1330,10 @@ const AddPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, select
     } else {
       console.log('Form submission was canceled.');
     }
+  };
+
+  const handleDateChange = (date) => {
+    setScheduleDate(date);
   };
 
 
@@ -1475,11 +1490,26 @@ const AddPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, select
                     <Col md={6}>
                       <Form.Group controlId="formScheduleDate">
                         <Form.Label>Schedule Date</Form.Label>
-                        <Form.Control
-                          type="date"
-                          value={schedule_date}
-                          onChange={(e) => setScheduleDate(e.target.value)}
-                          required
+                        <div className="input-group">
+                          {/* Custom DatePicker with integrated icon */}
+                          <DatePicker
+                            selected={schedule_date}
+                            onChange={handleDateChange}
+                            dateFormat="dd-MM-yyyy" // Display date in dd-MM-yyyy format
+                            className="form-control"
+                            placeholderText="Select a date"
+                          />
+                        </div>
+                      </Form.Group>
+                    </Col>
+                    <Col md={6}>
+                      <Form.Group controlId="formCurrency">
+                        <Form.Label>Currency</Form.Label>
+                        <Select
+                          value={currencyOptions.find(option => option.value === currency)}
+                          onChange={(selectedOption) => setCurrency(selectedOption ? selectedOption.value : selectedOption)}
+                          options={currencyOptions}
+                          placeholder="Select currency"
                         />
                       </Form.Group>
                     </Col>
@@ -1545,7 +1575,6 @@ const AddPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, select
                               <th>Product</th>
                               <th>Product Description</th>
                               <th>Quantity</th>
-                              <th>Currency</th>
                               <th>Unit Price</th>
                               <th>Total Price</th>
                               <th>Actions</th>
@@ -1673,15 +1702,6 @@ const AddPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, select
                                     />
                                   </td>
                                   <td>
-                                    <Select
-                                      value={currencyOptions.find(option => option.value === item.currency)}
-                                      onChange={(selectedOption) => handleItemChange(index, 'currency', selectedOption)}
-                                      options={currencyOptions}
-                                      placeholder="Select currency"
-                                      style={{ width: '80px' }}
-                                    />
-                                  </td>
-                                  <td>
                                     {/* <Form.Control
                                       type="number"
                                       value={item.unit_price}
@@ -1703,7 +1723,7 @@ const AddPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, select
                                       style={{ width: '100%', textAlign: 'right' }}
                                     />
                                   </td>
-                                  <td className="text-end">{item.total_price.toLocaleString('en-US', { currency: item.currency, minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                                  <td className="text-end">{item.total_price.toLocaleString('en-US', { currency: currency, minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                                   <td>
                                     <Button
                                       variant="danger"
@@ -1741,11 +1761,11 @@ const AddPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, select
             <Card>
               <Card.Body>
                 <Form.Group controlId="formDescription">
-                  <Form.Label>Description</Form.Label>
+                  <Form.Label>Notes</Form.Label>
                   <Form.Control
                     as="textarea"
                     rows={3}
-                    placeholder="Enter description"
+                    placeholder="Enter notes..."
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
 
@@ -1800,12 +1820,14 @@ const AddPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, select
         </Row>
       </section>
 
-      {isLoading && (
-        <div className="full-screen-overlay">
-          <i className="fa-solid fa-spinner fa-spin full-screen-spinner"></i>
-        </div>
-      )}
-    </Fragment>
+      {
+        isLoading && (
+          <div className="full-screen-overlay">
+            <i className="fa-solid fa-spinner fa-spin full-screen-spinner"></i>
+          </div>
+        )
+      }
+    </Fragment >
   );
 }
 

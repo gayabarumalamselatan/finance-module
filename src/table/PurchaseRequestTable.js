@@ -9,6 +9,7 @@ import LookupService from "../service/LookupService";
 import { DisplayFormat } from "../utils/DisplayFormat";
 import Swal from "sweetalert2";
 import DeleteDataService from "../service/DeleteDataService";
+import { dateFormat } from "../utils/DateFormat";
 
 const PurchaseRequestTable = ({
     formCode,
@@ -311,7 +312,7 @@ const PurchaseRequestTable = ({
     // Terapkan filter
     const handleApplyFilters = () => {
         console.log("Applied Filters:", filters);
-        handleFilterSearch({filters});
+        handleFilterSearch({ filters });
         // Kirim ke backend atau gunakan logika filtering di sini
     };
 
@@ -507,7 +508,7 @@ const PurchaseRequestTable = ({
                                             className="btn btn-danger"
                                             onClick={() => handleRemoveFilter(index)}
                                         >
-                                          <i className="fas fa-trash"></i>
+                                            <i className="fas fa-trash"></i>
                                         </button>
                                     </div>
                                 </div>
@@ -578,8 +579,8 @@ const PurchaseRequestTable = ({
 
                                             <td>{item.PR_NUMBER}</td>
                                             <td>{item.REQUESTOR}</td>
-                                            <td>{item.REQUEST_DATE}</td>
-                                            <td>{item.SCHEDULE_DATE}</td>
+                                            <td>{dateFormat(item.REQUEST_DATE)}</td>
+                                            <td>{dateFormat(item.SCHEDULE_DATE)}</td>
                                             <td>{item.DESCRIPTION}</td>
                                             <td style={{ textAlign: "right" }}>{DisplayFormat(item.TOTAL_AMOUNT)}
                                             </td>
@@ -626,11 +627,15 @@ const PurchaseRequestTable = ({
                                     </div>
                                     <div className="row mb-3">
                                         <div className="col-md-4 font-weight-bold">Request Date:</div>
-                                        <div className="col-md-8">{selectedRowData.REQUEST_DATE}</div>
+                                        <div className="col-md-8">
+                                            {dateFormat(selectedRowData.REQUEST_DATE)}
+                                        </div>
                                     </div>
                                     <div className="row mb-3">
                                         <div className="col-md-4 font-weight-bold">Schedule Date:</div>
-                                        <div className="col-md-8">{selectedRowData.SCHEDULE_DATE}</div>
+                                        <div className="col-md-8">
+                                            {dateFormat(selectedRowData.SCHEDULE_DATE)}
+                                        </div>
                                     </div>
                                     <div className="row mb-3">
                                         <div className="col-md-4 font-weight-bold">Document Reference:</div>
