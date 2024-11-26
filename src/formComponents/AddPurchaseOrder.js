@@ -1,4 +1,4 @@
-import React, { Fragment, useEffect, useState } from 'react';
+import React, { Fragment, useDebugValue, useEffect, useState, useSyncExternalStore } from 'react';
 import { Button, Col, Form, InputGroup, Row, Card } from 'react-bootstrap';
 import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd';
 import Swal from 'sweetalert2';
@@ -77,6 +77,10 @@ import FormService from '../service/FormService';
     const [contractNumberOption, setContractNumberOptions]= useState([]);
     const [file, setFile] = useState(null);
     const [fetchedPRDetail, setFetchedPRDetail] = useState([]);
+    const [vendor, setVendor] = useState('');
+    const [selectedVendor, setSelectedVendor] = useState(null);
+    const [selectedCurrency, setSelectedCurrency] = useState(null);
+    const [currency, setCurrency] = useState('');
     const [isSubmited, setIsSubmited] = useState(false);
 
     // Dynamic Form Field Width
@@ -128,6 +132,8 @@ import FormService from '../service/FormService';
             console.error('Failed to load items:', error);
         });
 
+
+
         LookupParamService.fetchLookupData("MSDT_FORMTAX", authToken, branchId)
         .then(data => {
           console.log('Currency lookup data:', data);
@@ -153,6 +159,8 @@ import FormService from '../service/FormService';
         }).catch(error => {
           console.error('Failed to fetch currency lookup:', error);
         });
+
+
 
         // Lookup vendor to dan to address
         LookupParamService.fetchLookupDataView("MSDT_FORMCUST", authToken, branchId)
@@ -325,6 +333,13 @@ import FormService from '../service/FormService';
           label: item.CODE
         }));
         setCurrencyOptions(options);
+
+        // Default Currency
+        const defaultCurrency = options.find(option => option.value === 'IDR');
+        if(defaultCurrency){
+          setSelectedCurrency(defaultCurrency);
+          setCurrency(defaultCurrency.value);
+        }
       }).catch(error => {
         console.error('Failed to fetch currency lookup:', error);
       });
@@ -438,6 +453,26 @@ import FormService from '../service/FormService';
     }, []);
 
 
+    // Vendor Handle
+    const handleVendorChange = (selectedOption) => {
+      setSelectedVendor(selectedOption);
+      setVendor(selectedOption ? selectedOption.value : '');
+
+      if(selectedOption){
+        // Autofill To
+        setSelectedTo(selectedOption);
+        setTo(selectedOption ? selectedOption.value : '');
+        // Autofill To Address
+        const toAddressOption = toAddressOptions.find((option) => option.value === selectedOption.vendAddress);
+        setSelectedToAddress(toAddressOption);
+        setToAddress(toAddressOption ? toAddressOption.value : '');
+      }else{
+        setSelectedTo(null);
+        setTo('');
+        setSelectedToAddress(null);
+        setToAddress('');
+      }
+    }
     
     // To Handler untuk autofill address
     const handleToChange = (selectedOption) => {
@@ -647,7 +682,7 @@ import FormService from '../service/FormService';
         departement: '',
         project_contract_number: '',
         company:'PT. Abhimata Persada',
-        requestor: '',
+        requestor: userId,
         doc_source: '',
       }]);
     };
@@ -801,6 +836,10 @@ import FormService from '../service/FormService';
       setSelectedItems([]);
       setEndToEnd('');
       setIsSubmited(false);
+      setVendor('');
+      setSelectedVendor(null);
+      setCurrency(currencyOptions.find(option => option.value === 'IDR').value);
+      setSelectedCurrency(currencyOptions.find(option => option.value === 'IDR'));
     };
 
    
@@ -912,7 +951,9 @@ import FormService from '../service/FormService';
             total_amount_ppn: totalPPNAmount,
             term_conditions: termConditions,
             endtoendid: endToEndId,
-            discount
+            discount,
+            vendor,
+            currency,
           };
 
           console.log('Master', generalInfo);
@@ -1138,7 +1179,9 @@ import FormService from '../service/FormService';
             total_amount_ppn: totalPPNAmount,
             term_conditions: termConditions,
             endtoendid: endToEndId,
-            discount
+            discount,
+            vendor,
+            currency,
           };
 
           console.log('Master', generalInfo);
@@ -1554,6 +1597,14 @@ import FormService from '../service/FormService';
       isDisabled: usedOptions.has(option.value) 
     }));
 
+    const detailFormStyle = () => {
+      return{
+        border: 'none',
+        background: 'transparent',
+        color: '#000'
+      }
+    }
+
     return (
       <Fragment>
 
@@ -1685,6 +1736,21 @@ import FormService from '../service/FormService';
                       </Col>
 
                       <Col md={6}>
+                        <Form.Group controlId='formVendor'>
+                          <Form.Label>Vendor</Form.Label>
+                          <Select
+                            id='vendor'
+                            value={selectedVendor}
+                            options={vendorOptions}
+                            onChange={handleVendorChange}
+                            placeholder = "Vendor..."
+                            isClearable
+                            required
+                          />
+                        </Form.Group>
+                      </Col>
+
+                      <Col md={6}>
                         <Form.Group controlId='formTo'>
                           <Form.Label>To</Form.Label>
                           <Select
@@ -1769,6 +1835,24 @@ import FormService from '../service/FormService';
                         </Form.Group>
                       </Col>
 
+                      <Col md={6}>
+                        <Form.Group controlId='formCurrency'>
+                          <Form.Label>Currency</Form.Label>
+                          <Select
+                            id='currency'
+                            value={selectedCurrency}
+                            options={currencyOptions}
+                            onChange={(selectedOption) => {
+                              handleOptionChange(setSelectedCurrency, setCurrency, selectedOption);
+                            }}
+                            placeholder = "Currency..."
+                            isClearable
+                            required
+                          />
+                        </Form.Group>
+                      </Col>
+                      
+
                     </Row>
                   </Form>
                 </Card.Body>
@@ -1807,6 +1891,7 @@ import FormService from '../service/FormService';
                   <DragDropContext onDragEnd={handleOnDragEnd}>
                     <Droppable droppableId="items">
                       {(provided) => (
+                        <>
                         <div
                           className="table-responsive"
                           {...provided.droppableProps}
@@ -1834,8 +1919,7 @@ import FormService from '../service/FormService';
                                         <th>Select Doc Ref</th>
                                 }
                                 <th>Document Source</th>
-                                <th>Vendor</th>
-                                <th>Company</th>
+                                {/* <th>Vendor</th> */}
                                 <th>Requestor</th>
                                 <th>Project</th>
                                 <th>Project Contract Number</th>
@@ -1844,7 +1928,6 @@ import FormService from '../service/FormService';
                                 <th>Product</th>
                                 <th>Product Description</th>
                                 <th>Quantity</th>
-                                <th>Currency</th>
                                 <th>Unit Price</th>
                                 <th>Total Price</th>
                                 <th>Type of VAT</th>
@@ -1884,6 +1967,12 @@ import FormService from '../service/FormService';
                                           isClearable
                                           required
                                           placeholder='Purchase Request...'
+                                          styles={{
+                                            control: (provided) => ({
+                                                ...provided,
+                                                ...detailFormStyle()
+                                            }),
+                                          }}
                                         />
                                         :
                                         docRef === 'internalMemo' ?
@@ -1893,6 +1982,7 @@ import FormService from '../service/FormService';
                                               handleItemChange(index, 'doc_reff_no', e.target.value);
                                             }}
                                             placeholder='internal Memo...'
+                                            style={detailFormStyle()}
                                           />
                                         :
                                         docRef === 'customerContract' ?
@@ -1902,6 +1992,7 @@ import FormService from '../service/FormService';
                                               handleItemChange(index, 'doc_reff_no', e.target.value);
                                             }}
                                             placeholder='Customer Contract...'
+                                            style={detailFormStyle()}
                                           />
                                           :
                                           <span>Choose Doc Ref</span>
@@ -1946,39 +2037,13 @@ import FormService from '../service/FormService';
                                     </td>
 
                                     <td>
-                                      <Select
-                                        id='vendor'
-                                        value={
-                                          items[index].vendor ?
-                                            vendorOptions.find(option => option.value === item.vendor)
-                                          :
-                                            null
-                                        }
-                                        options={vendorOptions}
-                                        onChange={(selectedOption) => {
-                                          handleItemChange(index, 'vendor', selectedOption ? selectedOption.value : null)
-                                        }}
-                                        isClearable
-                                        placeholder="Vendor..."
-                                        required
-                                      />
-                                    </td>
-
-                                    <td>
-                                      <Form.Control
-                                        id='company'
-                                        value={item.company}
-                                        placeholder='Company'
-                                        onChange={(e)=>handleItemChange(index, 'company', e.target.value)}
-                                      />
-                                    </td>
-
-                                    <td>
                                       <Form.Control
                                         id='requestor'
-                                        placeholder='Requestor'
+                                        placeholder='Requestor...'
                                         value={item.requestor}
                                         onChange={(e) => handleItemChange(index, 'requestor', e.target.value)}
+                                        style={detailFormStyle()}
+                                        readOnly
                                       />
                                     </td>
 
@@ -2005,6 +2070,12 @@ import FormService from '../service/FormService';
                                         placeholder="Project..."
                                         isClearable 
                                         required
+                                        styles={{
+                                          control: (provided) => ({
+                                              ...provided,
+                                              ...detailFormStyle()
+                                          }),
+                                        }}
                                       />
                                     </td>
 
@@ -2027,8 +2098,14 @@ import FormService from '../service/FormService';
                                           }
                                         }}
                                         placeholder='Project Contract Number...'
-                                        isClearable
+                                        isDisabled
                                         required
+                                        styles={{
+                                          control: (provided) => ({
+                                              ...provided,
+                                              ...detailFormStyle()
+                                          }),
+                                        }}
                                       />
                                     </td>
 
@@ -2048,6 +2125,13 @@ import FormService from '../service/FormService';
                                         placeholder='Customer...'
                                         isClearable
                                         required
+                                        isDisabled
+                                        styles={{
+                                          control: (provided) => ({
+                                              ...provided,
+                                              ...detailFormStyle()
+                                          }),
+                                        }}
                                       />
                                     </td>
 
@@ -2067,6 +2151,12 @@ import FormService from '../service/FormService';
                                         placeholder='Department...'
                                         isClearable
                                         required
+                                        styles={{
+                                          control: (provided) => ({
+                                              ...provided,
+                                              ...detailFormStyle()
+                                          }),
+                                        }}
                                       />
                                     </td>
                                     
@@ -2085,6 +2175,12 @@ import FormService from '../service/FormService';
                                           options={productOptions}
                                           isClearable
                                           placeholder="Select Product..."
+                                          styles={{
+                                            control: (provided) => ({
+                                                ...provided,
+                                                ...detailFormStyle()
+                                            }),
+                                          }}
                                        />                                     
                                     </td>
                                     
@@ -2093,6 +2189,8 @@ import FormService from '../service/FormService';
                                         type="text"
                                         value={item.product_note}
                                         onChange={(e) => handleItemChange(index, 'product_note', e.target.value)}
+                                        style={detailFormStyle()}
+                                        placeholder='Product Description...'
                                       />
                                     </td>
                                     
@@ -2106,25 +2204,14 @@ import FormService from '../service/FormService';
                                         }}
                                         style={{
                                           // width: `${inputWidth[index] || 75}px`,
+                                          ...detailFormStyle(),
                                           width: '75px',
                                         }}
                                       />
                                     </td>
                                     
                                     <td>
-                                      <Select
-                                        value={currencyOptions.find(option => option.value === item.currency)}
-                                        onChange={(selectedOption) => {
-                                          // setSelectedCurrency(selectedOption);
-                                          handleItemChange(index, 'currency', selectedOption ? selectedOption.value : 'IDR');
-                                        }}
-                                        options={currencyOptions}
-                                        placeholder="Select Currency"
-                                      />
-                                    </td>
-                                    
-                                    <td>
-                                      {item.currency === 'IDR' ?
+                                      {currency === 'IDR' ?
                                         <Form.Control
                                           className='text-right'
                                           type="text"
@@ -2133,6 +2220,7 @@ import FormService from '../service/FormService';
                                             const newPrice = parseFloat(e.target.value.replace(/[^\d.-]/g, '')) || 0;
                                             handleItemChange(index, 'unit_price',  newPrice);
                                           }}
+                                          style={detailFormStyle()}
                                         />
                                       : 
                                         <Form.Control
@@ -2152,20 +2240,19 @@ import FormService from '../service/FormService';
                                             const price = parseFloat(item.unit_price) || 0;
                                             handleItemChange(index, 'unit_price', price);
                                           }}
-                                          // style={{
-                                          //   width: `${inputWidth[index] || 100}px`,
-                                          // }}
+                                          style={detailFormStyle()}
                                         />
                                       }
                                     </td>
 
-                                    <td>{item.total_price.toLocaleString('en-US', { style: 'currency', currency: item.currency })}</td>
+                                    <td>{item.total_price.toLocaleString('en-US', { style: 'currency', currency: currency })}</td>
                                    
                                     <td>
                                       <Form.Select
                                         value={
                                           items[index].type_of_vat || ''
                                         }
+                                        style={detailFormStyle()}
                                         onChange={(selectedOption) => {
                                           handleItemChange(index, 'type_of_vat', selectedOption.target.value);
                                         }}
@@ -2175,7 +2262,7 @@ import FormService from '../service/FormService';
                                         <option value="include">Include</option>
                                         <option value="exclude">Exclude</option>
                                         <option value="nonPPN">Non PPN</option>
-                                        { items[index].currency !== 'IDR' ?
+                                        { currency !== 'IDR' ?
                                           <option value="PPNRoyalty">PPN Royalty</option>
                                           :
                                           <></>
@@ -2206,6 +2293,12 @@ import FormService from '../service/FormService';
                                           handleItemChange(index, 'tax_ppn', selectedOption ? selectedOption.value : ''  );
                                         }}
                                         isDisabled={items[index].type_of_vat === 'nonPPN'}
+                                        styles={{
+                                          control: (provided) => ({
+                                              ...provided,
+                                              ...detailFormStyle()
+                                          }),
+                                        }}  
                                       />
                                     </td>
                                     
@@ -2214,16 +2307,17 @@ import FormService from '../service/FormService';
                                         type='text'
                                         value={item.tax_ppn_rate + '%'}
                                         disabled
-                                        style={{width: '80px'}}
+                                        style={{...detailFormStyle(), width: '80px'}}
                                       />
                                     </td>
 
                                     <td className=''>
-                                      {item.currency === 'IDR' ?
+                                      {currency === 'IDR' ?
                                         <Form.Control
                                           type='text'
                                           disabled
                                           style={{
+                                            ...detailFormStyle(),
                                             textAlign: 'right',
                                             marginLeft: 'auto',  
                                             display: 'flex',
@@ -2239,6 +2333,7 @@ import FormService from '../service/FormService';
                                           type='text'
                                           disabled
                                           style={{
+                                            ...detailFormStyle(),
                                             textAlign: 'right',
                                             display: 'flex',
                                           }}
@@ -2264,14 +2359,34 @@ import FormService from '../service/FormService';
                               )}
                             </tbody>
                             <tfoot>
+                              <tr>
+                                <td colSpan='1'/>
+                                <td colSpan="1" className='text-center'>
+                                    <Button
+                                      className='rounded-3'
+                                      variant="success"
+                                      size="sm"
+                                      onClick={handleAddItem}
+                                    >
+                                      <i className="fas fa-plus"></i> New Item
+                                    </Button>
+                                  </td>
+                                  <td colSpan='16'/>
+                              </tr>
+                            </tfoot>
+                          </table>
+                          
+                          {provided.placeholder}
+                        </div>
+                        <tfoot className='text-right'>
                               <tr className='text-right'>
-                                <td colSpan="19">Subtotal Before Discount:</td>
+                                <td colSpan="14">Subtotal Before Discount:</td>
                                 <td>
                                   <strong>
                                     {items.length > 0 
                                       ? calculateTotalAmount(items[0].currency).subTotal.toLocaleString('en-US', {
                                         style: 'currency',
-                                        currency: items[0].currency || 'IDR',
+                                        currency: currency || 'IDR',
                                         minimumFractionDigits: 0,  // No decimal places
                                         maximumFractionDigits: 0 
                                       })
@@ -2280,7 +2395,7 @@ import FormService from '../service/FormService';
                                 </td>
                               </tr>
                               <tr className='text-right'>
-                                <td colSpan="19">Discount:</td>
+                                <td colSpan="16">Discount:</td>
                                 <td>
                                   <Form.Control
                                     className='text-right'
@@ -2300,13 +2415,13 @@ import FormService from '../service/FormService';
                                 </td>
                               </tr>
                               <tr className='text-right'>
-                                <td colSpan="19">Subtotal:</td>
+                                <td colSpan="16">Subtotal:</td>
                                 <td>
                                   <strong>
                                     {items.length > 0 ? 
                                       calculateTotalAmount(items[0].currency).subtotalAfterDiscount.toLocaleString('en-US', { 
                                         style: 'currency', 
-                                        currency: items[0].currency || 'IDR',
+                                        currency: currency || 'IDR',
                                         minimumFractionDigits: 0,  // No decimal places
                                         maximumFractionDigits: 0 
                                       })
@@ -2317,7 +2432,7 @@ import FormService from '../service/FormService';
                                 </td>
                               </tr>
                               <tr className='text-right'>
-                                <td colSpan="19">Total PPN:</td>
+                                <td colSpan="16">Total PPN:</td>
                                 <td>
                                   <Form.Control
                                     className='text-right'
@@ -2332,7 +2447,7 @@ import FormService from '../service/FormService';
                                         newItems.forEach((item)=>{
                                           item.tax_ppn_amount= totalPPNAmount/newItems.length;
                                         });
-                                     setItems(newItems); 
+                                    setItems(newItems); 
                                     }}
                                     style={{
                                       textAlign: 'right',
@@ -2343,13 +2458,13 @@ import FormService from '../service/FormService';
                                 </td>
                               </tr>
                               <tr className="text-right">
-                                <td colSpan="19" >Total Amount:</td>
+                                <td colSpan="16" >Total Amount:</td>
                                 <td>
                                   <strong>
                                     {items.length > 0 ?
                                       calculateTotalAmount(items[0].currency).totalAmount.toLocaleString('en-US', { 
                                         style: 'currency', 
-                                        currency: items[0].currency || 'IDR' ,
+                                        currency: currency || 'IDR' ,
                                         minimumFractionDigits: 0,  // No decimal places
                                         maximumFractionDigits: 0 
                                       })
@@ -2360,9 +2475,7 @@ import FormService from '../service/FormService';
                                 </td>
                               </tr>
                             </tfoot>
-                          </table>
-                          {provided.placeholder}
-                        </div>
+                        </>
                       )}
                     </Droppable>
                   </DragDropContext>
