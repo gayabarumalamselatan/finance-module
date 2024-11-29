@@ -411,48 +411,16 @@ const PurchaseInvoiceTable = ({
       });
     }
   };
-
-  const [filters, setFilters] = useState([{ column: "", operation: "LIKE", value: "" }]);
-
-  // Tambahkan filter baru
-  const handleAddFilter = () => {
-    setFilters([...filters, { column: "", operation: "LIKE", value: "" }]);
-  };
-
-  // Hapus filter
-  const handleRemoveFilter = (index) => {
-    setFilters(filters.filter((_, i) => i !== index));
-  };
-
-  // Perbarui filter tertentu
-  const handleFilterChange = (index, key, value) => {
-    const updatedFilters = filters.map((filter, i) => (i === index ? { ...filter, [key]: value } : filter));
-    setFilters(updatedFilters);
-  };
-
-  // Reset semua filter
   const handleResetFilters = () => {
-    handleResetFilter([{ column: "", operation: "LIKE", value: "" }]);
-    setFilters([{ column: "", operation: "LIKE", value: "" }]);
+    setFilterColumn("");
+    setFilterValue("");
+    setFilterOperation("");
+    handleResetFilter();
   };
 
-  // Terapkan filter
   const handleApplyFilters = () => {
-    console.log("Applied Filters:", filters);
-    handleFilterSearch({ filters });
-    // Kirim ke backend atau gunakan logika filtering di sini
+    handleFilterSearch({ filterColumn, filterOperation, filterValue });
   };
-
-  // const handleResetFilters = () => {
-  //   setFilterColumn("");
-  //   setFilterValue("");
-  //   setFilterOperation("");
-  //   handleResetFilter();
-  // };
-
-  // const handleApplyFilters = () => {
-  //   handleFilterSearch({ filterColumn, filterOperation, filterValue });
-  // };
 
   const handleLoadDataClick = () => {
     setIsLoading(true);
@@ -532,12 +500,12 @@ const PurchaseInvoiceTable = ({
                 <button type="button" className="btn btn-default" onClick={handleRefresh}>
                   <FaSyncAlt />
                 </button>
-                {/* <button type="button" className="btn btn-default" onClick={handleAddNewPurchaseRequest}>
-                                    <FaAddressBook /> Add New
-                                </button> */}
+                {/* <button type="button" className="btn btn-default" onClick={handleNewBond}>
+                  <FaAddressBook /> Add New
+                </button> */}
                 {selectedRows.size > 0 && (
                   <>
-                    <button type="button" className="btn btn-default" onClick={handleEditPurchaseInvoice}>
+                    <button type="button" className="btn btn-default" onClick={handleEdit}>
                       <FaEdit /> Edit
                     </button>
                     <button type="button" className="btn btn-default" onClick={handleView}>
@@ -551,7 +519,7 @@ const PurchaseInvoiceTable = ({
                     </button>
                   </>
                 )}
-                <button type="button" className={`btn ${isFilterOpen ? "btn-secondary" : "btn-default"}`} onClick={handleFilterToggle}>
+                <button type="button" className={`btn ${isFilterOpen ? "btn-default" : "btn-default"}`} onClick={handleFilterToggle}>
                   {isFilterOpen ? (
                     <>
                       <span className="ml-1">
@@ -571,47 +539,33 @@ const PurchaseInvoiceTable = ({
         </div>
         {isFilterOpen && (
           <div className="card-body">
-            <div className="row">
-              <div className="col-md-12">
-                <a className="btn btn-success btn-sm float-right" onClick={handleAddFilter}>
-                  <i className="fas fa-plus"></i> Add Row
-                </a>
+            <form className="row">
+              <div className="col-md-4 mb-3">
+                <select className="form-control" value={filterColumn} onChange={(e) => setFilterColumn(e.target.value)}>
+                  <option value="">Select a column</option>
+                  {/* <option value="ENDTOENDID">End To End Id</option> */}
+                  <option value="INVOICE_NUMBER">Invoice Number</option>
+                  <option value="DOC_REFF">Doc Reference</option>
+                  <option value="INVOICE_DATE">Invoice Date</option>
+                  <option value="INVOICE_STATUS">Invoice Status</option>
+                  <option value="DESCRIPTION">Description</option>
+                  <option value="DUE_DATE">Due Date</option>
+                  <option value="CREATE_BY">Create By</option>
+                  <option value="TOTAL_AMOUNT">Total Amount</option>
+                  <option value="STATUS_WORKFLOW">Status Workflow</option>
+                </select>
               </div>
-            </div>
-            <form>
-              {filters.map((filter, index) => (
-                <div className="row mb-3" key={index}>
-                  <div className="col-md-3">
-                    <select className="form-control" value={filter.column} onChange={(e) => handleFilterChange(index, "column", e.target.value)}>
-                      <option value="">Select a column</option>
-                      <option value="INVOICE_NUMBER">Invoice Number</option>
-                      <option value="DOC_REFERANCE">Doc Referance</option>
-                      <option value="INVOICE_DATE">Invoice Date</option>
-                      <option value="INVOICE_STATUS">Invoice Status</option>
-                      <option value="DESCRIPTION">Description</option>
-                      <option value="DUE_DATE">Due Date</option>
-                      <option value="CREATE_BY">Create By</option>
-                      <option value="TOTAL_AMOUNT">Total Amount</option>
-                      <option value="STATUS_WORKFLOW">Status Workflow</option>
-                    </select>
-                  </div>
-                  <div className="col-md-3">
-                    <select className="form-control" value={filter.operation} onChange={(e) => handleFilterChange(index, "operation", e.target.value)}>
-                      <option value="LIKE">Contains</option>
-                      <option value="EQUAL">Equal</option>
-                      <option value="NOTEQUAL">Not Equal</option>
-                    </select>
-                  </div>
-                  <div className="col-md-3">
-                    <input type="text" className="form-control" placeholder="Enter value" value={filter.value} onChange={(e) => handleFilterChange(index, "value", e.target.value)} />
-                  </div>
-                  <div className="col-md-3 d-flex align-items-center">
-                    <button type="button" className="btn btn-danger" onClick={() => handleRemoveFilter(index)}>
-                      <i className="fas fa-trash"></i>
-                    </button>
-                  </div>
-                </div>
-              ))}
+              <div className="col-md-4 mb-3">
+                <select className="form-control" value={filterOperation} onChange={(e) => setFilterOperation(e.target.value)}>
+                  <option value="">Select filter</option>
+                  <option value="EQUAL">Equal</option>
+                  <option value="NOTEQUAL">Not Equal</option>
+                  <option value="LIKE">Contains</option>
+                </select>
+              </div>
+              <div className="col-md-4 mb-3">
+                <input type="text" className="form-control" placeholder="Enter value" value={filterValue} onChange={(e) => setFilterValue(e.target.value)} />
+              </div>
             </form>
             <div className="d-flex justify-content-end align-items-center mt-3">
               <button className="btn btn-secondary mr-2" onClick={handleResetFilters}>
@@ -633,7 +587,7 @@ const PurchaseInvoiceTable = ({
                   </th>
                   {/* <th>End To End Id</th> */}
                   <th>Invoice Number</th>
-                  <th>Doc Referance</th>
+                  <th>Doc Reference</th>
                   <th>Invoice Date</th>
                   <th>Invoice Status</th>
                   <th>Description</th>

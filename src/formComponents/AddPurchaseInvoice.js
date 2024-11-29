@@ -15,8 +15,6 @@ import LookupService from "../service/LookupService";
 import UpdateDataService from "../service/UpdateDataService";
 import DeleteDataService from "../service/DeleteDataService";
 import UpdateStatusService from "../service/UpdateStatusService";
-import DatePicker from "react-datepicker";
-import moment from "moment";
 
 const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchaseInvoice, handleRefresh, index, item, selectedData }) => {
   const headers = getToken();
@@ -1351,7 +1349,7 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
                   });
 
                   storedItems.forEach((fetchedDetail, i) => {
-                    newStored[index + i] = {
+                    newStored[(index + i)] = {
                       ...newStored[index + i],
                       ...fetchedDetail,
                     };
@@ -2227,7 +2225,7 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
 
     let pengkali = newItems[index].tax_ppn_rate / 100;
 
-    if (currency !== "IDR") {
+    if(currency !== 'IDR'){
       if (field === "tax_ppn" || field === "tax_ppn_rate") {
         if (newItems[index].type_of_vat === "include") {
           // newItems[index].new_unit_price_idr = newItems[index].unit_price + newItems[index].unit_price * pengkali;
@@ -2250,9 +2248,9 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
           newItems[index].tax_pph_amount_idr = Math.floor(taxWithPPhIDR * (newItems[index].tax_pph_rate / 100)); // Bottom rounding
           newItems[index].tax_ppn_amount_idr = Math.floor(taxWithPPhIDR * (newItems[index].tax_ppn_rate / 100)); // Bottom rounding
         }
-        console.log("totalpriceidr", newItems[index].total_price_idr);
-        console.log("lococ", newItems[index].tax_base_idr);
-        console.log("taxPPHIDR", newItems[index].tax_pph_amount_idr);
+        console.log('totalpriceidr', newItems[index].total_price_idr);
+        console.log('lococ', newItems[index].tax_base_idr);
+        console.log('taxPPHIDR', newItems[index].tax_pph_amount_idr);
       }
     }
 
@@ -2566,14 +2564,15 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
     const totalPPNAmountIDR = items.reduce((total, item) => {
       const taxPPNAmountIDR = isNaN(item.tax_ppn_amount_idr) ? 0 : item.tax_ppn_amount_idr;
       return total + taxPPNAmountIDR;
-    }, 0); // Use tax_exchange_rate or default to 1
+    }, 0) // Use tax_exchange_rate or default to 1
 
     // Calculate totalPPHAmountIDR
     const totalPPHAmountIDR = items.reduce((total, item) => {
       const taxPPHAmountIDR = isNaN(item.tax_pph_amount_idr) ? 0 : item.tax_pph_amount_idr;
-      return total + taxPPHAmountIDR;
-    }, 0); // Use tax_exchange_rate or default to 1
+      return total + taxPPHAmountIDR; 
+    }, 0) // Use tax_exchange_rate or default to 1
 
+    
     // Initialize total_amount
     let total_amount = subtotalAfterDiscount;
 
@@ -4145,9 +4144,7 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
                     <Col md={6}>
                       <Form.Group controlId="formInvoiceDate">
                         <Form.Label>Invoice Date</Form.Label>
-                        <div>
-                          <DatePicker selected={invoice_date} onChange={(date) => setInvoiceDate(date)} dateFormat={"dd-MM-yyyy"} className="form-control" required />
-                        </div>
+                        <Form.Control type="date" value={invoice_date} onChange={(e) => setInvoiceDate(e.target.value)} required />
                       </Form.Group>
                     </Col>
 
@@ -4219,9 +4216,7 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
                     <Col md={6}>
                       <Form.Group controlId="formDueDate">
                         <Form.Label>Due Date</Form.Label>
-                        <div>
-                          <DatePicker selected={due_date} onChange={(date) => setDueDate(date)} dateFormat={"dd-MM-yyyy"} className="form-control" placeholderText="Select Due Date" required />
-                        </div>
+                        <Form.Control type="date" value={due_date} onChange={(e) => setDueDate(e.target.value)} required />
                       </Form.Group>
                     </Col>
 
