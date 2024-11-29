@@ -31,9 +31,8 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
   const [requestorOptions, setRequestorOptions] = useState([]);
   const [selectedRequestor, setSelectedRequestor] = useState(null);
   const [currencyOptions, setCurrencyOptions] = useState([]);
-  const [selectedCurrency, setSelectedCurrency] = useState(null);
+  const [selectedCurrency, setSelectedCurrency] = useState({ value: "IDR", label: "IDR" });
   const [departementOptions, setDepartementOptions] = useState([]);
-  const [selectedDepartement, setSelectedDepartement] = useState(null);
   const [companyOptions, setCompanyOptions] = useState([]);
   const [selectedCompany, setSelectedCompany] = useState(null);
   const [projectOptions, setProjectOptions] = useState([]);
@@ -106,6 +105,12 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
   const [fetchedDetail, setFetchedDetail] = useState([]);
   const [createdBy, setCreatedBy] = useState(userId);
   const [isSubmited, setIsSubmited] = useState(false);
+  const [currency, setCurrency] = useState("IDR");
+  const [total_amount_idr, setTotalAmountIdr] = useState("");
+  const [total_after_discount_idr, setTotalAfterDiscountIdr] = useState("");
+  const [total_before_discount_idr, setTotalBeforeDiscountIdr] = useState("");
+  const [total_amount_ppn_idr, setTotalAmountPpnIdr] = useState("");
+  const [total_amount_pph_idr, setTotalAmountPphIdr] = useState("");
 
   const authToken = headers;
 
@@ -1344,7 +1349,7 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
                   });
 
                   storedItems.forEach((fetchedDetail, i) => {
-                    newStored[(index, i)] = {
+                    newStored[(index + i)] = {
                       ...newStored[index + i],
                       ...fetchedDetail,
                     };
@@ -1538,7 +1543,7 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
                   const updatedFetchedItems = fetchedItems.map((item) => {
                     return {
                       ...item,
-                      // doc_reff_no: item.po_number,
+                      doc_reff_no: item.po_number,
                       tax_exchange_rate: tax_exchange_rate,
                       // selectedProduct: productOptions.find((option) => option.value === item.product),
                       // selectedCurrency: currencyOptions.find((option) => option.value === item.currency),
@@ -1883,6 +1888,11 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
     SetCodCorSkb(selectedOption ? selectedOption.value : "");
   };
 
+  const handleCurrencyChange = (selectedOption) => {
+    setSelectedCurrency(selectedOption);
+    setCurrency(selectedOption ? selectedOption.value : "");
+  };
+
   const handleVendorChange = (selectedOption) => {
     setSelectedVendor(selectedOption);
     setVendor(selectedOption ? selectedOption.value : "");
@@ -1963,6 +1973,13 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
         doc_reff_no: "",
         project_contract_number: "",
         bi_middle_rate: "",
+        cod_cor_skb: "",
+        total_amount_idr: 1,
+        total_before_discount_idr: 1,
+        total_after_discount_idr: 1,
+        tax_base_idr: 0,
+        tax_ppn_amount_idr: 0,
+        tax_pph_amount_idr: 0,
       },
     ]);
   };
@@ -2195,8 +2212,9 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
       newItems[index].total_price = newItems[index].quantity * newItems[index].unit_price;
 
       // Calculate total_price_idr based on exchange rate if currency is not IDR
-      if (newItems[index].currency === "IDR") {
+      if (currency === "IDR") {
         newItems[index].total_price_idr = newItems[index].total_price;
+        console.log("curr", currency);
       } else {
         newItems[index].total_price_idr = newItems[index].total_price * (newItems[index].tax_exchange_rate || 1);
       }
@@ -2206,6 +2224,35 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
     // Calculate New Unit Price based on VAT and PPN
 
     let pengkali = newItems[index].tax_ppn_rate / 100;
+
+    if(currency !== 'IDR'){
+      if (field === "tax_ppn" || field === "tax_ppn_rate") {
+        if (newItems[index].type_of_vat === "include") {
+          // newItems[index].new_unit_price_idr = newItems[index].unit_price + newItems[index].unit_price * pengkali;
+          newItems[index].tax_base_idr = Math.round(newItems[index].total_price_idr / (1 + newItems[index].tax_ppn_rate / 100));
+          newItems[index].tax_ppn_amount_idr = Math.floor(newItems[index].tax_base_idr * (newItems[index].tax_ppn_rate / 100)); // Bottom rounding
+        } else if (newItems[index].type_of_vat === "exclude" || newItems[index].type_of_vat === "ppn_royalty") {
+          newItems[index].tax_ppn_amount_idr = Math.floor(newItems[index].total_price_idr * (newItems[index].tax_ppn_rate / 100)); // Bottom rounding
+          newItems[index].tax_base_idr = newItems[index].total_price_idr;
+        }
+      }
+      if (field === "tax_pph_type" || field === "tax_pph_rate") {
+        if (newItems[index].type_of_pph === "gross") {
+          if (newItems[index].type_of_vat === "exclude") {
+            newItems[index].tax_pph_amount_idr = Math.floor(newItems[index].total_price_idr * (newItems[index].tax_pph_rate / 100)); // Bottom rounding
+          } else {
+            newItems[index].tax_pph_amount_idr = Math.floor(newItems[index].tax_base_idr * (newItems[index].tax_pph_rate / 100)); // Bottom rounding
+          }
+        } else if (newItems[index].type_of_pph === "nett") {
+          let taxWithPPhIDR = newItems[index].tax_base_idr / (1 - newItems[index].tax_pph_rate / 100);
+          newItems[index].tax_pph_amount_idr = Math.floor(taxWithPPhIDR * (newItems[index].tax_pph_rate / 100)); // Bottom rounding
+          newItems[index].tax_ppn_amount_idr = Math.floor(taxWithPPhIDR * (newItems[index].tax_ppn_rate / 100)); // Bottom rounding
+        }
+        console.log('totalpriceidr', newItems[index].total_price_idr);
+        console.log('lococ', newItems[index].tax_base_idr);
+        console.log('taxPPHIDR', newItems[index].tax_pph_amount_idr);
+      }
+    }
 
     // Calculate PPN and PPH
 
@@ -2267,7 +2314,12 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
       newItems[index].total_price = newItems[index].unit_price * newItems[index].quantity;
     }
 
-    // Update item state
+    // ngitung tax_base_idr
+    // newItems[index].tax_base_idr = newItems[index].tax_base * (newItems[index].tax_exchange_rate || 1);
+    // Calculate the total_before_discount_idr after updating the items
+
+    const total_before_discount_idr = newItems.reduce((total, item) => total + (item.tax_base_idr || 0), 0);
+    setTotalBeforeDiscountIdr(total_before_discount_idr); // Update item state
 
     setItems(newItems);
   };
@@ -2299,6 +2351,11 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
     setItems(newItems);
     setSelectedItems([]);
   };
+
+  useEffect(() => {
+    const { total_amount_idr } = calculateTotalAmount();
+    setTotalAmountIdr(total_amount_idr);
+  }, [total_after_discount_idr, total_amount_ppn_idr, total_amount_pph_idr]);
 
   // perhitungan awal
   // const calculateTotalAmount = () => {
@@ -2489,6 +2546,8 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
       }
     }, 0);
 
+    // Calculate total_after_discount_idr based on the provided formula
+    const total_before_discount_idr = items.reduce((total, item) => total + (item.tax_base_idr || 0), 0);
     const subtotalAfterDiscount = subTotal - discount;
 
     const totalPPNAmount = items.reduce((total, item) => {
@@ -2501,6 +2560,19 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
       return total + taxPPHAmount;
     }, 0);
 
+    // Calculate totalPPHAmountIDR
+    const totalPPNAmountIDR = items.reduce((total, item) => {
+      const taxPPNAmountIDR = isNaN(item.tax_ppn_amount_idr) ? 0 : item.tax_ppn_amount_idr;
+      return total + taxPPNAmountIDR;
+    }, 0) // Use tax_exchange_rate or default to 1
+
+    // Calculate totalPPHAmountIDR
+    const totalPPHAmountIDR = items.reduce((total, item) => {
+      const taxPPHAmountIDR = isNaN(item.tax_pph_amount_idr) ? 0 : item.tax_pph_amount_idr;
+      return total + taxPPHAmountIDR; 
+    }, 0) // Use tax_exchange_rate or default to 1
+
+    
     // Initialize total_amount
     let total_amount = subtotalAfterDiscount;
 
@@ -2539,19 +2611,47 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
       }
     }
 
+    // Calculate total_amount_idr
+    // Calculate total_amount_idr
+    const total_amount_idr = total_after_discount_idr + totalPPNAmountIDR - totalPPHAmountIDR; // Ensure it's not negative
+    console.log("total amount idr", total_amount_idr);
+
     // Ensure valid total amount
     const validTotalAmount = isNaN(total_amount) ? 0 : total_amount;
 
-    console.log("kols", subTotal);
+    // console.log("kols", subTotal);
     return {
       subTotal,
       subtotalAfterDiscount,
       taxbasePPH,
       totalPPNAmount,
       totalPPHAmount,
+      totalPPNAmountIDR,
+      totalPPHAmountIDR,
       totalAmount: validTotalAmount,
+      total_amount_idr,
+      total_after_discount_idr,
+      total_before_discount_idr,
+      total_amount_ppn_idr: totalPPNAmountIDR,
+      total_amount_pph_idr: totalPPHAmountIDR,
     };
   };
+
+  // ngitung diskon buat idr
+  useEffect(() => {
+    const { total_amount_ppn_idr } = calculateTotalAmount();
+    setTotalAmountPpnIdr(total_amount_ppn_idr); // Update the state
+
+    const { total_amount_pph_idr } = calculateTotalAmount();
+    setTotalAmountPphIdr(total_amount_pph_idr); // Update the state agar bs sama kek total amount pph dibawa
+  }, [items, discount, tax_exchange_rate]);
+
+  useEffect(() => {
+    const { total_before_discount_idr } = calculateTotalAmount();
+    const calculatedTotalAfterDiscountIdr = total_before_discount_idr - discount * (tax_exchange_rate || 1);
+    // Ensure the value is not negative
+    setTotalAfterDiscountIdr(Math.max(calculatedTotalAfterDiscountIdr, 0));
+  }, [discount, tax_exchange_rate, items]); // Add dependencies
 
   const handleOnDragEnd = (result) => {
     if (!result.destination) return;
@@ -2874,7 +2974,7 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
         const checkDataResponse = await LookupService.fetchLookupData(`PURC_FORMPUINVC&filterBy=invoice_number&filterValue=${invoice_number}&operation=EQUAL`, authToken, branchId);
         const existingData = checkDataResponse.data;
 
-        const { subtotalAfterDiscount, subTotal, totalPPNAmount, totalPPHAmount, totalAmount } = calculateTotalAmount();
+        const { subtotalAfterDiscount, subTotal, totalPPNAmount, totalPPHAmount, totalAmount, total_amount_idr, total_before_discount_idr } = calculateTotalAmount();
 
         // Save general information
         const generalInfo = {
@@ -2896,6 +2996,10 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
           endtoendid: endToEndId,
           created_by: createdBy,
           bi_middle_rate,
+          vendor,
+          cod_cor_skb,
+          currency,
+          total_amount_idr,
         };
 
         console.log("Master", generalInfo);
@@ -3017,6 +3121,9 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
             delete updatedItem.total_before_discount;
             delete updatedItem.total_after_discount;
             delete updatedItem.bi_middle_rate;
+            delete updatedItem.total_amount_idr;
+            delete updatedItem.total_before_discount_idr;
+            delete updatedItem.total_after_discount_idr;
 
             try {
               const itemResponse = await InsertDataService.postData(updatedItem, "PUINVCD", authToken, branchId);
@@ -3068,6 +3175,9 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
             delete updatedItem.id_upload;
             delete updatedItem.total_before_discount;
             delete updatedItem.bi_middle_rate;
+            delete updatedItem.total_amount_idr;
+            delete updatedItem.total_before_discount_idr;
+            delete updatedItem.total_after_discount_idr;
 
             const itemResponse = await InsertDataService.postData(updatedItem, "PUINVCD", authToken, branchId);
             console.log("Item posted successfully:", itemResponse);
@@ -3168,7 +3278,8 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
           console.log("endtoendId is not empty");
         }
 
-        const { subtotalAfterDiscount, subTotal, totalPPNAmount, totalPPHAmount, totalAmount } = calculateTotalAmount();
+        const { subtotalAfterDiscount, subTotal, totalPPNAmount, totalPPHAmount, totalAmount, total_amount_idr, total_before_discount_idr } = calculateTotalAmount();
+        setTotalAmountIdr(total_amount_idr);
 
         // Save general information
         const generalInfo = {
@@ -3190,6 +3301,10 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
           endtoendid: endToEndId,
           created_by: createdBy,
           bi_middle_rate,
+          vendor,
+          cod_cor_skb,
+          currency,
+          total_amount_idr,
         };
 
         console.log("Master", generalInfo);
@@ -3290,6 +3405,9 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
             delete updatedItem.total_before_discount;
             delete updatedItem.total_after_discount;
             delete updatedItem.bi_middle_rate;
+            delete updatedItem.total_amount_idr;
+            delete updatedItem.total_before_discount_idr;
+            delete updatedItem.total_after_discount_idr;
 
             try {
               const itemResponse = await InsertDataService.postData(updatedItem, "PUINVCD", authToken, branchId);
@@ -3342,6 +3460,9 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
             delete updatedItem.id_upload;
             delete updatedItem.total_before_discount;
             delete updatedItem.bi_middle_rate;
+            delete updatedItem.total_amount_idr;
+            delete updatedItem.total_before_discount_idr;
+            delete updatedItem.total_after_discount_idr;
 
             const itemResponse = await InsertDataService.postData(updatedItem, "PUINVCD", authToken, branchId);
             console.log("Item posted successfully:", itemResponse);
@@ -3410,8 +3531,8 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
 
                           for (const item of items) {
                             // Assuming 'items' is an array of items to check against
-                            if (storedItem.po_number === item.po_number && storedItem.pr_number === item.doc_reff_no) {
-                              invoicenum = invoice_number;
+                            if (storedItem.po_number === item.po_number && (storedItem.po_number === item.doc_reff_no || storedItem.pr_number === item.doc_reff_no)) {
+                              invoicenum = invoice_number.replace("DRAFT_", "");
                             }
                           }
                           console.log("invoicenumc", invoice_number);
@@ -3452,6 +3573,9 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
                             "vat_included",
                             "new_unit_price",
                             "requestor",
+                            "total_amount_idr",
+                            "total_before_discount_idr",
+                            "total_after_discount_idr",
                           ];
 
                           fieldsToDelete.forEach((field) => delete updatedStoredItem[field]);
@@ -3544,6 +3668,9 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
                       "new_unit_price",
                       "requestor",
                       "bi_middle_rate",
+                      "total_amount_idr",
+                      "total_before_discount_idr",
+                      "total_after_discount_idr",
                     ];
 
                     fieldsToDelete.forEach((field) => delete updatedStoredItem[field]);
@@ -3833,7 +3960,7 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
     });
   };
 
-  console.log("subl", items.tax_exchange_rate);
+  // console.log("subl", items.tax_exchange_rate);
   useEffect(() => {
     const today = new Date().toISOString().split("T")[0]; // Get today's date in YYYY-MM-DD format
     setInvoiceDate(today);
@@ -3888,6 +4015,25 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
   const handleBiMiddleRateChange = (e) => {
     const value = parseFloat(e.target.value); // Convert to a number
     setBiMiddleRate(isNaN(value) ? 0 : value); // Set to 0 if NaN
+  };
+
+  const detailFormStyle = () => {
+    return {
+      border: "none",
+      background: "transparent",
+      color: "#000",
+    };
+  };
+
+  const formatCurrency = (amount, currency) => {
+    const options = {
+      style: "currency",
+      currency: currency || "IDR", // Default to IDR if no currency is provided
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 2, // Adjust as needed
+    };
+
+    return new Intl.NumberFormat("en-US", options).format(amount);
   };
 
   return (
@@ -4232,7 +4378,7 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
                           <Select value={selectedProject} onChange={handleProjectChange} options={projectOptions} isClearable placeholder="Select Project..." isDisabled={docRef === "purchaseOrder"} />
                         </Form.Group>
                       </Col>
-                    )}
+                    )} */}
 
                     {docRef === "purchaseRequest" && (
                       <Col md={6}>
@@ -4246,7 +4392,7 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
                       <Col md={6}>
                         <Form.Group controlId="formVendor">
                           <Form.Label>Vendor</Form.Label>
-                          <Select value={selectedbothvendor} onChange={handleBothVendorChange} options={allvendoroptions} isClearable placeholder="Select Vendor..." isDisabled />
+                          <Select value={selectedbothvendor} onChange={handleBothVendorChange} options={allvendoroptions} isClearable placeholder="Select Vendor..." />
                         </Form.Group>
                       </Col>
                     )}
@@ -4258,7 +4404,7 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
                         </Form.Group>
                       </Col>
                     )}
-
+                    {/* 
                     <Col md={6}>
                       <Form.Group controlId="formInvoiceStatus">
                         <Form.Label>Invoice Status</Form.Label>
@@ -4271,15 +4417,29 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
                         <Form.Label>Tax Invoice Number</Form.Label>
                         <Form.Control type="text" placeholder="Enter Tax Invoice Number" value={tax_invoice_number} onChange={(e) => setTaxInvoiceNumber(e.target.value)} required />
                       </Form.Group>
-                    </Col>
+                    </Col>  */}
 
                     <Col md={6}>
                       <Form.Group controlId="formCodCorSkb">
-                        <Form.Label>COD/COR, SKB</Form.Label>
-
+                        <Form.Label>COD, COR, SKB</Form.Label>
                         <Select value={selectedCodCorSkb} onChange={handleCodCorSkbChange} options={codCorSkbOptions} isClearable placeholder="Select COD/COR, SKB..." />
                       </Form.Group>
-                    </Col> */}
+                    </Col>
+
+                    <Col md={6}>
+                      <Form.Group controlId="formCurrency">
+                        <Form.Label>Currency</Form.Label>
+                        <Select
+                          value={selectedCurrency}
+                          onChange={(selectedOption) => {
+                            handleCurrencyChange(selectedOption); // Memanggil handleItemChange untuk memperbarui mata uang per baris
+                          }}
+                          options={currencyOptions}
+                          isClearable
+                          placeholder="Select Currency..."
+                        />
+                      </Form.Group>
+                    </Col>
 
                     {/* <Col md={6}>
                         <Form.Group controlId="formTypeOfPayment">
@@ -4287,6 +4447,90 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
                           <Form.Control type="text" placeholder="Enter Type Of Payment" value={type_of_payment} onChange={(e) => setTypeOfPayment(e.target.value)} />
                         </Form.Group>
                       </Col> */}
+                    <Col md={6}>
+                      <Form.Group controlId="formTotalAmountPpnIdr">
+                        <Form.Label>Total Amount PPN IDR</Form.Label>
+                        <Form.Control
+                          type="number"
+                          placeholder="Total Amount PPN IDR"
+                          min="1"
+                          value={total_amount_ppn_idr}
+                          onChange={(e) => {
+                            const value = parseFloat(e.target.value);
+                            setTotalAmountPpnIdr(isNaN(value) ? 0 : value);
+                          }}
+                          readOnly
+                        />
+                      </Form.Group>
+                    </Col>
+
+                    <Col md={6}>
+                      <Form.Group controlId="formTotalAmountPphIdr">
+                        <Form.Label>Total Amount PPH IDR</Form.Label>
+                        <Form.Control
+                          type="number"
+                          placeholder="Total Amount PPN IDR"
+                          min="1"
+                          value={total_amount_pph_idr}
+                          onChange={(e) => {
+                            const value = parseFloat(e.target.value);
+                            setTotalAmountPphIdr(isNaN(value) ? 0 : value);
+                          }}
+                          readOnly
+                        />
+                      </Form.Group>
+                    </Col>
+
+                    <Col md={6}>
+                      <Form.Group controlId="formTotalBeforeDiscount">
+                        <Form.Label>Total Before Discount IDR</Form.Label>
+                        <Form.Control
+                          type="number"
+                          placeholder="Enter Total Amount IDR"
+                          min="1"
+                          value={total_before_discount_idr}
+                          onChange={(e) => {
+                            const value = parseFloat(e.target.value);
+                            setTotalBeforeDiscountIdr(isNaN(value) ? 0 : value);
+                          }}
+                          readOnly
+                        />
+                      </Form.Group>
+                    </Col>
+
+                    <Col md={6}>
+                      <Form.Group controlId="formTotalAfterDiscount">
+                        <Form.Label>Total After Discount IDR</Form.Label>
+                        <Form.Control
+                          type="number"
+                          placeholder="Enter Total Amount IDR"
+                          min="0"
+                          value={total_after_discount_idr}
+                          onChange={(e) => {
+                            const value = parseFloat(e.target.value);
+                            setTotalAfterDiscountIdr(isNaN(value) ? 0 : value);
+                          }}
+                          readOnly
+                        />
+                      </Form.Group>
+                    </Col>
+
+                    <Col md={6}>
+                      <Form.Group controlId="formBiMiddleRate">
+                        <Form.Label>Total Amount IDR</Form.Label>
+                        <Form.Control
+                          type="number"
+                          placeholder="Enter Total Amount IDR"
+                          min="1"
+                          value={total_amount_idr}
+                          onChange={(e) => {
+                            const value = parseFloat(e.target.value);
+                            setTotalAmountIdr(isNaN(value) ? 0 : value);
+                          }}
+                          readOnly // Tidak dapat diedit karena sudah dihitung
+                        />
+                      </Form.Group>
+                    </Col>
                   </Row>
                 </Form>
               </Card.Body>
@@ -4325,22 +4569,23 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
                               {/* <th>Invoice Number</th> */}
                               <th>Document Referance Number</th>
                               <th>Document Referance Source</th>
+                              <th>Tax Invoice Number Vendor</th>
                               <th>Invoice Number Vendor</th>
                               {/* <th>Tax Invoice Number Vendor</th> */}
-                              <th>Vendor</th>
+                              {/* <th>Vendor</th> */}
                               <th>Project</th>
                               <th>Project Contract Number</th>
                               <th>Customer</th>
                               <th>Departement</th>
                               <th>Product</th>
-                              <th>Product Note</th>
-                              <th>Currency</th>
+                              <th>Product Description</th>
+                              {/* <th>Currency</th> */}
                               <th className={items.length > 0 && items[0].currency === "IDR"}>Tax Exchange Rate</th>
                               <th>Quantity</th>
                               <th>Unit Price</th>
                               <th className={items.length > 0 && items[0].currency === "IDR"}>Total Price</th>
                               <th>Total Price IDR</th>
-                              <th>Cod, Cor, Skb</th>
+                              {/* <th>Cod, Cor, Skb</th> */}
                               <th>Type Of VAT</th>
                               {/* <th>Tax PPN</th> */}
                               <th>Tax PPN</th>
@@ -4352,6 +4597,7 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
                               <th>Tax PPh Rate %</th>
                               {/* <th>Tax PPh Amount</th> */}
                               <th>Tax Base</th>
+                              <th>Tax Base IDR</th>
                               {/* <th>Total Price</th> */}
                               <th>Actions</th>
                             </tr>
@@ -4399,6 +4645,12 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
                                           isClearable
                                           required
                                           placeholder="Select PR Number..."
+                                          styles={{
+                                            control: (provided) => ({
+                                              ...provided,
+                                              ...detailFormStyle(),
+                                            }),
+                                          }}
                                         />
                                       </Form.Group>
                                     )}
@@ -4415,24 +4667,30 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
                                           isClearable
                                           required
                                           placeholder="Select PO Number..."
+                                          styles={{
+                                            control: (provided) => ({
+                                              ...provided,
+                                              ...detailFormStyle(),
+                                            }),
+                                          }}
                                         />
                                       </Form.Group>
                                     )}
 
                                     {docRef === "internalMemo" && (
                                       <Form.Group controlId="formInternalMemo">
-                                        <Form.Control type="text" placeholder="Enter Internal Memo" value={item.doc_reff_no} onChange={(e) => handleItemChange(index, "doc_reff_no", e.target.value)} required />
+                                        <Form.Control type="text" placeholder="Enter Internal Memo" value={item.doc_reff_no} onChange={(e) => handleItemChange(index, "doc_reff_no", e.target.value)} required style={detailFormStyle()} />
                                       </Form.Group>
                                     )}
 
                                     {docRef === "customerContract" && (
                                       <Form.Group controlId="formCustomerContract">
-                                        <Form.Control type="text" placeholder="Enter Document Contract" value={item.doc_reff_no} onChange={(e) => handleItemChange(index, "doc_reff_no", e.target.value)} required />
+                                        <Form.Control type="text" placeholder="Enter Document Contract" value={item.doc_reff_no} onChange={(e) => handleItemChange(index, "doc_reff_no", e.target.value)} required style={detailFormStyle()} />
                                       </Form.Group>
                                     )}
 
                                     {docRef !== "purchaseRequest" && docRef !== "purchaseOrder" && docRef !== "internalMemo" && docRef !== "customerContract" && (
-                                      <Form.Control type="number" value={item.doc_reff_no} onChange={(e) => handleItemChange(index, "doc_reff_no", parseFloat(e.target.value))} disabled />
+                                      <Form.Control type="number" value={item.doc_reff_no} onChange={(e) => handleItemChange(index, "doc_reff_no", parseFloat(e.target.value))} disabled style={detailFormStyle()} />
                                     )}
                                   </td>
                                   <td>
@@ -4466,15 +4724,17 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
                                     )}
                                   </td>
                                   <td>
-                                    <Form.Control type="text" value={item.invoice_number_vendor} onChange={(e) => handleItemChange(index, "invoice_number_vendor")} />
+                                    <Form.Control type="text" value={item.tax_invoice_number} onChange={(e) => handleItemChange(index, "tax_invoice_number", e.target.value)} style={detailFormStyle()} />
+                                  </td>
+                                  <td>
+                                    <Form.Control type="text" value={item.invoice_number_vendor} onChange={(e) => handleItemChange(index, "invoice_number_vendor", e.target.value)} style={detailFormStyle()} />
                                   </td>
                                   {/* <td>
                                     <Form.Control type="number" value={item.tax_invoice_number_vendor} onChange={(e) => handleItemChange(index, "tax_invoice_number_vendor", parseFloat(e.target.value))} />
                                   </td> */}
-                                  {docRef === "purchaseRequest" && (
+                                  {/* {docRef === "purchaseRequest" && (
                                     <td>
                                       <Form.Group controlId="formVendor">
-                                        {/* <Form.Label>Vendor</Form.Label> */}
                                         <Select
                                           value={vendorOptions.find((option) => option.value === item.vendor)}
                                           onChange={(selectedOption) => handleItemChange(index, "vendor", selectedOption ? selectedOption.value : null)}
@@ -4488,7 +4748,6 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
                                   {docRef === "purchaseOrder" && (
                                     <td>
                                       <Form.Group controlId="formVendor">
-                                        {/* <Form.Label>Vendor</Form.Label> */}
                                         <Select
                                           value={allvendoroptions.find((option) => option.value === item.vendor)}
                                           onChange={(selectedOption) => handleItemChange(index, "vendor", selectedOption ? selectedOption.value : null)}
@@ -4502,7 +4761,6 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
                                   {!(docRef === "purchaseRequest" || docRef === "purchaseOrder") && (
                                     <td>
                                       <Form.Group controlId="formVendor">
-                                        {/* <Form.Label>Vendor</Form.Label> */}
                                         <Select
                                           value={allvendoroptions.find((option) => option.value === item.vendor)}
                                           onChange={(selectedOption) => handleItemChange(index, "vendor", selectedOption.value)}
@@ -4512,12 +4770,11 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
                                         />
                                       </Form.Group>
                                     </td>
-                                  )}
+                                  )} */}
 
                                   {docRef === "purchaseRequest" ? (
                                     <td>
                                       <Form.Group controlId="formProject">
-                                        {/* <Form.Label>Project</Form.Label> */}
                                         <Select
                                           value={projectOptions.find((option) => option.value === item.project)}
                                           onChange={(selectedOption) => {
@@ -4539,6 +4796,11 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
                                           isClearable
                                           placeholder="Select Project..."
                                           styles={{
+                                            control: (provided) => ({
+                                              ...provided,
+                                              ...detailFormStyle(),
+                                            }),
+
                                             placeholder: (base) => ({
                                               ...base,
                                               color: "#8d8080",
@@ -4572,6 +4834,11 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
                                           isClearable
                                           placeholder="Select Project..."
                                           styles={{
+                                            control: (provided) => ({
+                                              ...provided,
+                                              ...detailFormStyle(),
+                                            }),
+
                                             placeholder: (base) => ({
                                               ...base,
                                               color: "#8d8080",
@@ -4594,6 +4861,11 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
                                       isClearable
                                       isDisabled={!!item.project}
                                       styles={{
+                                        control: (provided) => ({
+                                          ...provided,
+                                          ...detailFormStyle(),
+                                        }),
+
                                         placeholder: (base) => ({
                                           ...base,
                                           color: "#8d8080",
@@ -4612,6 +4884,12 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
                                       options={customerOptions}
                                       placeholder="Customer..."
                                       isDisabled={!!item.project}
+                                      styles={{
+                                        control: (provided) => ({
+                                          ...provided,
+                                          ...detailFormStyle(),
+                                        }),
+                                      }}
                                       isClearable
                                     />
                                   </td>
@@ -4625,6 +4903,12 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
                                       options={departementOptions}
                                       placeholder="Department..."
                                       isClearable
+                                      styles={{
+                                        control: (provided) => ({
+                                          ...provided,
+                                          ...detailFormStyle(),
+                                        }),
+                                      }}
                                       required
                                     />
                                   </td>
@@ -4660,12 +4944,18 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
                                       options={productOptions} // Daftar opsi produk
                                       isClearable
                                       placeholder="Select Product..."
+                                      styles={{
+                                        control: (provided) => ({
+                                          ...provided,
+                                          ...detailFormStyle(),
+                                        }),
+                                      }}
                                     />
                                   </td>
                                   <td>
-                                    <Form.Control type="text" value={item.product_note} onChange={(e) => handleItemChange(index, "product_note", e.target.value)} />
+                                    <Form.Control type="text" value={item.product_note} onChange={(e) => handleItemChange(index, "product_note", e.target.value)} style={detailFormStyle()} />
                                   </td>
-                                  <td>
+                                  {/* <td>
                                     <Select
                                       value={currencyOptions.find((option) => option.value === item.currency)} // Menemukan mata uang yang sesuai
                                       onChange={(selectedOption) => {
@@ -4676,7 +4966,7 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
                                       placeholder="Select Currency"
                                       defaultValue={currencyOptions.find((option) => option.value === (item.currency || "USD"))} // Set default value to USD if item.currency is not set
                                     />
-                                  </td>
+                                  </td> */}
 
                                   <td>
                                     <Form.Control
@@ -4699,6 +4989,7 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
                                         const rate = parseFloat(item.tax_exchange_rate) || 0;
                                         handleItemChange(index, "tax_exchange_rate", rate); // Convert back to number on blur
                                       }}
+                                      style={detailFormStyle()}
                                       disabled
                                     />
                                   </td>
@@ -4710,12 +5001,13 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
                                       min="0"
                                       onChange={(e) => handleItemChange(index, "quantity", parseFloat(e.target.value))}
                                       style={{
+                                        ...detailFormStyle(),
                                         width: `${inputWidth}px`,
                                       }}
                                     />
                                   </td>
                                   <td>
-                                    {item.currency === "IDR" ? (
+                                    {currency === "IDR" ? (
                                       <Form.Control
                                         className="text-left"
                                         type="text"
@@ -4725,6 +5017,7 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
                                           handleItemChange(index, "unit_price", newPrice);
                                           dynamicFormWidth(e);
                                         }}
+                                        style={detailFormStyle()}
                                       />
                                     ) : (
                                       <Form.Control
@@ -4747,14 +5040,15 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
                                           const price = parseFloat(item.unit_price) || 0;
                                           handleItemChange(index, "unit_price", price); // Convert back to number on blur
                                         }}
+                                        style={detailFormStyle()}
                                       />
                                     )}
                                   </td>
 
-                                  <td className={item.currency}>{item.total_price.toLocaleString("en-US", { style: "currency", currency: item.currency }) || 0}</td>
+                                  <td className={currency}>{item.total_price.toLocaleString("en-US", { style: "currency", currency: currency }) || 0} </td>
 
                                   <td>{item.total_price_idr?.toLocaleString("en-US", { style: "currency", currency: "IDR" }) ?? "IDR 0.00"}</td>
-                                  <td>
+                                  {/* <td>
                                     <Select
                                       value={codCorSkbOptions.find((option) => option.value === items[index].cod_cor_skb)} // Find the corresponding COD/COR, SKB option
                                       onChange={(selectedOption) => {
@@ -4764,9 +5058,9 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
                                       isClearable // Allow clearing the selection
                                       placeholder="Select COD/COR, SKB..." // Placeholder text
                                     />
-                                  </td>
+                                  </td> */}
                                   <td>
-                                    <Form.Control as="select" value={items[index].type_of_vat || ""} onChange={(selectedOption) => handleItemChange(index, "type_of_vat", selectedOption.target.value)}>
+                                    <Form.Control as="select" value={items[index].type_of_vat || ""} onChange={(selectedOption) => handleItemChange(index, "type_of_vat", selectedOption.target.value)} style={detailFormStyle()}>
                                       <option value="Select an Option">Select an Option</option>
                                       <option value="include">Include</option>
                                       <option value="exclude">Exclude</option>
@@ -4801,11 +5095,17 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
                                       isClearable
                                       placeholder="Select Tax PPN Type..."
                                       isDisabled={items[index].type_of_vat === "non_ppn"}
+                                      styles={{
+                                        control: (provided) => ({
+                                          ...provided,
+                                          ...detailFormStyle(),
+                                        }),
+                                      }}
                                     />
                                   </td>
 
                                   <td>
-                                    <Form.Control type="number" value={item.tax_ppn_rate} onChange={(e) => handleItemChange(index, "tax_ppn_rate", parseFloat(e.target.value))} readOnly />
+                                    <Form.Control type="number" value={item.tax_ppn_rate} onChange={(e) => handleItemChange(index, "tax_ppn_rate", parseFloat(e.target.value))} readOnly style={detailFormStyle()} />
                                   </td>
 
                                   {/* <td style={{ textAlign: "right" }}>{item.tax_ppn_amount ? item.tax_ppn_amount.toLocaleString("en-US", { style: "currency", currency: item.currency }) : "IDR 0.00"}</td> */}
@@ -4857,6 +5157,7 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
                                       value={item.type_of_pph}
                                       onChange={(e) => handleItemChange(index, "type_of_pph", e.target.value)}
                                       disabled={item.type_of_vat === "PPNRoyalty"} // Disable if PPN Royalty is selected
+                                      style={detailFormStyle()}
                                     >
                                       <option value="Select an Option">Select an Option</option>
                                       <option value="gross">Gross</option>
@@ -4884,11 +5185,17 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
                                       isClearable
                                       placeholder="Select Tax PPH Type..."
                                       isDisabled={item.type_of_vat === "PPNRoyalty"} // Disable if PPN Royalty is selected
+                                      styles={{
+                                        control: (provided) => ({
+                                          ...provided,
+                                          ...detailFormStyle(),
+                                        }),
+                                      }}
                                     />
                                   </td>
 
                                   <td>
-                                    <Form.Control type="number" value={item.tax_pph_rate} onChange={(e) => handleItemChange(index, "tax_pph_rate", parseFloat(e.target.value))} readOnly />
+                                    <Form.Control type="number" value={item.tax_pph_rate} onChange={(e) => handleItemChange(index, "tax_pph_rate", parseFloat(e.target.value))} readOnly style={detailFormStyle()} />
                                   </td>
 
                                   {/* <td>
@@ -4902,6 +5209,7 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
                                         type="text"
                                         disabled
                                         style={{
+                                          ...detailFormStyle(),
                                           textAlign: "right",
                                           width: `${inputWidth}px`,
                                           marginLeft: "auto",
@@ -4919,6 +5227,7 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
                                         type="text"
                                         disabled
                                         style={{
+                                          ...detailFormStyle(),
                                           textAlign: "right",
                                           width: `${inputWidth}px`,
                                           marginLeft: "auto",
@@ -4931,6 +5240,25 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
                                         }}
                                       />
                                     )}
+                                  </td>
+
+                                  <td>
+                                    <Form.Control
+                                      type="text"
+                                      disabled
+                                      style={{
+                                        ...detailFormStyle(),
+                                        textAlign: "right",
+                                        width: `${inputWidth}px`,
+                                        marginLeft: "auto",
+                                        display: "flex",
+                                      }}
+                                      value={item.tax_base_idr !== undefined && item.tax_base_idr !== null ? item.tax_base_idr : 0}
+                                      onChange={(e) => {
+                                        handleItemChange(index, "tax_base_idr", Math.max(0, parseFloat(e.target.value) || 0));
+                                        dynamicFormWidth(e);
+                                      }}
+                                    />
                                   </td>
 
                                   {/* <td>
@@ -4946,15 +5274,25 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
                               ))
                             )}
                           </tbody>
-                          <tfoot>
+                          <tr>
+                            <td colSpan="1"></td>
+                            <td className="d-flex justify-content-center">
+                              <div>
+                                <Button variant="success" size="sm" onClick={handleAddItem}>
+                                  <i className="fas fa-plus"></i> New Item
+                                </Button>
+                              </div>
+                            </td>
+                          </tr>
+                          {/* <tfoot>
                             <tr className="text-right">
-                              <td colSpan="25">Subtotal Before Discount:</td>
+                              <td colSpan="22">Subtotal Before Discount:</td>
                               <td>
                                 <strong>
                                   {items.length > 0
-                                    ? calculateTotalAmount(items[0].currency).subTotal.toLocaleString("en-US", {
+                                    ? calculateTotalAmount(currency).subTotal.toLocaleString("en-US", {
                                         style: "currency",
-                                        currency: items[0].currency || "IDR",
+                                        currency: currency,
                                         minimumFractionDigits: 0, // No decimal places
                                         maximumFractionDigits: 0,
                                       })
@@ -4963,7 +5301,7 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
                               </td>
                             </tr>
                             <tr className="text-right">
-                              <td colSpan="25">Discount:</td>
+                              <td colSpan="22">Discount:</td>
                               <td>
                                 <Form.Control
                                   className="text-right"
@@ -4988,13 +5326,13 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
                               </td>
                             </tr>
                             <tr className="text-right">
-                              <td colSpan="25">Subtotal After Discount:</td>
+                              <td colSpan="22">Subtotal After Discount:</td>
                               <td>
                                 <strong>
                                   {items.length > 0
                                     ? calculateTotalAmount().subtotalAfterDiscount.toLocaleString("en-US", {
                                         style: "currency",
-                                        currency: items[0].currency || "IDR",
+                                        currency: currency,
                                         minimumFractionDigits: 0,
                                         maximumFractionDigits: 0,
                                       })
@@ -5003,7 +5341,7 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
                               </td>
                             </tr>
                             <tr className="text-right">
-                              <td colSpan="25">Total PPN Amount:</td>
+                              <td colSpan="22">Total PPN Amount:</td>
                               <td>
                                 <Form.Control
                                   className="text-right"
@@ -5027,7 +5365,7 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
                               </td>
                             </tr>
                             <tr className="text-right">
-                              <td colSpan="25">Total PPh Amount:</td>
+                              <td colSpan="22">Total PPh Amount:</td>
                               <td>
                                 <Form.Control
                                   className="text-right"
@@ -5051,13 +5389,13 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
                               </td>
                             </tr>
                             <tr className="text-right">
-                              <td colSpan="25">Total Amount:</td>
+                              <td colSpan="22">Total Amount:</td>
                               <td>
                                 <strong>
                                   {items.length > 0
-                                    ? calculateTotalAmount(items[0].currency).totalAmount.toLocaleString("en-US", {
+                                    ? calculateTotalAmount(currency).totalAmount.toLocaleString("en-US", {
                                         style: "currency",
-                                        currency: items[0].currency || "IDR",
+                                        currency: currency,
                                         minimumFractionDigits: 0, // No decimal places
                                         maximumFractionDigits: 0,
                                       })
@@ -5065,7 +5403,7 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
                                 </strong>
                               </td>
                             </tr>
-                          </tfoot>
+                          </tfoot> */}
                         </table>
                         {provided.placeholder}
                       </div>
@@ -5073,6 +5411,178 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
                   </Droppable>
                 </DragDropContext>
               </Card.Body>
+              <Card.Footer>
+                <table className="table table-bordered">
+                  <tbody>
+                    <tr className="text-right">
+                      <td colSpan="16">Subtotal Before Discount:</td>
+                      <td className="text-right col-2">
+                        <strong>
+                          {items.length > 0
+                            ? calculateTotalAmount(currency).subTotal.toLocaleString("en-US", {
+                                style: "currency",
+                                currency: currency,
+                                minimumFractionDigits: 0, // No decimal places
+                                maximumFractionDigits: 0,
+                              })
+                            : "IDR 0.00"}
+                        </strong>
+                      </td>
+                    </tr>
+                    <tr className="text-right">
+                      <td colSpan="16">Discount:</td>
+                      <td>
+                        <Form.Control
+                          className="text-right"
+                          type="text"
+                          value={discount !== undefined && discount !== null ? discount.toLocaleString("en-US") : 0}
+                          onChange={(e) => {
+                            const newDiscount = parseFloat(e.target.value.replace(/[^\d.-]/g, "")) || 0;
+                            setDiscount(newDiscount);
+                          }}
+                          style={{
+                            textAlign: "right",
+                            marginLeft: "auto",
+                            display: "flex",
+                          }}
+                        />
+                      </td>
+                    </tr>
+                    <tr className="text-right" hidden>
+                      <td colSpan="16">taxbase with pph:</td>
+                      <td>
+                        <strong>{calculateTotalAmount().taxbasePPH.toLocaleString("en-US", { style: "currency", currency: "IDR" })}</strong>
+                      </td>
+                    </tr>
+                    <tr className="text-right">
+                      <td colSpan="16">Subtotal After Discount:</td>
+                      <td>
+                        <strong>
+                          {items.length > 0
+                            ? calculateTotalAmount().subtotalAfterDiscount.toLocaleString("en-US", {
+                                style: "currency",
+                                currency: currency,
+                                minimumFractionDigits: 0,
+                                maximumFractionDigits: 0,
+                              })
+                            : "IDR 0.00"}
+                        </strong>
+                      </td>
+                    </tr>
+                    <tr className="text-right">
+                      <td colSpan="16">Total PPN Amount:</td>
+                      <td>
+                        <Form.Control
+                          className="text-right"
+                          type="text"
+                          value={calculateTotalAmount().totalPPNAmount.toLocaleString("en-US") || 0}
+                          onChange={(e) => {
+                            // dynamicFormWidth(e.target.value, index);
+                            const newItems = [...items];
+                            const totalPPNAmount = parseFloat(e.target.value.replace(/[^\d.-]/g, "")) || 0;
+                            newItems.forEach((item) => {
+                              item.tax_ppn_amount = totalPPNAmount / newItems.length;
+                            });
+                            setItems(newItems);
+                          }}
+                          style={{
+                            textAlign: "right",
+                            marginLeft: "auto",
+                            display: "flex",
+                          }}
+                        />
+                      </td>
+                    </tr>
+                    <tr className="text-right">
+                      <td colSpan="16">Total PPN Amount IDR:</td>
+                      <td>
+                        <Form.Control
+                          className="text-right"
+                          type="text"
+                          value={calculateTotalAmount().totalPPNAmountIDR.toLocaleString("en-US") || 0}
+                          onChange={(e) => {
+                            // dynamicFormWidth(e.target.value, index);
+                            const newItems = [...items];
+                            const totalPPNAmountIDR = parseFloat(e.target.value.replace(/[^\d.-]/g, "")) || 0;
+                            newItems.forEach((item) => {
+                              item.tax_ppn_amount = totalPPNAmountIDR / newItems.length;
+                            });
+                            setItems(newItems);
+                          }}
+                          style={{
+                            textAlign: "right",
+                            marginLeft: "auto",
+                            display: "flex",
+                          }}
+                        />
+                      </td>
+                    </tr>
+                    <tr className="text-right">
+                      <td colSpan="16">Total PPh Amount:</td>
+                      <td>
+                        <Form.Control
+                          className="text-right"
+                          type="text"
+                          value={calculateTotalAmount().totalPPHAmount.toLocaleString("en-US") || 0}
+                          onChange={(e) => {
+                            // dynamicFormWidth(e.target.value, index);
+                            const newItems = [...items];
+                            const totalPPHAmount = parseFloat(e.target.value.replace(/[^\d.-]/g, "")) || 0;
+                            newItems.forEach((item) => {
+                              item.tax_pph_amount = totalPPHAmount / newItems.length;
+                            });
+                            setItems(newItems);
+                          }}
+                          style={{
+                            textAlign: "right",
+                            marginLeft: "auto",
+                            display: "flex",
+                          }}
+                        />
+                      </td>
+                    </tr>
+                    <tr className="text-right">
+                      <td colSpan="16">Total PPh Amount IDR:</td>
+                      <td>
+                        <Form.Control
+                          className="text-right"
+                          type="text"
+                          value={calculateTotalAmount().totalPPHAmountIDR.toLocaleString("en-US") || 0}
+                          onChange={(e) => {
+                            // dynamicFormWidth(e.target.value, index);
+                            const newItems = [...items];
+                            const totalPPHAmountIDR = parseFloat(e.target.value.replace(/[^\d.-]/g, "")) || 0;
+                            newItems.forEach((item) => {
+                              item.tax_pph_amount = totalPPHAmountIDR / newItems.length;
+                            });
+                            setItems(newItems);
+                          }}
+                          style={{
+                            textAlign: "right",
+                            marginLeft: "auto",
+                            display: "flex",
+                          }}
+                        />
+                      </td>
+                    </tr>
+                    <tr className="text-right">
+                      <td colSpan="16">Total Amount:</td>
+                      <td>
+                        <strong>
+                          {items.length > 0
+                            ? calculateTotalAmount(currency).totalAmount.toLocaleString("en-US", {
+                                style: "currency",
+                                currency: currency,
+                                minimumFractionDigits: 0, // No decimal places
+                                maximumFractionDigits: 0,
+                              })
+                            : "IDR 0.00"}
+                        </strong>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </Card.Footer>
             </Card>
           </Col>
         </Row>
@@ -5081,11 +5591,11 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
             <Card>
               <Card.Body>
                 <Form.Group controlId="formDescription">
-                  <Form.Label>Description</Form.Label>
+                  <Form.Label>Notes</Form.Label>
                   <Form.Control
                     as="textarea"
                     rows={3}
-                    placeholder="Enter description"
+                    placeholder="Enter Notes"
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
 
