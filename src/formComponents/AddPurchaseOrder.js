@@ -1,4 +1,4 @@
-import React, { Fragment, useEffect, useState } from 'react';
+import React, { Fragment, useDebugValue, useEffect, useState, useSyncExternalStore } from 'react';
 import { Button, Col, Form, InputGroup, Row, Card } from 'react-bootstrap';
 import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd';
 import Swal from 'sweetalert2';
@@ -16,6 +16,8 @@ import axios from 'axios';
 import UpdateDataService from '../service/UpdateDataService';
 import DeleteDataService from '../service/DeleteDataService';
 import FormService from '../service/FormService';
+import DatePicker from 'react-datepicker';
+import moment from 'moment';
 
   const AddPurchaseOrder = ({ 
     setIsAddingNewPurchaseOrder, 
@@ -77,6 +79,10 @@ import FormService from '../service/FormService';
     const [contractNumberOption, setContractNumberOptions]= useState([]);
     const [file, setFile] = useState(null);
     const [fetchedPRDetail, setFetchedPRDetail] = useState([]);
+    const [vendor, setVendor] = useState('');
+    const [selectedVendor, setSelectedVendor] = useState(null);
+    const [selectedCurrency, setSelectedCurrency] = useState(null);
+    const [currency, setCurrency] = useState('');
     const [isSubmited, setIsSubmited] = useState(false);
 
     // Dynamic Form Field Width
@@ -128,6 +134,8 @@ import FormService from '../service/FormService';
             console.error('Failed to load items:', error);
         });
 
+
+
         LookupParamService.fetchLookupData("MSDT_FORMTAX", authToken, branchId)
         .then(data => {
           console.log('Currency lookup data:', data);
@@ -153,6 +161,8 @@ import FormService from '../service/FormService';
         }).catch(error => {
           console.error('Failed to fetch currency lookup:', error);
         });
+
+
 
         // Lookup vendor to dan to address
         LookupParamService.fetchLookupDataView("MSDT_FORMCUST", authToken, branchId)
@@ -325,6 +335,13 @@ import FormService from '../service/FormService';
           label: item.CODE
         }));
         setCurrencyOptions(options);
+
+        // Default Currency
+        const defaultCurrency = options.find(option => option.value === 'IDR');
+        if(defaultCurrency){
+          setSelectedCurrency(defaultCurrency);
+          setCurrency(defaultCurrency.value);
+        }
       }).catch(error => {
         console.error('Failed to fetch currency lookup:', error);
       });
@@ -438,6 +455,26 @@ import FormService from '../service/FormService';
     }, []);
 
 
+    // Vendor Handle
+    const handleVendorChange = (selectedOption) => {
+      setSelectedVendor(selectedOption);
+      setVendor(selectedOption ? selectedOption.value : '');
+
+      if(selectedOption){
+        // Autofill To
+        setSelectedTo(selectedOption);
+        setTo(selectedOption ? selectedOption.value : '');
+        // Autofill To Address
+        const toAddressOption = toAddressOptions.find((option) => option.value === selectedOption.vendAddress);
+        setSelectedToAddress(toAddressOption);
+        setToAddress(toAddressOption ? toAddressOption.value : '');
+      }else{
+        setSelectedTo(null);
+        setTo('');
+        setSelectedToAddress(null);
+        setToAddress('');
+      }
+    }
     
     // To Handler untuk autofill address
     const handleToChange = (selectedOption) => {
@@ -533,9 +570,8 @@ import FormService from '../service/FormService';
           });
             
             console.log('storedPRItems', newStored);
-
-
             setFetchedPRDetail(newStored);
+            console.log('pr stored', fetchedPRDetail);
 
             // Update fetched items with selected options
             const updatedFetchedItems = fetchedItems.map(item => {
@@ -647,7 +683,7 @@ import FormService from '../service/FormService';
         departement: '',
         project_contract_number: '',
         company:'PT. Abhimata Persada',
-        requestor: '',
+        requestor: userId,
         doc_source: '',
       }]);
     };
@@ -801,6 +837,10 @@ import FormService from '../service/FormService';
       setSelectedItems([]);
       setEndToEnd('');
       setIsSubmited(false);
+      setVendor('');
+      setSelectedVendor(null);
+      setCurrency(currencyOptions.find(option => option.value === 'IDR').value);
+      setSelectedCurrency(currencyOptions.find(option => option.value === 'IDR'));
     };
 
    
@@ -912,7 +952,9 @@ import FormService from '../service/FormService';
             total_amount_ppn: totalPPNAmount,
             term_conditions: termConditions,
             endtoendid: endToEndId,
-            discount
+            discount,
+            vendor,
+            currency,
           };
 
           console.log('Master', generalInfo);
@@ -1121,7 +1163,7 @@ import FormService from '../service/FormService';
             po_number,
             doc_reff: docRef,
             status_po: 'IN_PROCESS',
-            order_date, // Converts to date format
+            order_date: moment().format('YYYY-MM-DD'), 
             request_date,
             created_by: createdBy,
             description,
@@ -1138,7 +1180,9 @@ import FormService from '../service/FormService';
             total_amount_ppn: totalPPNAmount,
             term_conditions: termConditions,
             endtoendid: endToEndId,
-            discount
+            discount,
+            vendor,
+            currency,
           };
 
           console.log('Master', generalInfo);
@@ -1225,8 +1269,6 @@ import FormService from '../service/FormService';
   
                 const dels = fetchCheckIsUsed.data.map(item => item.ID);
                 console.log('idtoChange', dels);
-  
-                let hasNullStatus = false;
   
                 for (const del of dels) {
                   try {
@@ -1554,6 +1596,14 @@ import FormService from '../service/FormService';
       isDisabled: usedOptions.has(option.value) 
     }));
 
+    const detailFormStyle = () => {
+      return{
+        border: 'none',
+        background: 'transparent',
+        color: '#000'
+      }
+    }
+
     return (
       <Fragment>
 
@@ -1675,10 +1725,39 @@ import FormService from '../service/FormService';
                       <Col md={6}>
                         <Form.Group controlId="formOrderDate">
                           <Form.Label>Order Date</Form.Label>
+                          <div className='input-group'>
+                            <DatePicker
+                              selected={order_date}
+                              onChange={(date) => setOrderDate(date)}
+                              dateFormat="dd-MM-yyyy"
+                              className='form-control'
+                              placeholder='Select order date'
+                            />
+                          </div>
+                        </Form.Group>
+                      </Col>
+                      {/* <Col md={6}>
+                        <Form.Group controlId="formOrderDate">
+                          <Form.Label>Order Date</Form.Label>
                           <Form.Control
                             type="date"
                             value={order_date}
                             onChange={(e) => setOrderDate(e.target.value)}
+                            required
+                          />
+                        </Form.Group>
+                      </Col> */}
+
+                      <Col md={6}>
+                        <Form.Group controlId='formVendor'>
+                          <Form.Label>Vendor</Form.Label>
+                          <Select
+                            id='vendor'
+                            value={selectedVendor}
+                            options={vendorOptions}
+                            onChange={handleVendorChange}
+                            placeholder = "Vendor..."
+                            isClearable
                             required
                           />
                         </Form.Group>
@@ -1769,6 +1848,24 @@ import FormService from '../service/FormService';
                         </Form.Group>
                       </Col>
 
+                      <Col md={6}>
+                        <Form.Group controlId='formCurrency'>
+                          <Form.Label>Currency</Form.Label>
+                          <Select
+                            id='currency'
+                            value={selectedCurrency}
+                            options={currencyOptions}
+                            onChange={(selectedOption) => {
+                              handleOptionChange(setSelectedCurrency, setCurrency, selectedOption);
+                            }}
+                            placeholder = "Currency..."
+                            isClearable
+                            required
+                          />
+                        </Form.Group>
+                      </Col>
+                      
+
                     </Row>
                   </Form>
                 </Card.Body>
@@ -1807,472 +1904,513 @@ import FormService from '../service/FormService';
                   <DragDropContext onDragEnd={handleOnDragEnd}>
                     <Droppable droppableId="items">
                       {(provided) => (
-                        <div
-                          className="table-responsive"
-                          {...provided.droppableProps}
-                          ref={provided.innerRef}
-                        >
-                          <table className="table table-bordered">
-                            <thead>
-                              <tr>
-                                <th>
-                                  <input
-                                    type="checkbox"
-                                    onChange={handleSelectAll}
-                                    checked={selectedItems.length === items.length && items.length > 0}
-                                  />
-                                </th>
-                                {docRef === 'internalMemo' ? 
-                                    <th>Internal Memo Number</th>
-                                  :
-                                    docRef === 'customerContract' ? 
-                                      <th>Customer Contract Number</th>
-                                    :
-                                      docRef === 'purchaseRequest' ?
-                                        <th>Purchase Request Number</th>
-                                      :
-                                        <th>Select Doc Ref</th>
-                                }
-                                <th>Document Source</th>
-                                <th>Vendor</th>
-                                <th>Company</th>
-                                <th>Requestor</th>
-                                <th>Project</th>
-                                <th>Project Contract Number</th>
-                                <th>Customer</th>
-                                <th>Department</th>
-                                <th>Product</th>
-                                <th>Product Description</th>
-                                <th>Quantity</th>
-                                <th>Currency</th>
-                                <th>Unit Price</th>
-                                <th>Total Price</th>
-                                <th>Type of VAT</th>
-                                <th>Tax PPN Type</th>
-                                <th>Tax PPN Rate</th>
-                                {/* <th>Tax PPN Amount</th> */}
-                                <th>Tax Base</th>   
-                                <th>Actions</th>
-                              </tr>
-                            </thead>
-                            <tbody>
-                              {items.length === 0 ? (
+                        <>
+                          <div
+                            className="table-responsive"
+                            {...provided.droppableProps}
+                            ref={provided.innerRef}
+                          >
+                            <table className="table table-bordered">
+                              <thead>
                                 <tr>
-                                  <td colSpan="21" className="text-center">No data available</td>
+                                  <th>
+                                    <input
+                                      type="checkbox"
+                                      onChange={handleSelectAll}
+                                      checked={selectedItems.length === items.length && items.length > 0}
+                                    />
+                                  </th>
+                                  {docRef === 'internalMemo' ? 
+                                      <th>Internal Memo Number</th>
+                                    :
+                                      docRef === 'customerContract' ? 
+                                        <th>Customer Contract Number</th>
+                                      :
+                                        docRef === 'purchaseRequest' ?
+                                          <th>Purchase Request Number</th>
+                                        :
+                                          <th>Select Doc Ref</th>
+                                  }
+                                  <th>Document Source</th>
+                                  {/* <th>Vendor</th> */}
+                                  <th>Requestor</th>
+                                  <th>Project</th>
+                                  <th>Project Contract Number</th>
+                                  <th>Customer</th>
+                                  <th>Department</th>
+                                  <th>Product</th>
+                                  <th>Product Description</th>
+                                  <th>Quantity</th>
+                                  <th>Unit Price</th>
+                                  <th>Total Price</th>
+                                  <th>Type of VAT</th>
+                                  <th>Tax PPN Type</th>
+                                  <th>Tax PPN Rate</th>
+                                  {/* <th>Tax PPN Amount</th> */}
+                                  <th>Tax Base</th>   
+                                  <th>Actions</th>
                                 </tr>
-                              ) : (
-                                items.map((item, index) => (
-                                  <tr key={index} className={selectedItems.includes(index) ? 'table-active' : ''}>
+                              </thead>
+                              <tbody>
+                                {items.length === 0 ? (
+                                  <tr>
+                                    <td colSpan="21" className="text-center">No data available</td>
+                                  </tr>
+                                ) : (
+                                  items.map((item, index) => (
+                                    <tr key={index} className={selectedItems.includes(index) ? 'table-active' : ''}>
 
-                                    <td>
-                                      <input
-                                        type="checkbox"
-                                        checked={selectedItems.includes(index)}
-                                        onChange={() => handleSelectItem(index)}
-                                      />
-                                    </td>
-
-                                    <td>
-                                      {docRef === 'purchaseRequest' ? 
-                                        <Select 
-                                          value={PROptions.find(option => option.value === item.doc_reff_no)}
-                                          options={optionsWithDisabled}
-                                          onChange={(selectedOption) => {
-                                            handleItemChange(index, 'doc_reff_no', selectedOption ? selectedOption.value : null);
-                                            handlePRChange(index, selectedOption)
-                                          }} 
-                                          isClearable
-                                          required
-                                          placeholder='Purchase Request...'
+                                      <td>
+                                        <input
+                                          type="checkbox"
+                                          checked={selectedItems.includes(index)}
+                                          onChange={() => handleSelectItem(index)}
                                         />
-                                        :
-                                        docRef === 'internalMemo' ?
-                                          <Form.Control
-                                            value={item.doc_reff_no}
-                                            onChange={(e) => {
-                                              handleItemChange(index, 'doc_reff_no', e.target.value);
+                                      </td>
+
+                                      <td>
+                                        {docRef === 'purchaseRequest' ? 
+                                          <Select 
+                                            value={PROptions.find(option => option.value === item.doc_reff_no)}
+                                            options={optionsWithDisabled}
+                                            onChange={(selectedOption) => {
+                                              handleItemChange(index, 'doc_reff_no', selectedOption ? selectedOption.value : null);
+                                              handlePRChange(index, selectedOption)
+                                            }} 
+                                            isClearable
+                                            required
+                                            placeholder='Purchase Request...'
+                                            styles={{
+                                              control: (provided) => ({
+                                                  ...provided,
+                                                  ...detailFormStyle()
+                                              }),
                                             }}
-                                            placeholder='internal Memo...'
-                                          />
-                                        :
-                                        docRef === 'customerContract' ?
-                                          <Form.Control
-                                            value={item.doc_reff_no}
-                                            onChange={(e)=>{
-                                              handleItemChange(index, 'doc_reff_no', e.target.value);
-                                            }}
-                                            placeholder='Customer Contract...'
                                           />
                                           :
-                                          <span>Choose Doc Ref</span>
-                                      }
-                                    </td>
-
-                                    <td>
-                                        { isAddFile ? 
-                                        <div className='d-flex'>
-                                          <Form.Control
-                                            type='file'
-                                            placeholder='Upload Document'
-                                            onChange={(e) => setFile(e.target.files[0])}
-                                            disabled // Ilangin kalo upload dh jalan
-                                          />
-                                          <button className='btn btn-danger ms-2' onClick={() => setIsAddFile(false)}>
-                                            <i className='fa fa-times'/>
-                                          </button>
-                                        </div>
-                                         
-                                        :
-                                        <div>
-                                          {item.doc_source ?
-                                            <a 
-                                              href='#' 
-                                              className='me-2' 
-                                              onClick={(e)=>{
-                                                e.preventDefault();
-                                                getFileDocument(item.endtoendid)
+                                          docRef === 'internalMemo' ?
+                                            <Form.Control
+                                              value={item.doc_reff_no}
+                                              onChange={(e) => {
+                                                handleItemChange(index, 'doc_reff_no', e.target.value);
                                               }}
-                                            >
-                                              {item.doc_source}
-                                            </a>
+                                              placeholder='internal Memo...'
+                                              style={detailFormStyle()}
+                                            />
+                                          :
+                                          docRef === 'customerContract' ?
+                                            <Form.Control
+                                              value={item.doc_reff_no}
+                                              onChange={(e)=>{
+                                                handleItemChange(index, 'doc_reff_no', e.target.value);
+                                              }}
+                                              placeholder='Customer Contract...'
+                                              style={detailFormStyle()}
+                                            />
                                             :
-                                            <span className='me-2'>No Data</span>
+                                            <span>Choose Doc Ref</span>
+                                        }
+                                      </td>
+
+                                      <td>
+                                          { isAddFile ? 
+                                          <div className='d-flex'>
+                                            <Form.Control
+                                              type='file'
+                                              placeholder='Upload Document'
+                                              onChange={(e) => setFile(e.target.files[0])}
+                                              disabled // Ilangin kalo upload dh jalan
+                                            />
+                                            <button className='btn btn-danger ms-2' onClick={() => setIsAddFile(false)}>
+                                              <i className='fa fa-times'/>
+                                            </button>
+                                          </div>
+                                          
+                                          :
+                                          <div>
+                                            {item.doc_source ?
+                                              <a 
+                                                href='#' 
+                                                className='me-2' 
+                                                onClick={(e)=>{
+                                                  e.preventDefault();
+                                                  getFileDocument(item.endtoendid)
+                                                }}
+                                              >
+                                                {item.doc_source}
+                                              </a>
+                                              :
+                                              <span className='me-2'>No Data</span>
+                                            }
+                                            <button className='btn btn-success'onClick={() => setIsAddFile(true)}>
+                                              <i className='fa fa-edit'/>
+                                            </button>
+                                          </div>
                                           }
-                                          <button className='btn btn-success'onClick={() => setIsAddFile(true)}>
-                                            <i className='fa fa-edit'/>
-                                          </button>
-                                        </div>
-                                        }
-                                    </td>
+                                      </td>
 
-                                    <td>
-                                      <Select
-                                        id='vendor'
-                                        value={
-                                          items[index].vendor ?
-                                            vendorOptions.find(option => option.value === item.vendor)
-                                          :
-                                            null
-                                        }
-                                        options={vendorOptions}
-                                        onChange={(selectedOption) => {
-                                          handleItemChange(index, 'vendor', selectedOption ? selectedOption.value : null)
-                                        }}
-                                        isClearable
-                                        placeholder="Vendor..."
-                                        required
-                                      />
-                                    </td>
+                                      <td>
+                                        <Form.Control
+                                          id='requestor'
+                                          placeholder='Requestor...'
+                                          value={item.requestor}
+                                          onChange={(e) => handleItemChange(index, 'requestor', e.target.value)}
+                                          style={detailFormStyle()}
+                                          readOnly
+                                        />
+                                      </td>
 
-                                    <td>
-                                      <Form.Control
-                                        id='company'
-                                        value={item.company}
-                                        placeholder='Company'
-                                        onChange={(e)=>handleItemChange(index, 'company', e.target.value)}
-                                      />
-                                    </td>
-
-                                    <td>
-                                      <Form.Control
-                                        id='requestor'
-                                        placeholder='Requestor'
-                                        value={item.requestor}
-                                        onChange={(e) => handleItemChange(index, 'requestor', e.target.value)}
-                                      />
-                                    </td>
-
-                                    <td>
-                                      <Select
-                                        id="project"
-                                        value={
-                                          items[index].project ?
-                                            projectOptions.find(option => option.value === item.project)
-                                          :
-                                            null
-                                        }
-                                        options={projectOptions}
-                                        onChange={(selectedOption) => {
-                                          handleItemChange(index, 'project', selectedOption ? selectedOption.value : null);
-                                          if(selectedOption){
-                                            handleItemChange(index, 'project_contract_number', selectedOption.project_contract_number);
-                                            handleItemChange(index, 'customer', selectedOption.customer);
-                                          }else{
-                                            handleItemChange(index, "customer", ""); 
-                                            handleItemChange(index, "project_contract_number", "");
-                                          }
-                                        }}
-                                        placeholder="Project..."
-                                        isClearable 
-                                        required
-                                      />
-                                    </td>
-
-                                    <td>
-                                      <Select
-                                        id='projectContractNumber'
-                                        value={
-                                          items[index].project_contract_number ?
-                                            contractNumberOption.find(option => option.value === item.project_contract_number)
-                                          :
-                                            null  
-                                        }
-                                        options={contractNumberOption}
-                                        onChange={(selectedOption) => {
-                                          handleItemChange(index, 'project_contract_number', selectedOption ? selectedOption.value : null);
-                                          if(selectedOption){
-                                            handleItemChange(index, 'customer', selectedOption.customer);
-                                          }else{
-                                            handleItemChange(index, "customer", ""); 
-                                          }
-                                        }}
-                                        placeholder='Project Contract Number...'
-                                        isClearable
-                                        required
-                                      />
-                                    </td>
-
-                                    <td>
-                                      <Select
-                                        id='customer'
-                                        value={
-                                          items[index].customer ?
-                                            customerOptions.find(option => option.value === item.customer)
-                                          : 
-                                            null
-                                        }
-                                        onChange={(selectedOption) => {
-                                          handleItemChange(index, 'customer', selectedOption ? selectedOption.value : null)
-                                        }}
-                                        options={customerOptions}
-                                        placeholder='Customer...'
-                                        isClearable
-                                        required
-                                      />
-                                    </td>
-
-                                    <td>
-                                      <Select
-                                        id='department'
-                                        value={
-                                          items[index].departement ?
-                                            departementOptions.find(option => option.value === items[index].departement)
-                                          :
-                                            null
-                                        }
-                                        onChange={(selectedOption)  => {
-                                          handleItemChange(index, 'departement', selectedOption ? selectedOption.value : null)
-                                        }}
-                                        options={departementOptions}
-                                        placeholder='Department...'
-                                        isClearable
-                                        required
-                                      />
-                                    </td>
-                                    
-                                    <td>
-                                      <Select
+                                      <td>
+                                        <Select
+                                          id="project"
                                           value={
-                                            items[index].product ? 
-                                              productOptions.find(option => option.value === items[index].product) 
+                                            items[index].project ?
+                                              projectOptions.find(option => option.value === item.project)
+                                            :
+                                              null
+                                          }
+                                          options={projectOptions}
+                                          onChange={(selectedOption) => {
+                                            handleItemChange(index, 'project', selectedOption ? selectedOption.value : null);
+                                            if(selectedOption){
+                                              handleItemChange(index, 'project_contract_number', selectedOption.project_contract_number);
+                                              handleItemChange(index, 'customer', selectedOption.customer);
+                                            }else{
+                                              handleItemChange(index, "customer", ""); 
+                                              handleItemChange(index, "project_contract_number", "");
+                                            }
+                                          }}
+                                          placeholder="Project..."
+                                          isClearable 
+                                          required
+                                          styles={{
+                                            control: (provided) => ({
+                                                ...provided,
+                                                ...detailFormStyle()
+                                            }),
+                                          }}
+                                        />
+                                      </td>
+
+                                      <td>
+                                        <Select
+                                          id='projectContractNumber'
+                                          value={
+                                            items[index].project_contract_number ?
+                                              contractNumberOption.find(option => option.value === item.project_contract_number)
+                                            :
+                                              null  
+                                          }
+                                          options={contractNumberOption}
+                                          onChange={(selectedOption) => {
+                                            handleItemChange(index, 'project_contract_number', selectedOption ? selectedOption.value : null);
+                                            if(selectedOption){
+                                              handleItemChange(index, 'customer', selectedOption.customer);
+                                            }else{
+                                              handleItemChange(index, "customer", ""); 
+                                            }
+                                          }}
+                                          placeholder='Project Contract Number...'
+                                          isDisabled
+                                          required
+                                          styles={{
+                                            control: (provided) => ({
+                                                ...provided,
+                                                ...detailFormStyle()
+                                            }),
+                                          }}
+                                        />
+                                      </td>
+
+                                      <td>
+                                        <Select
+                                          id='customer'
+                                          value={
+                                            items[index].customer ?
+                                              customerOptions.find(option => option.value === item.customer)
                                             : 
                                               null
                                           }
                                           onChange={(selectedOption) => {
-                                            setSelectedProduct(selectedOption);
-                                            handleItemChange(index, 'product', selectedOption ? selectedOption.value : null);
+                                            handleItemChange(index, 'customer', selectedOption ? selectedOption.value : null)
                                           }}
-                                          options={productOptions}
+                                          options={customerOptions}
+                                          placeholder='Customer...'
                                           isClearable
-                                          placeholder="Select Product..."
-                                       />                                     
-                                    </td>
-                                    
-                                    <td>
-                                      <Form.Control
-                                        type="text"
-                                        value={item.product_note}
-                                        onChange={(e) => handleItemChange(index, 'product_note', e.target.value)}
-                                      />
-                                    </td>
-                                    
-                                    <td>
-                                      <Form.Control
-                                        type="number"
-                                        value={item.quantity}
-                                        onChange={(e) => {
-                                          handleItemChange(index, 'quantity', Math.max(0, parseFloat(e.target.value) || 1))
-                                          // dynamicFormWidth(e.target.value, index)
-                                        }}
-                                        style={{
-                                          // width: `${inputWidth[index] || 75}px`,
-                                          width: '75px',
-                                        }}
-                                      />
-                                    </td>
-                                    
-                                    <td>
-                                      <Select
-                                        value={currencyOptions.find(option => option.value === item.currency)}
-                                        onChange={(selectedOption) => {
-                                          // setSelectedCurrency(selectedOption);
-                                          handleItemChange(index, 'currency', selectedOption ? selectedOption.value : 'IDR');
-                                        }}
-                                        options={currencyOptions}
-                                        placeholder="Select Currency"
-                                      />
-                                    </td>
-                                    
-                                    <td>
-                                      {item.currency === 'IDR' ?
-                                        <Form.Control
-                                          className='text-right'
-                                          type="text"
-                                          value={item.unit_price !== undefined && item.unit_price !== null ? item.unit_price.toLocaleString('en-US') : 0}
-                                          onChange={(e) => {
-                                            const newPrice = parseFloat(e.target.value.replace(/[^\d.-]/g, '')) || 0;
-                                            handleItemChange(index, 'unit_price',  newPrice);
+                                          required
+                                          isDisabled
+                                          styles={{
+                                            control: (provided) => ({
+                                                ...provided,
+                                                ...detailFormStyle()
+                                            }),
                                           }}
                                         />
-                                      : 
-                                        <Form.Control
-                                          className="text-right"
-                                          type="text"
+                                      </td>
+
+                                      <td>
+                                        <Select
+                                          id='department'
                                           value={
-                                            item.unit_price !== undefined && item.unit_price !== null
-                                              ? item.unit_price.toLocaleString('en-US', { minimumFractionDigits: 2, useGrouping: false })
-                                              : '0'
+                                            items[index].departement ?
+                                              departementOptions.find(option => option.value === items[index].departement)
+                                            :
+                                              null
                                           }
-                                          onChange={(e) => {
-                                            const input = e.target.value;
-                                            const sanitizedInput = input.replace(/[^0-9.]/g, '');
-                                            handleItemChange(index, 'unit_price', sanitizedInput);
+                                          onChange={(selectedOption)  => {
+                                            handleItemChange(index, 'departement', selectedOption ? selectedOption.value : null)
                                           }}
-                                          onBlur={() => {
-                                            const price = parseFloat(item.unit_price) || 0;
-                                            handleItemChange(index, 'unit_price', price);
+                                          options={departementOptions}
+                                          placeholder='Department...'
+                                          isClearable
+                                          required
+                                          styles={{
+                                            control: (provided) => ({
+                                                ...provided,
+                                                ...detailFormStyle()
+                                            }),
                                           }}
-                                          // style={{
-                                          //   width: `${inputWidth[index] || 100}px`,
-                                          // }}
                                         />
-                                      }
-                                    </td>
+                                      </td>
+                                      
+                                      <td>
+                                        <Select
+                                            value={
+                                              items[index].product ? 
+                                                productOptions.find(option => option.value === items[index].product) 
+                                              : 
+                                                null
+                                            }
+                                            onChange={(selectedOption) => {
+                                              setSelectedProduct(selectedOption);
+                                              handleItemChange(index, 'product', selectedOption ? selectedOption.value : null);
+                                            }}
+                                            options={productOptions}
+                                            isClearable
+                                            placeholder="Select Product..."
+                                            styles={{
+                                              control: (provided) => ({
+                                                  ...provided,
+                                                  ...detailFormStyle()
+                                              }),
+                                            }}
+                                        />                                     
+                                      </td>
+                                      
+                                      <td>
+                                        <Form.Control
+                                          type="text"
+                                          value={item.product_note}
+                                          onChange={(e) => handleItemChange(index, 'product_note', e.target.value)}
+                                          style={detailFormStyle()}
+                                          placeholder='Product Description...'
+                                        />
+                                      </td>
+                                      
+                                      <td>
+                                        <Form.Control
+                                          type="number"
+                                          value={item.quantity}
+                                          onChange={(e) => {
+                                            handleItemChange(index, 'quantity', Math.max(0, parseFloat(e.target.value) || 1))
+                                            // dynamicFormWidth(e.target.value, index)
+                                          }}
+                                          style={{
+                                            // width: `${inputWidth[index] || 75}px`,
+                                            ...detailFormStyle(),
+                                            width: '75px',
+                                          }}
+                                        />
+                                      </td>
+                                      
+                                      <td>
+                                        {currency === 'IDR' ?
+                                          <Form.Control
+                                            className='text-right'
+                                            type="text"
+                                            value={item.unit_price !== undefined && item.unit_price !== null ? item.unit_price.toLocaleString('en-US') : 0}
+                                            onChange={(e) => {
+                                              const newPrice = parseFloat(e.target.value.replace(/[^\d.-]/g, '')) || 0;
+                                              handleItemChange(index, 'unit_price',  newPrice);
+                                            }}
+                                            style={detailFormStyle()}
+                                          />
+                                        : 
+                                          <Form.Control
+                                            className="text-right"
+                                            type="text"
+                                            value={
+                                              item.unit_price !== undefined && item.unit_price !== null
+                                                ? item.unit_price.toLocaleString('en-US', { minimumFractionDigits: 2, useGrouping: false })
+                                                : '0'
+                                            }
+                                            onChange={(e) => {
+                                              const input = e.target.value;
+                                              const sanitizedInput = input.replace(/[^0-9.]/g, '');
+                                              handleItemChange(index, 'unit_price', sanitizedInput);
+                                            }}
+                                            onBlur={() => {
+                                              const price = parseFloat(item.unit_price) || 0;
+                                              handleItemChange(index, 'unit_price', price);
+                                            }}
+                                            style={detailFormStyle()}
+                                          />
+                                        }
+                                      </td>
 
-                                    <td>{item.total_price.toLocaleString('en-US', { style: 'currency', currency: item.currency })}</td>
-                                   
-                                    <td>
-                                      <Form.Select
-                                        value={
-                                          items[index].type_of_vat || ''
-                                        }
-                                        onChange={(selectedOption) => {
-                                          handleItemChange(index, 'type_of_vat', selectedOption.target.value);
-                                        }}
-                                      >
-                                        <option value="">Select VAT</option>
-                                        {/* Add more options here */}
-                                        <option value="include">Include</option>
-                                        <option value="exclude">Exclude</option>
-                                        <option value="nonPPN">Non PPN</option>
-                                        { items[index].currency !== 'IDR' ?
-                                          <option value="PPNRoyalty">PPN Royalty</option>
-                                          :
-                                          <></>
-                                        }
-                                      </Form.Select>
-                                    </td>
-
-                                    <td>
-                                      <Select
-                                        value={
-                                          items[index].type_of_vat === 'PPNRoyalty' ?
-                                            PPNRoyaltyOptions.find(option => option.value === item.tax_ppn)
-                                          :
-                                            taxTypeOptions.find(option => option.value === item.tax_ppn) || null
-                                        }
-                                        options={items[index].type_of_vat === 'PPNRoyalty' ? PPNRoyaltyOptions : taxTypeOptions}
-                                        placeholder="Select Tax Type"
-                                        isClearable
-                                        onChange={(selectedOption) => {
-                                          setSelectedTaxType(selectedOption);
-                                          if (selectedOption) {
-                                            // setPPNRate(selectedOption.RATE); 
-                                            handleItemChange(index, 'tax_ppn_rate', parseFloat(selectedOption.RATE));
-                                          } else {
-                                            // setPPNRate(''); 
-                                            handleItemChange(index, 'tax_ppn_rate', 0);
-                                          }
-                                          handleItemChange(index, 'tax_ppn', selectedOption ? selectedOption.value : ''  );
-                                        }}
-                                        isDisabled={items[index].type_of_vat === 'nonPPN'}
-                                      />
-                                    </td>
+                                      <td>{item.total_price.toLocaleString('en-US', { style: 'currency', currency: currency })}</td>
                                     
-                                    <td>
-                                      <Form.Control
-                                        type='text'
-                                        value={item.tax_ppn_rate + '%'}
-                                        disabled
-                                        style={{width: '80px'}}
-                                      />
-                                    </td>
+                                      <td>
+                                        <Form.Select
+                                          value={
+                                            items[index].type_of_vat || ''
+                                          }
+                                          style={detailFormStyle()}
+                                          onChange={(selectedOption) => {
+                                            handleItemChange(index, 'type_of_vat', selectedOption.target.value);
+                                          }}
+                                        >
+                                          <option value="">Select VAT</option>
+                                          {/* Add more options here */}
+                                          <option value="include">Include</option>
+                                          <option value="exclude">Exclude</option>
+                                          <option value="nonPPN">Non PPN</option>
+                                          { currency !== 'IDR' ?
+                                            <option value="PPNRoyalty">PPN Royalty</option>
+                                            :
+                                            <></>
+                                          }
+                                        </Form.Select>
+                                      </td>
 
-                                    <td className=''>
-                                      {item.currency === 'IDR' ?
+                                      <td>
+                                        <Select
+                                          value={
+                                            items[index].type_of_vat === 'PPNRoyalty' ?
+                                              PPNRoyaltyOptions.find(option => option.value === item.tax_ppn)
+                                            :
+                                              taxTypeOptions.find(option => option.value === item.tax_ppn) || null
+                                          }
+                                          options={items[index].type_of_vat === 'PPNRoyalty' ? PPNRoyaltyOptions : taxTypeOptions}
+                                          placeholder="Select Tax Type"
+                                          isClearable
+                                          onChange={(selectedOption) => {
+                                            setSelectedTaxType(selectedOption);
+                                            if (selectedOption) {
+                                              // setPPNRate(selectedOption.RATE); 
+                                              handleItemChange(index, 'tax_ppn_rate', parseFloat(selectedOption.RATE));
+                                            } else {
+                                              // setPPNRate(''); 
+                                              handleItemChange(index, 'tax_ppn_rate', 0);
+                                            }
+                                            handleItemChange(index, 'tax_ppn', selectedOption ? selectedOption.value : ''  );
+                                          }}
+                                          isDisabled={items[index].type_of_vat === 'nonPPN'}
+                                          styles={{
+                                            control: (provided) => ({
+                                                ...provided,
+                                                ...detailFormStyle()
+                                            }),
+                                          }}  
+                                        />
+                                      </td>
+                                      
+                                      <td>
                                         <Form.Control
                                           type='text'
+                                          value={item.tax_ppn_rate + '%'}
                                           disabled
-                                          style={{
-                                            textAlign: 'right',
-                                            marginLeft: 'auto',  
-                                            display: 'flex',
-                                          }}
-                                          value={item.tax_base !== undefined && item.tax_base !== null ? item.tax_base.toLocaleString('en-US') : 0}
-                                          onChange={(e) => {
-                                            const newTaxBase = parseFloat(e.target.value.replace(/[^\d.-]/g, '')) || 0;
-                                            handleItemChange(index, 'tax_base', Math.max(0, newTaxBase));
-                                          }}
+                                          style={{...detailFormStyle(), width: '80px'}}
                                         />
-                                      :
-                                        <Form.Control
-                                          type='text'
-                                          disabled
-                                          style={{
-                                            textAlign: 'right',
-                                            display: 'flex',
-                                          }}
-                                          value={item.tax_base !== undefined && item.tax_base !== null ? item.tax_base : 0}
-                                          onChange={(e) => {
-                                            handleItemChange(index, 'tax_base', Math.max(0, parseFloat(e.target.value) || 0))
-                                          }}
-                                        />
-                                      }
-                                    </td>
-     
-                                    <td>
+                                      </td>
+
+                                      <td className=''>
+                                        {currency === 'IDR' ?
+                                          <Form.Control
+                                            type='text'
+                                            disabled
+                                            style={{
+                                              ...detailFormStyle(),
+                                              textAlign: 'right',
+                                              marginLeft: 'auto',  
+                                              display: 'flex',
+                                            }}
+                                            value={item.tax_base !== undefined && item.tax_base !== null ? item.tax_base.toLocaleString('en-US') : 0}
+                                            onChange={(e) => {
+                                              const newTaxBase = parseFloat(e.target.value.replace(/[^\d.-]/g, '')) || 0;
+                                              handleItemChange(index, 'tax_base', Math.max(0, newTaxBase));
+                                            }}
+                                          />
+                                        :
+                                          <Form.Control
+                                            type='text'
+                                            disabled
+                                            style={{
+                                              ...detailFormStyle(),
+                                              textAlign: 'right',
+                                              display: 'flex',
+                                            }}
+                                            value={item.tax_base !== undefined && item.tax_base !== null ? item.tax_base : 0}
+                                            onChange={(e) => {
+                                              handleItemChange(index, 'tax_base', Math.max(0, parseFloat(e.target.value) || 0))
+                                            }}
+                                          />
+                                        }
+                                      </td>
+      
+                                      <td>
+                                        <Button
+                                          variant="danger"
+                                          size="sm"
+                                          onClick={() => handleDeleteItem(index)}
+                                        >
+                                          <i className="fas fa-trash"></i>
+                                        </Button>
+                                      </td>
+                                    </tr>
+                                  ))
+                                )}
+                              </tbody>
+                              {/* <tfoot>
+                                <tr>
+                                  <td colSpan='1'/>
+                                  <td colSpan="1" className='text-center'>
                                       <Button
-                                        variant="danger"
+                                        className='rounded-3'
+                                        variant="success"
                                         size="sm"
-                                        onClick={() => handleDeleteItem(index)}
+                                        onClick={handleAddItem}
                                       >
-                                        <i className="fas fa-trash"></i>
+                                        <i className="fas fa-plus"></i> New Item
                                       </Button>
                                     </td>
-                                  </tr>
-                                ))
-                              )}
-                            </tbody>
-                            <tfoot>
+                                  <td colSpan='16'/>
+                                </tr>
+                              </tfoot> */}
+                            </table>
+                            <div className='pb-4'>
+                              <Button
+                                className='rounded-3'
+                                variant="success"
+                                size="sm"
+                                onClick={handleAddItem}
+                              >
+                                <i className="fas fa-plus"></i> New Item
+                              </Button>
+                            </div>
+                            {provided.placeholder}
+                          </div>
+                          <table className='table table-bordered' >
+                            <tbody>
                               <tr className='text-right'>
-                                <td colSpan="19">Subtotal Before Discount:</td>
-                                <td>
+                                <td colSpan="16">Subtotal Before Discount:</td>
+                                <td className='text-right col-3'>
                                   <strong>
                                     {items.length > 0 
                                       ? calculateTotalAmount(items[0].currency).subTotal.toLocaleString('en-US', {
                                         style: 'currency',
-                                        currency: items[0].currency || 'IDR',
-                                        minimumFractionDigits: 0,  // No decimal places
+                                        currency: currency || 'IDR',
+                                        minimumFractionDigits: 0,
                                         maximumFractionDigits: 0 
                                       })
                                       : 'IDR 0.00'}
@@ -2280,7 +2418,7 @@ import FormService from '../service/FormService';
                                 </td>
                               </tr>
                               <tr className='text-right'>
-                                <td colSpan="19">Discount:</td>
+                                <td colSpan="16">Discount:</td>
                                 <td>
                                   <Form.Control
                                     className='text-right'
@@ -2300,14 +2438,14 @@ import FormService from '../service/FormService';
                                 </td>
                               </tr>
                               <tr className='text-right'>
-                                <td colSpan="19">Subtotal:</td>
+                                <td colSpan="16">Subtotal:</td>
                                 <td>
                                   <strong>
                                     {items.length > 0 ? 
                                       calculateTotalAmount(items[0].currency).subtotalAfterDiscount.toLocaleString('en-US', { 
                                         style: 'currency', 
-                                        currency: items[0].currency || 'IDR',
-                                        minimumFractionDigits: 0,  // No decimal places
+                                        currency: currency || 'IDR',
+                                        minimumFractionDigits: 0,  
                                         maximumFractionDigits: 0 
                                       })
                                     : 
@@ -2317,7 +2455,7 @@ import FormService from '../service/FormService';
                                 </td>
                               </tr>
                               <tr className='text-right'>
-                                <td colSpan="19">Total PPN:</td>
+                                <td colSpan="16">Total PPN:</td>
                                 <td>
                                   <Form.Control
                                     className='text-right'
@@ -2332,7 +2470,7 @@ import FormService from '../service/FormService';
                                         newItems.forEach((item)=>{
                                           item.tax_ppn_amount= totalPPNAmount/newItems.length;
                                         });
-                                     setItems(newItems); 
+                                    setItems(newItems); 
                                     }}
                                     style={{
                                       textAlign: 'right',
@@ -2343,13 +2481,13 @@ import FormService from '../service/FormService';
                                 </td>
                               </tr>
                               <tr className="text-right">
-                                <td colSpan="19" >Total Amount:</td>
+                                <td colSpan="16" >Total Amount:</td>
                                 <td>
                                   <strong>
                                     {items.length > 0 ?
                                       calculateTotalAmount(items[0].currency).totalAmount.toLocaleString('en-US', { 
                                         style: 'currency', 
-                                        currency: items[0].currency || 'IDR' ,
+                                        currency: currency || 'IDR' ,
                                         minimumFractionDigits: 0,  // No decimal places
                                         maximumFractionDigits: 0 
                                       })
@@ -2359,10 +2497,9 @@ import FormService from '../service/FormService';
                                   </strong>
                                 </td>
                               </tr>
-                            </tfoot>
+                            </tbody>
                           </table>
-                          {provided.placeholder}
-                        </div>
+                        </>
                       )}
                     </Droppable>
                   </DragDropContext>

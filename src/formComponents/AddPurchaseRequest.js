@@ -23,6 +23,7 @@ import "react-datepicker/dist/react-datepicker.css";
 import { format, parse } from "date-fns";
 import { FaCalendarAlt } from 'react-icons/fa';
 import '../css/DatePicker.css';
+import moment from 'moment';
 import { se } from 'date-fns/locale';
 
 const AddPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, selectedData, duplicateFlag, setIsAddingNewDuplicatePurchaseRequest }) => {
@@ -67,6 +68,11 @@ const AddPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, select
   const [buttonAfterSubmit, setButtonAfterSubmit] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
 
+  const [requestorOptions, setRequestorOptions] = useState([]);
+  const [selectedRequestor, setSelectedRequestor] = useState(null);
+  const [paymentTermOptions ,setPaymentTermOptions] = useState([]);
+  const [selectedPaymentTerm, setSelectedPaymentTerm] = useState(null);
+  const [createBy, setCreatedBy] = useState('');
 
   const authToken = headers;
   useEffect(() => {
@@ -1437,7 +1443,7 @@ const AddPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, select
         if (pr_number.slice(0, 2) !== 'PR') {
           pr_number = await generatePrNumber('PR');
         } else {
-          pr_number
+          pr_number = pr_number;
         }
 
         const total_amount = calculateTotalAmount();

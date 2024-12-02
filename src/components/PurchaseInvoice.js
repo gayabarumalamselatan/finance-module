@@ -27,6 +27,7 @@ const PurchaseInvoice = () => {
   const [filterColumn, setfilterColumn] = useState("");
   const [filterValue, setFilterValue] = useState("");
   const [filterOperation, setFilterOperation] = useState("");
+  const [filters, setFilters] = useState([]);
 
   const [isAddingNewPurchaseInvoice, setIsAddingNewPurchaseInvoice] = useState(false);
   const [isViewingPurchaseInvoice, setIsViewingPurchaseInvoice] = useState(false);
@@ -86,38 +87,59 @@ const PurchaseInvoice = () => {
     if (formCode.length > 0) {
       let formMmtData = [];
 
-      let filterColumnParam = filterColumn;
-      let filterOperationParam = filterOperation;
-      let filterValueParam = filterValue;
+      // Menggabungkan filter dari URL, permissions, dan input pengguna
+      let dynamicFilters = [...filters]; // Menggunakan filters yang sudah ada
 
       // Check if URL parameter `status` is set
       const statusParam = new URLSearchParams(window.location.search).get("status");
       if (statusParam) {
-        filterColumnParam = "STATUS";
-        filterOperationParam = "EQUAL";
-        filterValueParam = statusParam;
+        // Mengecek apakah filter STATUS sudah ada
+        const isStatusFilterExists = dynamicFilters.some((filter) => filter.column === "STATUS" && filter.value === statusParam);
+        if (!isStatusFilterExists) {
+          dynamicFilters.push({
+            column: "STATUS",
+            operation: "EQUAL",
+            value: statusParam,
+          });
+        }
       }
 
       console.log("permissions", permissions.Purchase?.["List Purchase Invoice"].verify);
       const checker = permissions.Purchase?.["List Purchase Invoice"].verify;
-      if (checker) {
-        // Do not apply any filter if checker is true
-        console.log("Checker is true, no filter will be applied.");
-      } else if (userId) {
-        // Apply filter if checker is false and userId is present
-        filterColumnParam = "CREATED_BY";
-        filterOperationParam = "EQUAL";
-        filterValueParam = userId;
+
+      if (!checker && userId) {
+        // Mengecek apakah filter requestor sudah ada
+        const isRequestorFilterExists = dynamicFilters.some((filter) => filter.column === "requestor" && filter.value === userId);
+        if (!isRequestorFilterExists) {
+          dynamicFilters.push({
+            column: "requestor",
+            operation: "EQUAL",
+            value: userId,
+          });
+        }
       }
 
-      const fetchFormMmtData = FormService.fetchData("", filterColumnParam, filterOperationParam, filterValueParam, currentPage, pageSize, `PURC_FORM${formCode[0]}`, branchId, authToken, true)
+      // Fetch data using multiple filters
+      const fetchFormMmtData = FormService.fetchData(
+        "",
+        "", // filterColumn (not used for multiple filters)
+        "", // filterOperation
+        "", // filterValue
+        currentPage,
+        pageSize,
+        `PURC_FORM${formCode[0]}`,
+        branchId,
+        authToken,
+        true,
+        dynamicFilters // Pass the filters array
+      )
         .then((response) => {
-          console.log("Form Purchase Request lookup data:", response);
+          console.log("Form Purchase Invoice lookup data:", response);
           formMmtData = HandleToUppercase(response.data);
           setTotalItems(response.totalAllData);
         })
         .catch((error) => {
-          console.error("Failed to fetch form Purchase Request lookup:", error);
+          console.error("Failed to fetch form Purchase Invoice lookup:", error);
         });
 
       fetchFormMmtData.then(() => {
@@ -126,7 +148,7 @@ const PurchaseInvoice = () => {
         setIsLoadingTable(false);
       });
     }
-  }, [formCode, pageSize, currentPage, refreshTable, isFilterSet]);
+  }, [formCode, pageSize, currentPage, refreshTable, isFilterSet, filters]); // Add filters to dependency array
 
   const handlePageSizeChange = (event) => {
     setPageSize(parseInt(event.target.value, 10));
@@ -143,19 +165,36 @@ const PurchaseInvoice = () => {
     setFormData([]);
   };
 
-  const handleFilterSearch = ({ filterColumn, filterOperation, filterValue }) => {
-    console.log("filter Purchase Invoice list:", filterColumn, filterOperation, filterValue);
-    setFilterOperation(filterOperation);
-    setfilterColumn(filterColumn);
-    setFilterValue(filterValue);
+  // Handle pencarian filter
+  const handleFilterSearch = ({ filters }) => {
+    console.log("filter Purchase Invoice list:", filters);
+
+    // Periksa filter yang sudah ada sebelum menambahkannya
+    let updatedFilters = [...filters]; // Salin filter yang ada
+
+    // Cek apakah filter baru sudah ada di filters
+    if (filterColumn && filterOperation && filterValue) {
+      const isFilterExists = updatedFilters.some((filter) => filter.column === filterColumn && filter.operation === filterOperation && filter.value === filterValue);
+
+      // Jika filter belum ada, tambahkan filter baru
+      if (!isFilterExists) {
+        updatedFilters.push({
+          column: filterColumn,
+          operation: filterOperation,
+          value: filterValue,
+        });
+      }
+    }
+
+    // Set filters yang baru untuk pencarian
+    setFilters(updatedFilters); // Update state filters
     setIsFilterSet(!isFilterSet);
     setIsLoadingTable(true);
   };
 
+  // Reset filters
   const handleResetFilters = () => {
-    setfilterColumn("");
-    setFilterValue("");
-    setFilterOperation("");
+    setFilters([]); // Reset ke array kosong jika reset
     setIsFilterSet(!isFilterSet);
     setIsLoadingTable(true);
   };
