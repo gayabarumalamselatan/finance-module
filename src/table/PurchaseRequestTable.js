@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import FormPagination from "../utils/FormPagination";
 import { NumericFormat } from "react-number-format";
-import { FaAddressBook, FaEye, FaFilter, FaSyncAlt } from "react-icons/fa";
+import { FaAddressBook, FaClone, FaEye, FaFilter, FaSyncAlt } from "react-icons/fa";
 import { FaEdit, FaTrash, FaFileExport } from "react-icons/fa"; // Import icons for Edit, Delete, and Export
 import { Button, Modal, Table } from "react-bootstrap";
 import { getBranch, getToken, userLoggin } from "../config/Constant";
@@ -26,7 +26,9 @@ const PurchaseRequestTable = ({
     handleResetFilter,
     addingNewPurchaseRequest,
     EditPurchaseRequest,
+    duplicatePurchaseRequest,
     selectedData,
+    duplicateFlag,
     checker
 }) => {
     const headers = getToken();
@@ -140,6 +142,43 @@ const PurchaseRequestTable = ({
         }
 
         EditPurchaseRequest(true); // Open the edit form or process
+        selectedData(dataSelected); // Pass the selected data for further processing
+        duplicateFlag(false);
+    };
+
+    const handleDuplicatePurchaseRequest = (value) => {
+        const dataSelected = getSelectedRowsData();
+        console.log('dataSelected Edit:', dataSelected);
+
+        if (dataSelected.length > 1) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Multiple Rows Selected',
+                text: 'Please select only one row to edit.',
+                confirmButtonText: 'OK',
+            });
+            return; // Exit the function if multiple rows are selected
+        }
+
+        // Get the current user's userId
+        const userId = sessionStorage.getItem('userId');
+        console.log('checker:', checker);
+
+        // Check if status_request is 'IN_PROCESS' and userId matches created_by
+        if (
+            dataSelected[0].STATUS_REQUEST === 'IN_PROCESS' &&
+            (!checker || userId !== dataSelected[0].REQUESTOR || dataSelected[0].STATUS === 'APPROVED')) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Edit Restricted',
+                text: 'You cannot edit this request while it is "IN_PROCESS".',
+                confirmButtonText: 'OK',
+            });
+            return; // Exit the function if the condition is met
+        }
+
+        duplicateFlag(true); // Open the edit form or process
+        duplicatePurchaseRequest(true);
         selectedData(dataSelected); // Pass the selected data for further processing
     };
 
@@ -408,6 +447,9 @@ const PurchaseRequestTable = ({
                                 </button> */}
                                 {selectedRows.size > 0 && (
                                     <>
+                                        <button type="button" className="btn btn-default" onClick={handleDuplicatePurchaseRequest}>
+                                            <FaClone /> Duplicate
+                                        </button>
                                         <button type="button" className="btn btn-default" onClick={handleEditPurchaseRequest}>
                                             <FaEdit /> Edit
                                         </button>

@@ -23,8 +23,9 @@ import "react-datepicker/dist/react-datepicker.css";
 import { format, parse } from "date-fns";
 import { FaCalendarAlt } from 'react-icons/fa';
 import '../css/DatePicker.css';
+import { se } from 'date-fns/locale';
 
-const AddPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, selectedData }) => {
+const AddPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, selectedData, duplicateFlag, setIsAddingNewDuplicatePurchaseRequest }) => {
   const headers = getToken();
   const branchId = getBranch();
   const userId = sessionStorage.getItem('userId');
@@ -76,7 +77,8 @@ const AddPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, select
   }, []);
 
   useEffect(() => {
-    if (selectedData) {
+    console.log('duplicateFlag', duplicateFlag);
+    if (selectedData && duplicateFlag === false) {
       const { ID, PR_NUMBER } = selectedData[0];
       // Set data awal dari selectedData
       console.log('id and pr number', ID, PR_NUMBER);
@@ -184,10 +186,31 @@ const AddPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, select
           console.error('Failed to load items:', error);
         });
 
+      LookupParamService.fetchLookupData("MSDT_FORMCCY", authToken, branchId)
+        .then(data => {
+          console.log('Currency lookup data:', data);
 
+          // Transform keys to uppercase directly in the received data
+          const transformedData = data.data.map(item =>
+            Object.keys(item).reduce((acc, key) => {
+              acc[key.toUpperCase()] = item[key];
+              return acc;
+            }, {})
+          );
+          //console.log('Transformed data:', transformedData);
 
-      // Ambil data lookup untuk currency
-      LookupParamService.fetchLookupData("MSDT_FORMEMPL", authToken, branchId)
+          const options = transformedData.map(item => ({
+            value: item.CODE,
+            label: item.CODE
+          }));
+          setCurrencyOptions(options);
+          // const selectedCurrencyOption = options.find(option => option.value === currency);
+          // setSelectedCurrency(selectedCurrencyOption || null);
+        })
+        .catch(error => {
+          console.error('Failed to fetch currency lookup:', error);
+        });
+      LookupParamService.fetchLookupData("MSDT_FORMDPRT", authToken, branchId)
         .then(data => {
           console.log('Currency lookup data:', data);
 
@@ -204,13 +227,208 @@ const AddPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, select
             value: item.NAME,
             label: item.NAME
           }));
-          setRequestorOptions(options);
-          const selectedRequestorOption = options.find(option => option.value === selectedData[0].REQUESTOR);
-          setSelectedRequestor(selectedRequestorOption || null);
-
+          setDepartementOptions(options);
+          const selectedDepartementOption = options.find(option => option.value === selectedData[0].DEPARTEMENT);
+          setSelectedDepartement(selectedDepartementOption || null);
         })
         .catch(error => {
           console.error('Failed to fetch currency lookup:', error);
+        });
+
+      LookupParamService.fetchLookupData("MSDT_FORMPRJT", authToken, branchId)
+        .then(data => {
+          console.log('Currency lookup data:', data);
+
+          // Transform keys to uppercase directly in the received data
+          const transformedData = data.data.map(item =>
+            Object.keys(item).reduce((acc, key) => {
+              acc[key.toUpperCase()] = item[key];
+              return acc;
+            }, {})
+          );
+          //console.log('Transformed data:', transformedData);
+
+          const options = transformedData.map(item => ({
+            value: item.NAME,
+            label: item.NAME,
+            project_contract_number: item.CONTRACT_NUMBER,
+            customer: item.CUSTOMER
+          }));
+          setProjectOptions(options);
+          const selectedProjectOption = options.find(option => option.value === selectedData[0].PROJECT);
+          setSelectedProject(selectedProjectOption || null);
+        })
+        .catch(error => {
+          console.error('Failed to fetch currency lookup:', error);
+        });
+
+      LookupParamService.fetchLookupData("MSDT_FORMPRDT", authToken, branchId)
+        .then(data => {
+          console.log('Currency lookup data:', data);
+
+          // Transform keys to uppercase directly in the received data
+          const transformedData = data.data.map(item =>
+            Object.keys(item).reduce((acc, key) => {
+              acc[key.toUpperCase()] = item[key];
+              return acc;
+            }, {})
+          );
+          //console.log('Transformed data:', transformedData);
+
+          const options = transformedData.map(item => ({
+            value: item.NAME,
+            label: item.NAME
+          }));
+          setProductOptions(options);
+          console.log('Product :', options);
+          const selectedProductOption = options.find(option => option.value === selectedData[0].PRODUCT);
+          console.log('product : ', selectedProductOption);
+          setSelectedProduct(selectedProductOption || null);
+        })
+        .catch(error => {
+          console.error('Failed to fetch currency lookup:', error);
+        });
+
+      LookupParamService.fetchLookupData("MSDT_FORMCUST", authToken, branchId)
+        .then(data => {
+          console.log('Currency lookup data:', data);
+
+          // Transform keys to uppercase directly in the received data
+          const transformedData = data.data.map(item =>
+            Object.keys(item).reduce((acc, key) => {
+              acc[key.toUpperCase()] = item[key];
+              return acc;
+            }, {})
+          );
+          //console.log('Transformed data:', transformedData);
+          const filteredData = transformedData.filter(item =>
+            item.ENTITY_TYPE === 'BOTH' || item.ENTITY_TYPE === 'Vendor'
+          );
+
+          const options = filteredData.map(item => ({
+            value: item.NAME,
+            label: item.NAME
+          }));
+
+          console.log('Vendor ops :', options);
+
+
+          setVendorOptions(options);
+
+          const selectedVendorOption = options.find(option => option.value === selectedData[0].VENDOR);
+          console.log('Vendor :', selectedVendorOption);
+          setSelectedVendor(selectedVendorOption || null);
+        })
+        .catch(error => {
+          console.error('Failed to fetch currency lookup:', error);
+        });
+    } else if (selectedData && duplicateFlag === true) {
+
+      generatePrNumber("DRAFT_PR");
+      generateEndtoEndId("PURC");
+
+      const prNumber = selectedData[0].PR_NUMBER;
+
+      console.log('selectedData:', selectedData[0]);
+
+      LookupService.fetchLookupData(`PURC_FORMPUREQ&filterBy=PR_NUMBER&filterValue=${prNumber}&operation=EQUAL`, authToken, branchId)
+        .then(response => {
+          const data = response.data[0];
+          console.log('Data:', data);
+          setRequestDate(data.request_date);
+          setScheduleDate(data.schedule_date);
+          setDocReff(data.doc_reff);
+          setRequestor(data.requestor);
+          setCompany(data.company);
+          setDescription(data.description);
+          setStatusRequest(data.status_request);
+          setPaymentTerm(data.payment_term);
+          setCurrency(data.currency);
+        })
+        .catch(error => {
+          console.error('Failed to load purchase request data:', error);
+        });
+      LookupService.fetchLookupData(`PURC_FORMPUREQD&filterBy=PR_NUMBER&filterValue=${prNumber}&operation=EQUAL`, authToken, branchId)
+        .then(response => {
+          const fetchedItems = response.data || [];
+          console.log('Items fetched:', fetchedItems);
+
+          // Set fetched items to state
+          const sortedItems = fetchedItems.sort((a, b) => a.ID - b.ID);
+
+          console.log('Items fetched (after sorting):', sortedItems);
+          setItems(sortedItems);
+
+          // Fetch product lookup data
+          LookupParamService.fetchLookupData("MSDT_FORMPRDT", authToken, branchId)
+            .then(productData => {
+              console.log('Product lookup data:', productData);
+
+              // Transform and map product data to options
+              const transformedProductData = productData.data.map(item =>
+                Object.keys(item).reduce((acc, key) => {
+                  acc[key.toUpperCase()] = item[key];
+                  return acc;
+                }, {})
+              );
+
+              const productOptions = transformedProductData.map(item => ({
+                value: item.NAME,
+                label: item.NAME
+              }));
+
+              setProductOptions(productOptions); // Set product options to state
+
+              // Fetch currency lookup data
+              LookupParamService.fetchLookupData("MSDT_FORMCCY", authToken, branchId)
+                .then(currencyData => {
+                  console.log('Currency lookup data:', currencyData);
+
+                  // Transform and map currency data to options
+                  const transformedCurrencyData = currencyData.data.map(item =>
+                    Object.keys(item).reduce((acc, key) => {
+                      acc[key.toUpperCase()] = item[key];
+                      return acc;
+                    }, {})
+                  );
+
+                  const currencyOptions = transformedCurrencyData.map(item => ({
+                    value: item.CODE,
+                    label: item.CODE
+                  }));
+
+                  setCurrencyOptions(currencyOptions); // Set currency options to state
+
+                  // Update fetched items with selected options
+                  const updatedItems = fetchedItems.map(item => {
+                    const selectedProductOption = productOptions.find(option =>
+                      option.value === item.product
+                    );
+
+                    console.log('Selected product option:', selectedProductOption);
+
+                    const selectedCurrencyOption = currencyOptions.find(option =>
+                      option.value === currency
+                    );
+
+                    console.log('Selected currency option:', selectedCurrencyOption);
+                    setSelectedCurrency(selectedCurrencyOption);
+                    setSelectedProduct(selectedProductOption);
+                  });
+
+                  // Set the updated items with selected product and currency options to state
+                  setItems(fetchedItems);
+                })
+                .catch(error => {
+                  console.error('Failed to fetch currency lookup:', error);
+                });
+            })
+            .catch(error => {
+              console.error('Failed to fetch product lookup:', error);
+            });
+        })
+        .catch(error => {
+          console.error('Failed to load items:', error);
         });
 
       LookupParamService.fetchLookupData("MSDT_FORMCCY", authToken, branchId)
@@ -350,35 +568,6 @@ const AddPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, select
           console.error('Failed to fetch currency lookup:', error);
         });
 
-
-
-      LookupParamService.fetchLookupData("MSDT_FORMPYTM", authToken, branchId)
-        .then(data => {
-          console.log('Currency lookup data:', data);
-
-          // Transform keys to uppercase directly in the received data
-          const transformedData = data.data.map(item =>
-            Object.keys(item).reduce((acc, key) => {
-              acc[key.toUpperCase()] = item[key];
-              return acc;
-            }, {})
-          );
-          //console.log('Transformed data:', transformedData);
-
-          const options = transformedData.map(item => ({
-            value: item.COUNT,
-            label: item.NAME,
-            dateType: item.DATE_TYPE
-          }));
-          setPaymentTermOptions(options);
-          console.log('Payment Term :', options);
-          const selectedPaymentTermOption = options.find(option => option.value === selectedData[0].PAYMENT_TERM);
-          console.log('Payment Term :', selectedPaymentTermOption);
-          setSelectedPaymentTerm(selectedPaymentTermOption || null);
-        })
-        .catch(error => {
-          console.error('Failed to fetch currency lookup:', error);
-        });
     } else {
       generatePrNumber("DRAFT_PR");
 
@@ -503,7 +692,7 @@ const AddPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, select
           console.error('Failed to fetch currency lookup:', error);
         });
     }
-  }, [selectedData]);
+  }, [selectedData, duplicateFlag]);
 
   const handleDepartementChange = (selectedOption, index) => {
     setSelectedDepartement(selectedOption); // Optional: If you need to use the selected option elsewhere
@@ -888,13 +1077,38 @@ const AddPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, select
   };
 
   // Helper function for inserting new items
-  const handleItemsInsert = async (pr_number) => {
+  const handleItemsInsert = async (pr_number, duplicateFlag) => {
     for (const item of items) {
-      const updatedItem = { ...item, pr_number };
-      await InsertDataService.postData(updatedItem, "PUREQD", authToken, branchId);
+      let updatedItem;
+
+      if (duplicateFlag) {
+        // Hanya menyertakan properti tertentu
+        updatedItem = {
+          doc_reff_no: item.doc_reff_no,
+          doc_source: item.doc_source,
+          vendor: item.vendor,
+          project: item.project,
+          project_contract_number: item.project_contract_number,
+          customer: item.customer,
+          departement: item.departement,
+          product: item.product,
+          product_note: item.product_note,
+          quantity: item.quantity,
+          unit_price: item.unit_price,
+          total_price: item.total_price,
+          id_upload: item.id_upload,
+          pr_number: item.pr_number, // Tambahkan pr_number
+        };
+      } else {
+        // Kirim seluruh item jika duplicateFlag false
+        updatedItem = { ...item, pr_number };
+      }
+
+      // await InsertDataService.postData(updatedItem, "PUREQD", authToken, branchId);
       console.log('Item posted successfully:', updatedItem);
     }
   };
+
 
   const handleSubmit = async (event) => {
     event.preventDefault();
@@ -1001,9 +1215,9 @@ const AddPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, select
           };
 
           const response = await InsertDataService.postData(generalInfo, "PUREQ", authToken, branchId);
-
+          console.log('Duplicate Flag insert:', duplicateFlag);
           if (response.message === "insert Data Successfully") {
-            await handleItemsInsert(newPrNumber);
+            await handleItemsInsert(newPrNumber, duplicateFlag);
             messageAlertSwal('Success', response.message, 'success');
           }
         }
@@ -1342,19 +1556,9 @@ const AddPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, select
       <section className="content-header">
         <div className="container-fluid">
           <div className="row mb-2">
-            <div className="col-sm-6">
+            {/* <div className="col-sm-6">
               <h1>{selectedData ? "Edit Purchase Request" : "Add Purchase Request"}</h1>
-            </div>
-            <div className="col-sm-6">
-              <ol className="breadcrumb float-sm-right">
-                <li className="breadcrumb-item">
-                  <a href="/">Home</a>
-                </li>
-                <li className="breadcrumb-item active">
-                  {selectedData ? "Edit Purchase Request" : "Add Purchase Request"}
-                </li>
-              </ol>
-            </div>
+            </div> */}
           </div>
         </div>
       </section>
@@ -1368,20 +1572,25 @@ const AddPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, select
               <Card.Header className="d-flex justify-content-between align-items-center">
                 <Card.Title>General Information</Card.Title>
                 <div className="ml-auto">
-                  {setIsEditingPurchaseRequest && (
+                  {(setIsEditingPurchaseRequest || setIsAddingNewDuplicatePurchaseRequest) && (
                     <>
                       <Button
                         variant="secondary"
                         className="mr-2"
                         onClick={() => {
                           handleRefresh();
-                          setIsEditingPurchaseRequest(false);
+                          if (setIsEditingPurchaseRequest) {
+                            setIsEditingPurchaseRequest(false);
+                          } else if (setIsAddingNewDuplicatePurchaseRequest) {
+                            setIsAddingNewDuplicatePurchaseRequest(false);
+                          }
                         }}
                       >
                         <i className="fas fa-arrow-left"></i> Go Back
                       </Button>
                     </>
                   )}
+
 
                   {!isSubmitted ? (
                     <>
@@ -1583,7 +1792,7 @@ const AddPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, select
                           <tbody>
                             {items.length === 0 ? (
                               <tr>
-                                <td colSpan="15" className="text-center">No data available</td>
+                                <td colSpan="14" className="text-center">No data available</td>
                               </tr>
                             ) : (
                               items.map((item, index) => (
@@ -1739,7 +1948,7 @@ const AddPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, select
                           </tbody>
                           <tfoot>
                             <tr>
-                              <td colSpan="13" className="text-right">Total Amount:</td>
+                              <td colSpan="12" className="text-right">Total Amount:</td>
                               <td className="text-end"><strong>{calculateTotalAmount().toLocaleString('en-US', { currency: 'IDR', minimumFractionDigits: 2, maximumFractionDigits: 2 })} </strong></td>
                               <td></td>
                             </tr>
@@ -1780,20 +1989,24 @@ const AddPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, select
 
         <Row className="mt-5">
           <Col md={12} className="d-flex justify-content-end">
-            {setIsEditingPurchaseRequest && (
-              <>
-                <Button
-                  variant="secondary"
-                  className="mr-2"
-                  onClick={() => {
-                    handleRefresh();
-                    setIsEditingPurchaseRequest(false);
-                  }}
-                >
-                  <i className="fas fa-arrow-left"></i> Go Back
-                </Button>
-              </>
-            )}
+          {(setIsEditingPurchaseRequest || setIsAddingNewDuplicatePurchaseRequest) && (
+                    <>
+                      <Button
+                        variant="secondary"
+                        className="mr-2"
+                        onClick={() => {
+                          handleRefresh();
+                          if (setIsEditingPurchaseRequest) {
+                            setIsEditingPurchaseRequest(false);
+                          } else if (setIsAddingNewDuplicatePurchaseRequest) {
+                            setIsAddingNewDuplicatePurchaseRequest(false);
+                          }
+                        }}
+                      >
+                        <i className="fas fa-arrow-left"></i> Go Back
+                      </Button>
+                    </>
+                  )}
 
             {!isSubmitted ? (
               <>

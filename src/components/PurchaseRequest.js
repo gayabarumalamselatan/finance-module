@@ -31,9 +31,11 @@ const PurchaseRequest = () => {
     const [filters, setFilters] = useState([]);
 
     const [isAddingNewPurchaseRequest, setIsAddingNewPurchaseRequest] = useState(false);
+    const [isAddingNewDuplicatePurchaseRequest, setIsAddingNewDuplicatePurchaseRequest] = useState(false);
     const [isViewingPurchaseRequest, setIsViewingPurchaseRequest] = useState(false);
     const [isEditingPurchaseRequest, setIsEditingPurchaseRequest] = useState(false);
     const [selectedData, setSelectedData] = useState([]);
+    const [duplicateFlag, setDuplicateFlag] = useState(false);
 
 
     const permissionsString = sessionStorage.getItem('permisions');
@@ -51,12 +53,21 @@ const PurchaseRequest = () => {
         setIsEditingPurchaseRequest(value);
     };
 
+    const handleDuplicatePurchaseRequest = (value) => {
+        console.log('duplicate', value);
+        setIsAddingNewDuplicatePurchaseRequest(value);
+    };
+
     const handleViewPurchaseRequest = (value) => {
         setIsViewingPurchaseRequest(value);
     };
 
     const handleSelectData = (value) => {
         setSelectedData(value);
+    };
+
+    const handleDuplicateFlag = (value) => {
+        setDuplicateFlag(value);
     };
 
     const authToken = headers;
@@ -253,6 +264,15 @@ const handleResetFilters = () => {
                         setIsEditingPurchaseRequest={setIsEditingPurchaseRequest}
                         handleRefresh={handleRefresh}
                         selectedData={selectedData}
+                        duplicateFlag={duplicateFlag}
+
+                    />
+                ) : isAddingNewDuplicatePurchaseRequest ? (
+                    <AddPurchaseRequest
+                        setIsAddingNewDuplicatePurchaseRequest={setIsAddingNewDuplicatePurchaseRequest}
+                        handleRefresh={handleRefresh}
+                        selectedData={selectedData}
+                        duplicateFlag={duplicateFlag}
 
                     />
                 ) : (
@@ -272,6 +292,8 @@ const handleResetFilters = () => {
                         authToken={authToken}
                         addingNewPurchaseRequest={handleAddNewPurchaseRequest}
                         EditPurchaseRequest={handleEditPurchaseRequest}
+                        duplicatePurchaseRequest={handleDuplicatePurchaseRequest}
+                        duplicateFlag={handleDuplicateFlag}
                         selectedData={handleSelectData}
                         checker={permissions.Purchase?.["List Purchase Request"].verify}
                     />
