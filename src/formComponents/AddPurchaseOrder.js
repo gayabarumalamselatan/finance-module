@@ -496,6 +496,7 @@ import moment from 'moment';
     // New Item List PR Handle
     const handlePRChange = (index, selectedOption) => {
       if (selectedOption) {
+        console.log('curr', selectedOption);
         // Lookup PR Detail
         LookupService.fetchLookupData(`PURC_FORMPUREQD&filterBy=PR_NUMBER&filterValue=${selectedOption.value}&operation=EQUAL`, authToken, branchId)
         .then(response => {
@@ -509,6 +510,7 @@ import moment from 'moment';
           .then(response => {
             const fetchedDatas = response.data || [];
             console.log('Items fetched:', fetchedDatas);
+
           
             // Fetch product lookup data
             LookupParamService.fetchLookupDataView("MSDT_FORMPRDT", authToken, branchId)
@@ -618,7 +620,6 @@ import moment from 'moment';
           console.error('Failed to load items:', error);
         });
       }else{
-          
           const newItems = [...items];
           newItems[index] = {
             ...newItems[index],
@@ -2371,22 +2372,6 @@ import moment from 'moment';
                                   ))
                                 )}
                               </tbody>
-                              {/* <tfoot>
-                                <tr>
-                                  <td colSpan='1'/>
-                                  <td colSpan="1" className='text-center'>
-                                      <Button
-                                        className='rounded-3'
-                                        variant="success"
-                                        size="sm"
-                                        onClick={handleAddItem}
-                                      >
-                                        <i className="fas fa-plus"></i> New Item
-                                      </Button>
-                                    </td>
-                                  <td colSpan='16'/>
-                                </tr>
-                              </tfoot> */}
                             </table>
                             <div className='pb-4'>
                               <Button
