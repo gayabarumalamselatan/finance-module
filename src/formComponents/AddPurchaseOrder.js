@@ -510,6 +510,7 @@ import moment from 'moment';
           .then(response => {
             const fetchedDatas = response.data || [];
             console.log('Items fetched:', fetchedDatas);
+            
 
           
             // Fetch product lookup data
@@ -551,6 +552,11 @@ import moment from 'moment';
               }));
 
               setCurrencyOptions(currencyOptions); // Set currency options to state
+
+              // Set currency based on the currency from the first selected pr
+              const currencyOption = currencyOptions.find((option) => option.value === fetchedDatas[0].currency);
+              setSelectedCurrency(currencyOption);
+              setCurrency(currencyOption ? currencyOption.value : '');
             }).catch(error=>{
               console.error('Error fetching currency lookup data:', error);
             });
@@ -2009,7 +2015,7 @@ import moment from 'moment';
                                               style={detailFormStyle()}
                                             />
                                             :
-                                            <span>Choose Doc Ref</span>
+                                            <div className='mt-1'>Choose Doc Ref</div>
                                         }
                                       </td>
 
@@ -2259,7 +2265,11 @@ import moment from 'moment';
                                         }
                                       </td>
 
-                                      <td>{item.total_price.toLocaleString('en-US', { style: 'currency', currency: currency })}</td>
+                                      <td>
+                                        <div className='mt-2'>
+                                          {item.total_price.toLocaleString('en-US', { style: 'currency', currency: currency })}
+                                        </div>
+                                      </td>
                                     
                                       <td>
                                         <Form.Select
@@ -2398,7 +2408,14 @@ import moment from 'moment';
                                         minimumFractionDigits: 0,
                                         maximumFractionDigits: 0 
                                       })
-                                      : 'IDR 0.00'}
+                                    : 
+                                      new Intl.NumberFormat('en-US', {
+                                        style: 'currency',
+                                        currency: currency || 'IDR', // Use 'currency' or fall back to 'IDR'
+                                        minimumFractionDigits: 0, // No decimal places
+                                        maximumFractionDigits: 0 
+                                      }).format(0)
+                                    }
                                   </strong>
                                 </td>
                               </tr>
@@ -2434,7 +2451,12 @@ import moment from 'moment';
                                         maximumFractionDigits: 0 
                                       })
                                     : 
-                                      'IDR 0.00'
+                                      new Intl.NumberFormat('en-US', {
+                                        style: 'currency',
+                                        currency: currency || 'IDR', // Use 'currency' or fall back to 'IDR'
+                                        minimumFractionDigits: 0, // No decimal places
+                                        maximumFractionDigits: 0 
+                                      }).format(0)
                                     }
                                   </strong>
                                 </td>
@@ -2477,7 +2499,12 @@ import moment from 'moment';
                                         maximumFractionDigits: 0 
                                       })
                                     :
-                                      'IDR 0.00'
+                                    new Intl.NumberFormat('en-US', {
+                                      style: 'currency',
+                                      currency: currency || 'IDR', // Use 'currency' or fall back to 'IDR'
+                                      minimumFractionDigits: 0, // No decimal places
+                                      maximumFractionDigits: 0 
+                                      }).format(0)
                                     } 
                                   </strong>
                                 </td>
