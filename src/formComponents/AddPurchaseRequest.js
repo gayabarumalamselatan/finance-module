@@ -23,8 +23,8 @@ import "react-datepicker/dist/react-datepicker.css";
 import { format, parse } from "date-fns";
 import { FaCalendarAlt } from 'react-icons/fa';
 import '../css/DatePicker.css';
-import moment from 'moment';
 import { se } from 'date-fns/locale';
+import moment from 'moment';
 
 const AddPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, selectedData, duplicateFlag, setIsAddingNewDuplicatePurchaseRequest }) => {
   const headers = getToken();
@@ -67,12 +67,8 @@ const AddPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, select
   const [selectedVendor, setSelectedVendor] = useState(null);
   const [buttonAfterSubmit, setButtonAfterSubmit] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const createBy = sessionStorage.getItem('userId');
 
-  const [requestorOptions, setRequestorOptions] = useState([]);
-  const [selectedRequestor, setSelectedRequestor] = useState(null);
-  const [paymentTermOptions ,setPaymentTermOptions] = useState([]);
-  const [selectedPaymentTerm, setSelectedPaymentTerm] = useState(null);
-  const [createBy, setCreatedBy] = useState('');
 
   const authToken = headers;
   useEffect(() => {
@@ -1005,7 +1001,7 @@ const AddPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, select
           console.log('Data posted successfully:', response);
 
           if (response.message === "insert Data Successfully") {
-            await handleItemsInsert(pr_number);
+            await handleItemsInsert(pr_number,duplicateFlag);
             messageAlertSwal('Success', response.message, 'success');
             // resetForm();
           }
@@ -1103,12 +1099,14 @@ const AddPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, select
           unit_price: item.unit_price,
           total_price: item.total_price,
           id_upload: item.id_upload,
-          pr_number: item.pr_number, // Tambahkan pr_number
+          pr_number: pr_number, // Tambahkan pr_number
         };
       } else {
         // Kirim seluruh item jika duplicateFlag false
         updatedItem = { ...item, pr_number };
       }
+
+      await InsertDataService.postData(updatedItem, "PUREQD", authToken, branchId);
 
       // await InsertDataService.postData(updatedItem, "PUREQD", authToken, branchId);
       console.log('Item posted successfully:', updatedItem);
@@ -1443,7 +1441,7 @@ const AddPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, select
         if (pr_number.slice(0, 2) !== 'PR') {
           pr_number = await generatePrNumber('PR');
         } else {
-          pr_number = pr_number;
+          pr_number
         }
 
         const total_amount = calculateTotalAmount();
