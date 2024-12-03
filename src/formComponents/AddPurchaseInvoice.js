@@ -1982,6 +1982,8 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
         tax_base_idr: 0,
         tax_ppn_amount_idr: 0,
         tax_pph_amount_idr: 0,
+        total_amount_ppn_idr: 0,
+        total_amount_pph_idr: 0,
       },
     ]);
   };
@@ -3001,6 +3003,10 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
           cod_cor_skb,
           currency,
           total_amount_idr,
+          total_amount_ppn_idr,
+          total_amount_pph_idr,
+          total_after_discount_idr,
+          total_before_discount_idr,
         };
 
         console.log("Master", generalInfo);
@@ -3125,6 +3131,9 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
             delete updatedItem.total_amount_idr;
             delete updatedItem.total_before_discount_idr;
             delete updatedItem.total_after_discount_idr;
+            delete updatedItem.total_amount_ppn_idr;
+            delete updatedItem.total_amount_pph_idr;
+            delete updatedItem.cod_cor_skb;
 
             try {
               const itemResponse = await InsertDataService.postData(updatedItem, "PUINVCD", authToken, branchId);
@@ -3179,6 +3188,9 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
             delete updatedItem.total_amount_idr;
             delete updatedItem.total_before_discount_idr;
             delete updatedItem.total_after_discount_idr;
+            delete updatedItem.total_amount_ppn_idr;
+            delete updatedItem.total_amount_pph_idr;
+            delete updatedItem.cod_cor_skb;
 
             const itemResponse = await InsertDataService.postData(updatedItem, "PUINVCD", authToken, branchId);
             console.log("Item posted successfully:", itemResponse);
@@ -3306,6 +3318,10 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
           cod_cor_skb,
           currency,
           total_amount_idr,
+          total_amount_ppn_idr,
+          total_amount_pph_idr,
+          total_after_discount_idr,
+          total_before_discount_idr,
         };
 
         console.log("Master", generalInfo);
@@ -3409,6 +3425,9 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
             delete updatedItem.total_amount_idr;
             delete updatedItem.total_before_discount_idr;
             delete updatedItem.total_after_discount_idr;
+            delete updatedItem.total_amount_ppn_idr;
+            delete updatedItem.total_amount_pph_idr;
+            delete updatedItem.cod_cor_skb;
 
             try {
               const itemResponse = await InsertDataService.postData(updatedItem, "PUINVCD", authToken, branchId);
@@ -3464,6 +3483,9 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
             delete updatedItem.total_amount_idr;
             delete updatedItem.total_before_discount_idr;
             delete updatedItem.total_after_discount_idr;
+            delete updatedItem.total_amount_ppn_idr;
+            delete updatedItem.total_amount_pph_idr;
+            delete updatedItem.cod_cor_skb;
 
             const itemResponse = await InsertDataService.postData(updatedItem, "PUINVCD", authToken, branchId);
             console.log("Item posted successfully:", itemResponse);
@@ -3577,6 +3599,9 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
                             "total_amount_idr",
                             "total_before_discount_idr",
                             "total_after_discount_idr",
+                            "total_amount_ppn_idr",
+                            "total_amount_pph_idr",
+                            // "cod_cor_skb",
                           ];
 
                           fieldsToDelete.forEach((field) => delete updatedStoredItem[field]);
@@ -4248,7 +4273,7 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
                       </Form.Group>
                     </Col>
 
-                    <Col md={6}>
+                    {/* <Col md={6}>
                       <Form.Group controlId="formBiMiddleRate">
                         <Form.Label>Bi Middle Rate</Form.Label>
                         <Form.Control
@@ -4264,6 +4289,7 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
                         />
                       </Form.Group>
                     </Col>
+                     */}
 
                     <Col md={6}>
                       <Form.Group controlId="formCreatedBy">
@@ -4440,7 +4466,6 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
                             handleCurrencyChange(selectedOption); // Memanggil handleItemChange untuk memperbarui mata uang per baris
                           }}
                           options={currencyOptions}
-                          isClearable
                           placeholder="Select Currency..."
                         />
                       </Form.Group>
@@ -5279,16 +5304,6 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
                               ))
                             )}
                           </tbody>
-                          <tr>
-                            <td colSpan="1"></td>
-                            <td className="d-flex justify-content-center">
-                              <div>
-                                <Button variant="success" size="sm" onClick={handleAddItem}>
-                                  <i className="fas fa-plus"></i> New Item
-                                </Button>
-                              </div>
-                            </td>
-                          </tr>
                           {/* <tfoot>
                             <tr className="text-right">
                               <td colSpan="22">Subtotal Before Discount:</td>
@@ -5410,6 +5425,11 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
                             </tr>
                           </tfoot> */}
                         </table>
+                        <div className="pb-4">
+                          <Button className="rounded-3" variant="success" size="sm" onClick={handleAddItem}>
+                            <i className="fas fa-plus"></i> New Item
+                          </Button>
+                        </div>
                         {provided.placeholder}
                       </div>
                     )}
