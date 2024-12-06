@@ -34,6 +34,8 @@ const PurchaseOrder = () => {
     const [isViewingPurchaseOrder, setIsViewingPurchaseOrder] = useState(false);
     const [isEditingPurchaseOrder, setIsEditingPurchaseOrder] = useState(false);
     const [selectedData, setSelectedData] = useState([]);
+    const [isAddingNewDuplicatePurchaseOrder, setIsAddingNewDuplicatePurchaseOrder] = useState(false);
+    const [duplicateFlag, setDuplicateFlag] = useState(false);
 
 
     const permissionsString = sessionStorage.getItem('permisions');
@@ -49,6 +51,15 @@ const PurchaseOrder = () => {
 
     const handleEditPurchaseOrder = (value) => {
         setIsEditingPurchaseOrder(value);
+    };
+
+    const handleDuplicatePurchaseOrder = (value) => {
+        console.log('duplicate', value);
+        setIsAddingNewDuplicatePurchaseOrder(value);
+    };
+
+    const handleDuplicateFlag = (value) => {
+        setDuplicateFlag(value);
     };
 
     const handleViewPurchaseOrder = (value) => {
@@ -285,7 +296,10 @@ const PurchaseOrder = () => {
                             {isEditingPurchaseOrder ?
                                 <h1>Edit Purchase Order</h1>
                                 :
-                                <h1>Purchase Order</h1>
+                                isAddingNewDuplicatePurchaseOrder?
+                                    <h1>Duplicate Purchase Order</h1>
+                                    :
+                                    <h1>Purchase Order</h1>
                             }
                         </div>
                         <div className="col-sm-6">
@@ -298,6 +312,11 @@ const PurchaseOrder = () => {
                                     Edit Purchase Order
                                  </li>
                                  :
+                                 isAddingNewDuplicatePurchaseOrder ?
+                                 <li className="breadcrumb-item active">
+                                    Duplicate Purchase Order
+                                </li>
+                                :
                                  <li className="breadcrumb-item active">
                                     Purchase Order
                                 </li>
@@ -322,6 +341,16 @@ const PurchaseOrder = () => {
                         isEditingPurchaseOrder={isEditingPurchaseOrder}
                         handleRefresh={handleRefresh}
                         selectedData={selectedData}
+                        duplicateFlag={duplicateFlag}
+                    />
+                ) : isAddingNewDuplicatePurchaseOrder ? (
+                    <AddPurchaseOrder
+                        setIsAddingNewDuplicatePurchaseOrder={setIsAddingNewDuplicatePurchaseOrder}
+                        handleRefresh={handleRefresh}
+                        selectedData={selectedData}
+                        duplicateFlag={duplicateFlag}
+                        setDuplicateFlag={setDuplicateFlag}
+
                     />
                 ) : (
                     <PurchaseOrderTable
@@ -340,6 +369,9 @@ const PurchaseOrder = () => {
                         authToken={authToken}
                         addingNewPurchaseOrder={handleAddNewPurchaseOrder}
                         handleEditPurchaseOrder={handleEditPurchaseOrder}
+                        duplicatePurchaseOrder={handleDuplicatePurchaseOrder}
+                        setDuplicateFlag={setDuplicateFlag}
+                        duplicateFlag={handleDuplicateFlag}
                         selectedData={handleSelectData}
                         EditPurchaseOrder={handleEditPurchaseOrder}
                         checker={permissions.Purchase?.["List Purchase Order"].verify}

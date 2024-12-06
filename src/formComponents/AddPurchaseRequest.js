@@ -24,6 +24,7 @@ import { format, parse } from "date-fns";
 import { FaCalendarAlt } from 'react-icons/fa';
 import '../css/DatePicker.css';
 import { se } from 'date-fns/locale';
+import moment from 'moment';
 
 const AddPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, selectedData, duplicateFlag, setIsAddingNewDuplicatePurchaseRequest }) => {
   const headers = getToken();
@@ -66,6 +67,7 @@ const AddPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, select
   const [selectedVendor, setSelectedVendor] = useState(null);
   const [buttonAfterSubmit, setButtonAfterSubmit] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const createBy = sessionStorage.getItem('userId');
 
 
   const authToken = headers;
@@ -847,7 +849,7 @@ const AddPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, select
       newItems[index].quantity = newItems[index].quantity || 1; // Default quantity to 1 if empty or 0
       newItems[index].total_price = newItems[index].quantity * newItems[index].unit_price;
     }
-
+    
     // Update the items state for all changes
     setItems(newItems);
   };
@@ -1439,7 +1441,7 @@ const AddPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, select
         if (pr_number.slice(0, 2) !== 'PR') {
           pr_number = await generatePrNumber('PR');
         } else {
-          pr_number
+          pr_number 
         }
 
         const total_amount = calculateTotalAmount();
