@@ -321,7 +321,7 @@ const PurchaseInvoiceTable = ({
       }
 
       const userId = sessionStorage.getItem("userId");
-      if (!checker && dataSelected[0].STATUS_REQUEST === "IN_PROCESS" && userId === dataSelected[0].REQUESTOR) {
+      if (!checker && dataSelected[0].INVOICE_STATUS === "IN_PROCESS" && userId === dataSelected[0].CREATED_BY) {
         Swal.fire({
           icon: "warning",
           title: "Delete Restricted",

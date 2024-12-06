@@ -849,7 +849,7 @@ const AddPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, select
       newItems[index].quantity = newItems[index].quantity || 1; // Default quantity to 1 if empty or 0
       newItems[index].total_price = newItems[index].quantity * newItems[index].unit_price;
     }
-
+    
     // Update the items state for all changes
     setItems(newItems);
   };
@@ -1441,7 +1441,7 @@ const AddPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, select
         if (pr_number.slice(0, 2) !== 'PR') {
           pr_number = await generatePrNumber('PR');
         } else {
-          pr_number
+          pr_number 
         }
 
         const total_amount = calculateTotalAmount();
