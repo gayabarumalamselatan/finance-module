@@ -163,33 +163,33 @@ const PurchaseExpanseVoucher = () => {
 
   return (
     <Fragment>
-      <section className="content-header">
-        <div className="container-fluid">
-          <div className="row mb-2">
-            <div className="col-sm-6">
-              <h1>Purchase Expanse Voucher by Bank</h1>
-            </div>
-            <div className="col-sm-6">
-              <ol className="breadcrumb float-sm-right">
-                <li className="breadcrumb-item">
-                  <a href="/">Home</a>
-                </li>
-                <li className="breadcrumb-item active">Purchas Expanse Voucher by Bank</li>
-              </ol>
+      {!isEditingPurchaseExpanse && (
+        <section className="content-header">
+          <div className="container-fluid">
+            <div className="row mb-2">
+              <div className="col-sm-6">
+                <h1>Purchase Expanse Voucher by Bank</h1>
+              </div>
+              <div className="col-sm-6">
+                <ol className="breadcrumb float-sm-right">
+                  <li className="breadcrumb-item">
+                    <a href="/">Home</a>
+                  </li>
+                  <li className="breadcrumb-item active">Purchas Expanse Voucher by Bank</li>
+                </ol>
+              </div>
             </div>
           </div>
-        </div>
-      </section>
+        </section>
+      )}
       <section className="content">
         {isAddingNewPurchaseExpanse ? (
           <div>
             <AddPurchaseExpanseVoucher setIsAddingNewPurchaseExpanse={setIsAddingNewPurchaseExpanse} handleRefresh={handleRefresh} />
           </div>
-        ) : 
-        isEditingPurchaseExpanse ? (
-          <EditPurchaseExpanseVoucher setIsEditingPurchaseExpanse={setIsEditingPurchaseExpanse} handleRefresh={handleRefresh} selectedData={selectedData} />
-        ) : 
-        (
+        ) : isEditingPurchaseExpanse ? (
+          <AddPurchaseExpanseVoucher setIsEditingPurchaseExpanse={setIsEditingPurchaseExpanse} handleRefresh={handleRefresh} selectedData={selectedData} />
+        ) : (
           <PurchaseExpanseTable
             formCode={formCode}
             dataTable={dataTable}
@@ -208,6 +208,7 @@ const PurchaseExpanseVoucher = () => {
             handleEditPurchaseExpanse={handleEditPurchaseExpanse}
             isAddingNewPurchaseExpanse={handleAddNewPurchaseExpanse}
             isEditPurchaseExpanseVoucher={handleEditPurchaseExpanse}
+            EditPurchaseExpanseVoucher={handleEditPurchaseExpanse}
             selectedData={handleSelectData}
             checker={permissions.Purchase?.["Purchase Invoice"].verify}
           />
@@ -224,9 +225,3 @@ const PurchaseExpanseVoucher = () => {
 };
 
 export default PurchaseExpanseVoucher;
-
-
-
-
-
-

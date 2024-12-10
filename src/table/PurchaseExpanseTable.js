@@ -580,6 +580,9 @@ const PurchaseExpanseTable = ({
                   <th>Check Number/Giro Number</th>
                   <th>Paid To</th>
                   <th>Exchange Rate Bank</th>
+                  <th>Currency</th>
+                  <th>IDR Amount</th>
+                  <th>Total Paid</th>
                   <th>Voucher Status</th>
 
                   {/* <th>Total Amount</th>
@@ -618,6 +621,9 @@ const PurchaseExpanseTable = ({
                       <td>{item.NUMBER_CHECK_GIRO}</td>
                       <td>{item.PAID_TO}</td>
                       <td>{item.EXCHANGE_RATE}</td>
+                      <td>{item.CURRENCY}</td>
+                      <td>{item.AMOUNT_IDR}</td>
+                      <td>{item.TOTAL_PAID}</td>
                       <td>{item.STATUS}</td>
                       
                       
@@ -693,18 +699,25 @@ const PurchaseExpanseTable = ({
                     <div className="col-md-4 font-weight-bold">Voucher Status:</div>
                     <div className="col-md-8">{selectedRowData.STATUS}</div>
                   </div>
-                  <div className="row mb-3">
+                  {/* <div className="row mb-3">
                     <div className="col-md-4 font-weight-bold">Total Amount:</div>
                     <div className="col-md-8">{selectedRowData.TOTAL_AMOUNT}</div>
+                  </div> */}
+
+                  <div className="row mb-3">
+                    <div className="col-md-4 font-weight-bold">Currency:</div>
+                    <div className="col-md-8">{selectedRowData.CURRENCY}</div>
                   </div>
+                  
                   <div className="row mb-3">
                     <div className="col-md-4 font-weight-bold">Amount IDR:</div>
                     <div className="col-md-8">{selectedRowData.AMOUNT_IDR}</div>
                   </div>
-                  <div className="row mb-3">
+               
+                  {/* <div className="row mb-3">
                     <div className="col-md-4 font-weight-bold">Total Dept:</div>
                     <div className="col-md-8">{selectedRowData.TOTAL_DEPT}</div>
-                  </div>
+                  </div> */}
                   <div className="row mb-3">
                     <div className="col-md-4 font-weight-bold">Total Paid:</div>
                     <div className="col-md-8">{selectedRowData.TOTAL_PAID}</div>
@@ -770,33 +783,33 @@ const PurchaseExpanseTable = ({
                       <tr>
                       <th>Purchase Invoice Number</th>
                               <th>Purchase Invoice Date</th>
-                              <th>Status Detail</th>
+                              {/* <th>Status Detail</th> */}
                               <th>Code/Account</th>
                               <th>Product</th>
-                              <th>Product Account</th>
+                              {/* <th>Product Account</th> */}
                               <th>Description</th>
                               <th>Tax Invoice Number Vendor</th>
                               <th>Db/Cr</th>
-                              <th>Vendor</th>
+                              {/* <th>Vendor</th> */}
                               <th>Project</th>
                               <th>Project Contract Number</th>
                               <th>Customer</th>
                               <th>Department</th>
-                              <th>Employee</th>
-                              <th>Amount</th>
+                              {/* <th>Employee</th> */}
+                              {/* <th>Amount</th> */}
                               <th>Currency</th>
                               <th>Exchange Rate</th> 
-                              <th hidden>Quantity</th>
-                              <th hidden>Unit Price</th>                      
+                              <th>Quantity</th>
+                              <th>Unit Price</th>                      
                               <th hidden>Amount IDR</th>  
-                              <th hidden>Type of Vat</th>      
-                              <th hidden>Tax PPh Type</th>              
-                              <th hidden>Tax PPN</th>
-                              <th>Amount PPN</th>                          
-                              <th hidden>Tax PPh</th>
+                              <th >Type of Vat</th>                 
+                              <th>Tax PPN</th>
+                              <th>Amount PPN</th>    
+                              <th>Tax PPh Type</th>                         
+                              <th>Tax PPh</th>
                               <th>Amount PPh</th> 
                               <th>Tax Base</th>
-                              <th>Total Amount to be Paid</th>
+                              <th>Amount to be Paid</th>
                          
                          
 
@@ -824,27 +837,31 @@ const PurchaseExpanseTable = ({
                           <tr key={detail.ID}>
                             <td>{detail.purchase_invoice_number}</td>
                             <td>{detail.purchase_invoice_date}</td>
-                            <td>{detail.status_detail}</td>
+                            {/* <td>{detail.status_detail}</td> */}
                             <td>{detail.coa}</td>
                             <td>{detail.product}</td>
-                            <td>{detail.product_account}</td>
+                            {/* <td>{detail.product_account}</td> */}
                             <td>{detail.description}</td>
                             <td>{detail.tax_invoice_number}</td>
                             <td>{detail.db_cr}</td>
-                            <td>{detail.vendor}</td>
+                            {/* <td>{detail.vendor}</td> */}
                             <td>{detail.project}</td>
                             <td>{detail.project_contract_number}</td>
                             <td>{detail.customer}</td>
                             {/* <td style={{ textAlign: "right" }}>{DisplayFormat(detail.kurs_deal)}</td>
                             <td style={{ textAlign: "right" }}>{DisplayFormat(detail.amount_in_idr)}</td> */}
                             <td>{detail.department}</td>
-                            <td>{detail.employee}</td>
-                            <td style={{ textAlign: "right" }}>{DisplayFormat(detail.amount)}</td>
+                            {/* <td>{detail.employee}</td> */}
+                            {/* <td style={{ textAlign: "right" }}>{DisplayFormat(detail.amount)}</td> */}
                             <td>{detail.currency}</td>
                             <td style={{ textAlign: "right" }}>{DisplayFormat(detail.exchange_rate)}</td>
-                            {/* <td>{detail.tax_ppn}</td> */}
+                            <td>{detail.quantity}</td>
+                            <td>{detail.unit_price}</td>
+                            <td>{detail.type_of_vat}</td>
+                            <td>{detail.tax_ppn}</td>
                             <td style={{ textAlign: "right" }}>{DisplayFormat(detail.tax_ppn_amount)}</td>
-                            {/* <td>{detail.tax_pph}</td> */}
+                            <td>{detail.type_of_pph}</td>
+                            <td>{detail.tax_pph}</td>
                             <td style={{ textAlign: "right" }}>{DisplayFormat(detail.tax_pph_amount)}</td>
                             {/* <td>{detail.tax_pph_rate}</td> */}
                            

@@ -60,6 +60,7 @@ import moment from 'moment';
     const [formattedDiscount, setFormattedDiscount] = useState('IDR 0.00');
     const [statusPo, setStatusPo] = useState('');
     const [PPNRoyaltyOptions, setPPNRoyaltyOptions] = useState([]);
+    const [isCurrencyIsSet, setIsCurrencyIsSet] = useState(false);
     
 
     // PO Lookup
@@ -80,7 +81,6 @@ import moment from 'moment';
     const [toAddressOptions, setToAddressOptions] = useState([]);
     const [selectedToAddress, setSelectedToAddress] = useState(null);
     const [contractNumberOption, setContractNumberOptions]= useState([]);
-    const [file, setFile] = useState(null);
     const [fetchedPRDetail, setFetchedPRDetail] = useState([]);
     const [vendor, setVendor] = useState('');
     const [selectedVendor, setSelectedVendor] = useState(null);
@@ -89,9 +89,182 @@ import moment from 'moment';
     const [isSubmited, setIsSubmited] = useState(false);
 
     // Dynamic Form Field Width
-    const [inputWidth, setInputWidth] = useState(Array(items.length).fill(0));
+    // const [inputWidth, setInputWidth] = useState(Array(items.length).fill(0));
 
     const authToken = headers;
+
+
+    // Lookup Department
+    const lookupDepartment = () => {
+       LookupParamService.fetchLookupDataView("MSDT_FORMDPRT", authToken, branchId)
+       .then(data => {
+         console.log('Department lookup data:', data);
+ 
+         // Transform keys to uppercase directly in the received data
+         const transformedData = data.data.map(item =>
+           Object.keys(item).reduce((acc, key) => {
+             acc[key.toUpperCase()] = item[key];
+             return acc;
+           }, {})
+         );
+ 
+         const options = transformedData.map(item => ({
+           value: item.NAME,
+           label: item.NAME
+         }));
+ 
+         setDepartementOptions(options);
+ 
+       }).catch(error => {
+         console.error('Failed to fetch Department lookup:', error);
+       });
+    }
+
+
+    // Lookup Tax Type
+    const lookupTaxType = () => {
+      LookupParamService.fetchLookupDataView("MSDT_FORMTAX", authToken, branchId)
+      .then(data => {
+        console.log('Tax Type lookup data:', data);
+
+        // Transform keys to uppercase directly in the received data
+        const transformedData = data.data.map(item =>
+          Object.keys(item).reduce((acc, key) => {
+            acc[key.toUpperCase()] = item[key];
+            return acc;
+          }, {})
+        );
+        //console.log('Transformed data:', transformedData);
+
+        const options = transformedData.filter(item => item.TAX_TYPE === 'PPN').map(item => ({
+          value: item.NAME,
+          label: item.NAME,
+          RATE: item.RATE
+        }));
+        setTaxTypeOptions(options);
+
+        const RoyaltyOption = transformedData.filter(item => item.TAX_TYPE === 'PPN Royalty').map(item => ({
+          value: item.NAME,
+          label: item.NAME,
+          RATE: item.RATE
+        }));
+        setPPNRoyaltyOptions(RoyaltyOption);
+      })
+      .catch(error => {
+        console.error('Failed to fetch Tax Type lookup:', error);
+      });
+    }
+
+
+    // Lookup Vendor
+    const lookupVendor = () => {
+      
+      LookupParamService.fetchLookupDataView("MSDT_FORMCUST", authToken, branchId)
+      .then(data => {
+        console.log('Vendor lookup data:', data);
+
+        // Transform keys to uppercase directly in the received data
+        const transformedData = data.data.map(item =>
+          Object.keys(item).reduce((acc, key) => {
+            acc[key.toUpperCase()] = item[key];
+            return acc;
+          }, {})
+        );
+        //console.log('Transformed data:', transformedData);
+
+        const options = transformedData.filter(item => item.ENTITY_TYPE === 'BOTH' || item.ENTITY_TYPE === 'Vendor').map(item => ({
+          value: item.NAME,
+          label: item.NAME,
+          vendAddress: item.ADDRESS
+        }));
+        setVendorOptions(options);
+
+        const optionForTo = transformedData.map(item => ({
+          value: item.NAME,
+          label: item.NAME,
+          vendAddress: item.ADDRESS
+        }));
+        setToOptions(optionForTo);
+
+        const uniqueAddress = [...new Set(transformedData.map(item => item.ADDRESS))];
+        const optionsForToAddress = uniqueAddress.map(address => ({
+          value: address,
+          label: address
+        }));
+        setToAddressOptions(optionsForToAddress);
+
+      }).catch(error => {
+        console.error('Failed to fetch vendor lookup:', error);
+      });
+    }
+
+
+    // Lookup Project
+    const lookupProject = () => {
+      
+      LookupParamService.fetchLookupDataView("MSDT_FORMPRJT", authToken, branchId)
+      .then(data => {
+        console.log('Project lookup data:', data);
+
+        // Transform keys to uppercase directly in the received data
+        const transformedData = data.data.map(item =>
+          Object.keys(item).reduce((acc, key) => {
+            acc[key.toUpperCase()] = item[key];
+            return acc;
+          }, {})
+        );
+
+        const options = transformedData.map(item => ({
+          value: item.NAME,
+          label: item.NAME,
+          customer: item.CUSTOMER,
+          project_contract_number: item.CONTRACT_NUMBER,
+        }));
+
+        const optionsCustomer = transformedData.map(item => ({
+          value: item.CUSTOMER,
+          label: item.CUSTOMER,
+        }))
+
+        const contractNumOptions = transformedData.map(item=> ({
+          value: item.CONTRACT_NUMBER,
+          label: item.CONTRACT_NUMBER,
+          customer: item.CUSTOMER,
+        }));
+
+        setContractNumberOptions(contractNumOptions);
+        setProjectOptions(options);
+        setCustomerOptions(optionsCustomer);
+      }).catch(error => {
+        console.error('Failed to fetch project lookup:', error);
+      });
+    }
+
+    // Lookup Product
+    const lookupProduct = () => {
+      LookupParamService.fetchLookupDataView("MSDT_FORMPRDT", authToken, branchId)
+      .then(data => {
+        console.log('Product lookup data:', data);
+
+        // Transform keys to uppercase directly in the received data
+        const transformedData = data.data.map(item =>
+          Object.keys(item).reduce((acc, key) => {
+            acc[key.toUpperCase()] = item[key];
+            return acc;
+          }, {})
+        );
+        //console.log('Transformed data:', transformedData);
+
+        const options = transformedData.map(item => ({
+          value: item.NAME,
+          label: item.NAME
+        }));  
+        setProductOptions(options);
+      }).catch(error => {
+        console.error('Failed to fetch product lookup:', error);
+      });
+    }
+
 
     // Lookup
     useEffect(() => {
@@ -141,8 +314,6 @@ import moment from 'moment';
         .catch(error => {
             console.error('Failed to load items:', error);
         });
-
-
 
         LookupParamService.fetchLookupData("MSDT_FORMTAX", authToken, branchId)
         .then(data => {
@@ -266,66 +437,9 @@ import moment from 'moment';
       });
 
       
+      lookupDepartment();
 
-      // Lookup Department
-      LookupParamService.fetchLookupDataView("MSDT_FORMDPRT", authToken, branchId)
-      .then(data => {
-        console.log('Currency lookup data:', data);
-
-        // Transform keys to uppercase directly in the received data
-        const transformedData = data.data.map(item =>
-          Object.keys(item).reduce((acc, key) => {
-            acc[key.toUpperCase()] = item[key];
-            return acc;
-          }, {})
-        );
-        //console.log('Transformed data:', transformedData);
-
-        const options = transformedData.map(item => ({
-          value: item.NAME,
-          label: item.NAME
-        }));
-
-        setDepartementOptions(options);
-
-      }).catch(error => {
-        console.error('Failed to fetch currency lookup:', error);
-      });
-      
-
-
-      // Lookup Tax Type
-      LookupParamService.fetchLookupDataView("MSDT_FORMTAX", authToken, branchId)
-      .then(data => {
-        console.log('Currency lookup data:', data);
-
-        // Transform keys to uppercase directly in the received data
-        const transformedData = data.data.map(item =>
-          Object.keys(item).reduce((acc, key) => {
-            acc[key.toUpperCase()] = item[key];
-            return acc;
-          }, {})
-        );
-        //console.log('Transformed data:', transformedData);
-
-        const options = transformedData.filter(item => item.TAX_TYPE === 'PPN').map(item => ({
-          value: item.NAME,
-          label: item.NAME,
-          RATE: item.RATE
-        }));
-        setTaxTypeOptions(options);
-
-        const RoyaltyOption = transformedData.filter(item => item.TAX_TYPE === 'PPN Royalty').map(item => ({
-          value: item.NAME,
-          label: item.NAME,
-          RATE: item.RATE
-        }));
-        setPPNRoyaltyOptions(RoyaltyOption);
-      })
-      .catch(error => {
-        console.error('Failed to fetch currency lookup:', error);
-      });
-
+      lookupTaxType();
 
       // Lookup Currency
       LookupParamService.fetchLookupDataView("MSDT_FORMCCY", authToken, branchId)
@@ -358,109 +472,13 @@ import moment from 'moment';
       });
 
 
-      // Lookup Vendor
-      LookupParamService.fetchLookupDataView("MSDT_FORMCUST", authToken, branchId)
-      .then(data => {
-        console.log('Vendor lookup data:', data);
-
-        // Transform keys to uppercase directly in the received data
-        const transformedData = data.data.map(item =>
-          Object.keys(item).reduce((acc, key) => {
-            acc[key.toUpperCase()] = item[key];
-            return acc;
-          }, {})
-        );
-        //console.log('Transformed data:', transformedData);
-
-        const options = transformedData.filter(item => item.ENTITY_TYPE === 'BOTH' || item.ENTITY_TYPE === 'Vendor').map(item => ({
-          value: item.NAME,
-          label: item.NAME,
-          vendAddress: item.ADDRESS
-        }));
-        setVendorOptions(options);
-
-        const optionForTo = transformedData.map(item => ({
-          value: item.NAME,
-          label: item.NAME,
-          vendAddress: item.ADDRESS
-        }));
-        setToOptions(optionForTo);
-
-        const uniqueAddress = [...new Set(transformedData.map(item => item.ADDRESS))];
-        const optionsForToAddress = uniqueAddress.map(address => ({
-          value: address,
-          label: address
-        }));
-        setToAddressOptions(optionsForToAddress);
-
-      }).catch(error => {
-        console.error('Failed to fetch currency lookup:', error);
-      });
+      lookupVendor();
 
 
-
-      // Lookup Project
-      LookupParamService.fetchLookupDataView("MSDT_FORMPRJT", authToken, branchId)
-      .then(data => {
-        console.log('Currency lookup data:', data);
-
-        // Transform keys to uppercase directly in the received data
-        const transformedData = data.data.map(item =>
-          Object.keys(item).reduce((acc, key) => {
-            acc[key.toUpperCase()] = item[key];
-            return acc;
-          }, {})
-        );
-        //console.log('Transformed data:', transformedData);
-
-        const options = transformedData.map(item => ({
-          value: item.NAME,
-          label: item.NAME,
-          customer: item.CUSTOMER,
-          project_contract_number: item.CONTRACT_NUMBER,
-        }));
-
-        const optionsCustomer = transformedData.map(item => ({
-          value: item.CUSTOMER,
-          label: item.CUSTOMER,
-        }))
-
-        const contractNumOptions = transformedData.map(item=> ({
-          value: item.CONTRACT_NUMBER,
-          label: item.CONTRACT_NUMBER,
-          customer: item.CUSTOMER,
-        }));
-
-        setContractNumberOptions(contractNumOptions);
-        setProjectOptions(options);
-        setCustomerOptions(optionsCustomer);
-      }).catch(error => {
-        console.error('Failed to fetch currency lookup:', error);
-      });
+      lookupProject();
         
 
-      // Lookup Product
-      LookupParamService.fetchLookupDataView("MSDT_FORMPRDT", authToken, branchId)
-      .then(data => {
-        console.log('Currency lookup data:', data);
-
-        // Transform keys to uppercase directly in the received data
-        const transformedData = data.data.map(item =>
-          Object.keys(item).reduce((acc, key) => {
-            acc[key.toUpperCase()] = item[key];
-            return acc;
-          }, {})
-        );
-        //console.log('Transformed data:', transformedData);
-
-        const options = transformedData.map(item => ({
-          value: item.NAME,
-          label: item.NAME
-        }));  
-        setProductOptions(options);
-      }).catch(error => {
-        console.error('Failed to fetch currency lookup:', error);
-      });
+      lookupProduct();
 
         
     }, []);
@@ -503,7 +521,7 @@ import moment from 'moment';
       }
     }    
 
-    const [isCurrencyIsSet, setIsCurrencyIsSet] = useState(false);
+    
     // New Item List PR Handle
     const handlePRChange = (index, selectedOption) => {
       
@@ -515,7 +533,7 @@ import moment from 'moment';
           const fetchAllPRItem = response.data||[];
           const fetchedItems = Array.isArray(response.data) ? response.data.filter(item => item.status_detail === null) : [];
           console.log('Itemd fetched:', response.data);
-          dynamicFormWidth(response.data[0].unit_price.toString()+5, index);
+          // dynamicFormWidth(response.data[0].unit_price.toString()+5, index);
 
           // Lookup PR
           LookupParamService.fetchLookupDataView(`PURC_FORMPUREQ&filterBy=PR_NUMBER&filterValue=${selectedOption.value}&operation=EQUAL`, authToken, branchId)
@@ -523,30 +541,8 @@ import moment from 'moment';
             const fetchedDatas = response.data || [];
             console.log('Items fetched:', fetchedDatas);
             
-
-          
-            // Fetch product lookup data
-            LookupParamService.fetchLookupDataView("MSDT_FORMPRDT", authToken, branchId)
-            .then(productData => {
-              console.log('Product lookup data:', productData);
-
-              // Transform and map product data to options
-              const transformedProductData = productData.data.map(item => Object.keys(item).reduce((acc, key) => {
-                acc[key.toUpperCase()] = item[key];
-                return acc;
-              }, {}));
-
-              const productOptions = transformedProductData.map(item => ({
-                  value: item.NAME,
-                  label: item.NAME
-              }));
-
-              setProductOptions(productOptions);
-            }).catch(error => {
-              console.error('Error fetching product lookup data:', error);
-            });
+            lookupProduct();
             
-
             // Fetch currency lookup data
             LookupParamService.fetchLookupDataView("MSDT_FORMCCY", authToken, branchId)
             .then(currencyData => {
@@ -590,10 +586,10 @@ import moment from 'moment';
 
             storedPRItems.forEach((fetchedItem, i) => {
               newStored[index + i] = {
-              ...newStored[index + i],
-              ...fetchedItem,
-            };
-          });
+                ...newStored[index + i],
+                ...fetchedItem,
+              };
+            });
             
             console.log('storedPRItems', newStored);
             setFetchedPRDetail(newStored);
@@ -826,7 +822,6 @@ import moment from 'moment';
         newItems[index].total_price = Math.max((newItems[index].unit_price - newItems[index].discount), 0) * newItems[index].quantity;
       }
       console.log('taxPPN', newItems[index].tax_ppn_amount);
-      console.log('jukasd', newItems[index].project_contract_number);
       console.log('newitems', newItems);
       setItems(newItems);
     };
@@ -889,7 +884,8 @@ import moment from 'moment';
 
       const hasRoyalty = items.some(item => item.type_of_vat === 'PPNRoyalty');
 
-      const totalAmount  = subTotal + totalPPNAmount;
+      
+      const totalAmount  = Math.round(subTotal + totalPPNAmount);
       const validTotalAmount = isNaN(totalAmount) ? 0 : parseFloat(totalAmount);
       return { 
         totalDiscount,
@@ -1153,9 +1149,7 @@ import moment from 'moment';
 
             // Show success message and reset form
             messageAlertSwal('Success', response.message, 'success');
-            // resetForm();
-            // handleRefresh();
-            // setIsAddingNewPurchaseOrder(false);
+
         }
 
           if (response.message === "insert Data Successfully") {
@@ -1634,17 +1628,17 @@ import moment from 'moment';
 
 
     //Dynamic Form With 
-    const dynamicFormWidth = (value, index) => {
-      const contentLength = value.length;
-      const newWidth = Math.max(100, (contentLength + 5) * 8); 
-      console.log('content', contentLength);
+    // const dynamicFormWidth = (value, index) => {
+    //   const contentLength = value.length;
+    //   const newWidth = Math.max(100, (contentLength + 5) * 8); 
+    //   console.log('content', contentLength);
       
-      setInputWidth((prevWidth) => {
-        const newWidths = [...prevWidth];
-        newWidths[index] = newWidth;
-        return newWidths;
-      });
-    }
+    //   setInputWidth((prevWidth) => {
+    //     const newWidths = [...prevWidth];
+    //     newWidths[index] = newWidth;
+    //     return newWidths;
+    //   });
+    // }
 
     const [isAddFile, setIsAddFile] = useState(false);
 
@@ -1804,17 +1798,6 @@ import moment from 'moment';
                           </div>
                         </Form.Group>
                       </Col>
-                      {/* <Col md={6}>
-                        <Form.Group controlId="formOrderDate">
-                          <Form.Label>Order Date</Form.Label>
-                          <Form.Control
-                            type="date"
-                            value={order_date}
-                            onChange={(e) => setOrderDate(e.target.value)}
-                            required
-                          />
-                        </Form.Group>
-                      </Col> */}
 
                       <Col md={6}>
                         <Form.Group controlId='formVendor'>
@@ -2001,12 +1984,6 @@ import moment from 'moment';
                                           <th>Select Doc Ref</th>
                                   }
                                   <th>Document Source</th>
-                                  {/* <th>Vendor</th> */}
-                                  <th>Requestor</th>
-                                  <th>Project</th>
-                                  <th>Project Contract Number</th>
-                                  <th>Customer</th>
-                                  <th>Department</th>
                                   <th>Product</th>
                                   <th>Product Description</th>
                                   <th>Quantity</th>
@@ -2016,8 +1993,12 @@ import moment from 'moment';
                                   <th>Type of VAT</th>
                                   <th>Tax PPN Type</th>
                                   <th>Tax PPN Rate</th>
-                                  {/* <th>Tax PPN Amount</th> */}
                                   <th>Tax Base</th>   
+                                  <th>Requestor</th>
+                                  <th>Project</th>
+                                  <th>Project Contract Number</th>
+                                  <th>Customer</th>
+                                  <th>Department</th>
                                   <th>Actions</th>
                                 </tr>
                               </thead>
@@ -2078,7 +2059,7 @@ import moment from 'moment';
                                               style={detailFormStyle()}
                                             />
                                             :
-                                            <div className='mt-1'>Choose Doc Ref</div>
+                                            <div className='mt-1' style={{fontSize: '0.7rem', color:'red', fontStyle:'italic'}}>*Choose Doc Reference first in general information</div>
                                         }
                                       </td>
 
@@ -2119,130 +2100,6 @@ import moment from 'moment';
                                       </td>
 
                                       <td>
-                                        <Form.Control
-                                          id='requestor'
-                                          placeholder='Requestor...'
-                                          value={item.requestor}
-                                          onChange={(e) => handleItemChange(index, 'requestor', e.target.value)}
-                                          style={detailFormStyle()}
-                                          readOnly
-                                        />
-                                      </td>
-
-                                      <td>
-                                        <Select
-                                          id="project"
-                                          value={
-                                            items[index].project ?
-                                              projectOptions.find(option => option.value === item.project)
-                                            :
-                                              null
-                                          }
-                                          options={projectOptions}
-                                          onChange={(selectedOption) => {
-                                            handleItemChange(index, 'project', selectedOption ? selectedOption.value : null);
-                                            if(selectedOption){
-                                              handleItemChange(index, 'project_contract_number', selectedOption.project_contract_number);
-                                              handleItemChange(index, 'customer', selectedOption.customer);
-                                            }else{
-                                              handleItemChange(index, "customer", ""); 
-                                              handleItemChange(index, "project_contract_number", "");
-                                            }
-                                          }}
-                                          placeholder="Project..."
-                                          isClearable 
-                                          required
-                                          styles={{
-                                            control: (provided) => ({
-                                                ...provided,
-                                                ...detailFormStyle()
-                                            }),
-                                          }}
-                                        />
-                                      </td>
-
-                                      <td>
-                                        <Select
-                                          id='projectContractNumber'
-                                          value={
-                                            items[index].project_contract_number ?
-                                              contractNumberOption.find(option => option.value === item.project_contract_number)
-                                            :
-                                              null  
-                                          }
-                                          options={contractNumberOption}
-                                          onChange={(selectedOption) => {
-                                            handleItemChange(index, 'project_contract_number', selectedOption ? selectedOption.value : null);
-                                            if(selectedOption){
-                                              handleItemChange(index, 'customer', selectedOption.customer);
-                                            }else{
-                                              handleItemChange(index, "customer", ""); 
-                                            }
-                                          }}
-                                          placeholder='Project Contract Number...'
-                                          isDisabled
-                                          required
-                                          styles={{
-                                            control: (provided) => ({
-                                                ...provided,
-                                                ...detailFormStyle()
-                                            }),
-                                          }}
-                                        />
-                                      </td>
-
-                                      <td>
-                                        <Select
-                                          id='customer'
-                                          value={
-                                            items[index].customer ?
-                                              customerOptions.find(option => option.value === item.customer)
-                                            : 
-                                              null
-                                          }
-                                          onChange={(selectedOption) => {
-                                            handleItemChange(index, 'customer', selectedOption ? selectedOption.value : null)
-                                          }}
-                                          options={customerOptions}
-                                          placeholder='Customer...'
-                                          isClearable
-                                          required
-                                          isDisabled
-                                          styles={{
-                                            control: (provided) => ({
-                                                ...provided,
-                                                ...detailFormStyle()
-                                            }),
-                                          }}
-                                        />
-                                      </td>
-
-                                      <td>
-                                        <Select
-                                          id='department'
-                                          value={
-                                            items[index].departement ?
-                                              departementOptions.find(option => option.value === items[index].departement)
-                                            :
-                                              null
-                                          }
-                                          onChange={(selectedOption)  => {
-                                            handleItemChange(index, 'departement', selectedOption ? selectedOption.value : null)
-                                          }}
-                                          options={departementOptions}
-                                          placeholder='Department...'
-                                          isClearable
-                                          required
-                                          styles={{
-                                            control: (provided) => ({
-                                                ...provided,
-                                                ...detailFormStyle()
-                                            }),
-                                          }}
-                                        />
-                                      </td>
-                                      
-                                      <td>
                                         <Select
                                             value={
                                               items[index].product ? 
@@ -2275,7 +2132,7 @@ import moment from 'moment';
                                           placeholder='Product Description...'
                                         />
                                       </td>
-                                      
+
                                       <td>
                                         <Form.Control
                                           type="number"
@@ -2446,7 +2303,7 @@ import moment from 'moment';
                                             }}
                                             value={item.tax_base !== undefined && item.tax_base !== null ? item.tax_base.toLocaleString('en-US') : 0}
                                             onChange={(e) => {
-                                              const newTaxBase = parseFloat(e.target.value.replace(/[^\d.-]/g, '')) || 0;
+                                              const newTaxBase = Math.max(0, parseFloat(e.target.value.replace(/[^\d.-]/g, ''))) || 0;
                                               handleItemChange(index, 'tax_base', Math.max(0, newTaxBase));
                                             }}
                                           />
@@ -2466,7 +2323,131 @@ import moment from 'moment';
                                           />
                                         }
                                       </td>
-      
+
+                                      <td>
+                                        <Form.Control
+                                          id='requestor'
+                                          placeholder='Requestor...'
+                                          value={item.requestor}
+                                          onChange={(e) => handleItemChange(index, 'requestor', e.target.value)}
+                                          style={detailFormStyle()}
+                                          readOnly
+                                        />
+                                      </td>
+
+                                      <td>
+                                        <Select
+                                          id="project"
+                                          value={
+                                            items[index].project ?
+                                              projectOptions.find(option => option.value === item.project)
+                                            :
+                                              null
+                                          }
+                                          options={projectOptions}
+                                          onChange={(selectedOption) => {
+                                            handleItemChange(index, 'project', selectedOption ? selectedOption.value : null);
+                                            if(selectedOption){
+                                              handleItemChange(index, 'project_contract_number', selectedOption.project_contract_number);
+                                              handleItemChange(index, 'customer', selectedOption.customer);
+                                            }else{
+                                              handleItemChange(index, "customer", ""); 
+                                              handleItemChange(index, "project_contract_number", "");
+                                            }
+                                          }}
+                                          placeholder="Project..."
+                                          isClearable 
+                                          required
+                                          styles={{
+                                            control: (provided) => ({
+                                                ...provided,
+                                                ...detailFormStyle()
+                                            }),
+                                          }}
+                                        />
+                                      </td>
+
+                                      <td>
+                                        <Select
+                                          id='projectContractNumber'
+                                          value={
+                                            items[index].project_contract_number ?
+                                              contractNumberOption.find(option => option.value === item.project_contract_number)
+                                            :
+                                              null  
+                                          }
+                                          options={contractNumberOption}
+                                          onChange={(selectedOption) => {
+                                            handleItemChange(index, 'project_contract_number', selectedOption ? selectedOption.value : null);
+                                            if(selectedOption){
+                                              handleItemChange(index, 'customer', selectedOption.customer);
+                                            }else{
+                                              handleItemChange(index, "customer", ""); 
+                                            }
+                                          }}
+                                          placeholder='Project Contract Number...'
+                                          isDisabled
+                                          required
+                                          styles={{
+                                            control: (provided) => ({
+                                                ...provided,
+                                                ...detailFormStyle()
+                                            }),
+                                          }}
+                                        />
+                                      </td>
+
+                                      <td>
+                                        <Select
+                                          id='customer'
+                                          value={
+                                            items[index].customer ?
+                                              customerOptions.find(option => option.value === item.customer)
+                                            : 
+                                              null
+                                          }
+                                          onChange={(selectedOption) => {
+                                            handleItemChange(index, 'customer', selectedOption ? selectedOption.value : null)
+                                          }}
+                                          options={customerOptions}
+                                          placeholder='Customer...'
+                                          isClearable
+                                          required
+                                          isDisabled
+                                          styles={{
+                                            control: (provided) => ({
+                                                ...provided,
+                                                ...detailFormStyle()
+                                            }),
+                                          }}
+                                        />
+                                      </td>
+
+                                      <td>
+                                        <Select
+                                          id='department'
+                                          value={
+                                            items[index].departement ?
+                                              departementOptions.find(option => option.value === items[index].departement)
+                                            :
+                                              null
+                                          }
+                                          onChange={(selectedOption)  => {
+                                            handleItemChange(index, 'departement', selectedOption ? selectedOption.value : null)
+                                          }}
+                                          options={departementOptions}
+                                          placeholder='Department...'
+                                          isClearable
+                                          required
+                                          styles={{
+                                            control: (provided) => ({
+                                                ...provided,
+                                                ...detailFormStyle()
+                                            }),
+                                          }}
+                                        />
+                                      </td>
+                                      
                                       <td>
                                         <Button
                                           variant="danger"

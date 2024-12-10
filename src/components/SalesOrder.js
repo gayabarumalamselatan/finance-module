@@ -7,7 +7,7 @@ import { HandleToUppercase } from "../utils/HandleToUpercase";
 import FormService from "../service/FormService";
 import SalesOrderTable from "../table/SalesOrderTable";
 import AddSalesOrder from "../formComponents/AddSalesOrder";
-import EditSalesOrder from "../formComponents/EditSalesOrder";
+// import EditSalesOrder from "./EditSalesOrder";
 
 const SalesOrder = () => {
   const headers = getToken();
@@ -186,7 +186,7 @@ const SalesOrder = () => {
             <AddSalesOrder setIsAddingNewSalesOrder={setIsAddingNewSalesOrder} handleRefresh={handleRefresh} />
           </div>
         ) : isEditingSalesOrder ? (
-          <EditSalesOrder setIsEditingSalesOrder={setIsEditingSalesOrder} handleRefresh={handleRefresh} selectedData={selectedData} />
+          <AddSalesOrder setIsEditingSalesOrder={setIsEditingSalesOrder} handleRefresh={handleRefresh} selectedData={selectedData} />
         ) : (
           <SalesOrderTable
             formCode={formCode}

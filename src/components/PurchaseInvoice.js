@@ -33,6 +33,9 @@ const PurchaseInvoice = () => {
   const [isViewingPurchaseInvoice, setIsViewingPurchaseInvoice] = useState(false);
   const [isEditingPurchaseInvoice, setIsEditingPurchaseInvoice] = useState(false);
   const [selectedData, setSelectedData] = useState([]);
+  const [duplicateFlag, setDuplicateFlag] = useState(false);
+  const [isAddingNewDuplicatePurchaseInvoice, setIsAddingNewDuplicatePurchaseInvoice] = useState(false);
+  const [duplicatePurchaseInvoice, setDuplicatePurchaseInvoice] = useState([]);
 
   const permissionsString = sessionStorage.getItem("permisions");
 
@@ -47,6 +50,9 @@ const PurchaseInvoice = () => {
   };
   const handleAddNewPurchaseInvoice = (value) => {
     setIsAddingNewPurchaseInvoice(value);
+  };
+  const handleDuplicatePurchaseInvoice = (value) => {
+    setIsAddingNewDuplicatePurchaseInvoice(value);
   };
   const handleSelectData = (value) => {
     setSelectedData(value);
@@ -112,7 +118,7 @@ const PurchaseInvoice = () => {
         const isRequestorFilterExists = dynamicFilters.some((filter) => filter.column === "requestor" && filter.value === userId);
         if (!isRequestorFilterExists) {
           dynamicFilters.push({
-            column: "requestor",
+            column: "created_by",
             operation: "EQUAL",
             value: userId,
           });
@@ -223,15 +229,24 @@ const PurchaseInvoice = () => {
       <section className="content">
         {isAddingNewPurchaseInvoice ? (
           <div>
-            <AddPurchaseInvoice setIsAddingNewPurchaseInvoice={setIsAddingNewPurchaseInvoice} handleRefresh={handleRefresh} />
+            <AddPurchaseInvoice setIsAddingNewPurchaseInvoice={setIsAddingNewPurchaseInvoice} isAddingNewPurchaseInvoice={isAddingNewPurchaseInvoice} handleRefresh={handleRefresh} />
           </div>
         ) : isEditingPurchaseInvoice ? (
-          <AddPurchaseInvoice setIsEditingPurchaseInvoice={setIsEditingPurchaseInvoice} handleRefresh={handleRefresh} selectedData={selectedData} />
+          <AddPurchaseInvoice
+            setIsEditingPurchaseInvoice={setIsEditingPurchaseInvoice}
+            handleRefresh={handleRefresh}
+            selectedData={selectedData}
+            duplicateFlag={duplicateFlag}
+            // setIsAddingNewDuplicatePurchaseInvoice={setIsAddingNewDuplicatePurchaseInvoice}
+          />
+        ) : isAddingNewDuplicatePurchaseInvoice ? (
+          <AddPurchaseInvoice setIsAddingNewDuplicatePurchaseInvoice={setIsAddingNewDuplicatePurchaseInvoice} handleRefresh={handleRefresh} selectedData={selectedData} duplicateFlag={duplicateFlag} setDuplicateFlag={setDuplicateFlag} />
         ) : (
           <PurchaseInvoiceTable
             formCode={formCode}
             dataTable={dataTable}
             totalItems={totalItems}
+            AddPurchaseInvoice
             currentPage={currentPage}
             pageSize={pageSize}
             handlePageSizeChange={handlePageSizeChange}
@@ -242,11 +257,13 @@ const PurchaseInvoice = () => {
             handleResetFilter={handleResetFilters}
             branchId={branchId}
             authToken={authToken}
+            setDuplicateFlag={setDuplicateFlag}
             handleSelectData={handleSelectData}
             handleEditPurchaseInvoice={handleEditPurchaseInvoice}
             isAddingNewPurchaseInvoice={handleAddNewPurchaseInvoice}
             EditPurchaseInvoice={handleEditPurchaseInvoice}
             selectedData={handleSelectData}
+            duplicatePurchaseInvoice={handleDuplicatePurchaseInvoice}
             checker={permissions.Purchase?.["List Purchase Invoice"].verify}
           />
         )}

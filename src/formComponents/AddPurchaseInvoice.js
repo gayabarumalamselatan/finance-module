@@ -113,6 +113,7 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
   const [total_before_discount_idr, setTotalBeforeDiscountIdr] = useState("");
   const [total_amount_ppn_idr, setTotalAmountPpnIdr] = useState("");
   const [total_amount_pph_idr, setTotalAmountPphIdr] = useState("");
+  const [storedPoHeader, setStoredPoHeader] = useState([]);
 
   const authToken = headers;
 
@@ -1091,14 +1092,49 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
   const handlePoNumberChange = (index, selectedOption) => {
     if (selectedOption) {
       // Fetch lookup data based on the selected option
+      LookupParamService.fetchLookupDataView(`PURC_FORMPUOR&filterBy=PO_NUMBER&filterValue=${selectedOption.value}&operation=EQUAL`, authToken, branchId)
+          .then(response => {
+            const fetchedDatas = response.data || [];
+            console.log('Datas fetched:', fetchedDatas);
+
+            const PoHeaderItems = [...storedPoHeader];
+
+            // Simpan Header PO untuk cek Docref Po
+            if (PoHeaderItems.length <= index) {
+              PoHeaderItems.length = index + fetchedDatas.length;
+            }
+
+            fetchedDatas.forEach((fetchedData, i) => {
+              const targetIndex = index + i;
+    
+              // Dynamically grow the array if necessary
+              if (PoHeaderItems.length <= targetIndex) {
+                PoHeaderItems.push(fetchedData); // Add at the end if the index exceeds current length
+              } else {
+                PoHeaderItems[targetIndex] = {
+                  ...PoHeaderItems[targetIndex], // Preserve existing data
+                  ...fetchedData,
+                };
+              }
+            });
+
+            const sanitizedPoHeaders = PoHeaderItems.filter((item) => item !== undefined);
+
+            setStoredPoHeader(sanitizedPoHeaders);
+
+            console.log('poHeaders', storedPoHeader);
+
       LookupService.fetchLookupData(`PURC_FORMPUORD&filterBy=PO_NUMBER&filterValue=${selectedOption.value}&operation=EQUAL`, authToken, branchId)
         .then((response) => {
           const fetchedItems = response.data || [];
           console.log("Items fetched:", fetchedItems);
 
+
           // Filter fetched items where status_detail is null
           const filteredItems = fetchedItems.filter((item) => item.status_detail === null);
           console.log("Filtered items:", filteredItems);
+
+          
 
           // Fetch product lookup data
           LookupParamService.fetchLookupDataView("MSDT_FORMPRDT", authToken, branchId)
@@ -1124,6 +1160,9 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
               LookupParamService.fetchLookupDataView("MSDT_FORMCCY", authToken, branchId)
                 .then((currencyData) => {
                   console.log("Currency lookup data:", currencyData);
+
+                  
+                    
 
                   // Transform and map currency data to options
                   const transformedCurrencyData = currencyData.data.map((item) =>
@@ -1200,8 +1239,9 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
                     };
                   });
 
-                  console.log("storedPRItems", newStored);
+                  
                   setFetchedDetail(newStored);
+                  
 
                   // Update fetched items with selected options
                   const updatedFetchedItems = fetchedItems.map((item) => {
@@ -1231,6 +1271,9 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
                   // Set the updated items to state
                   setItems(newItems);
                   console.log("poitems", newItems);
+                }).catch(error => {
+                  console.error('Failed to fetch PR Items', error);
+                });
                 })
                 .catch((error) => {
                   console.error("Failed to fetch currency lookup:", error);
@@ -2313,6 +2356,19 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
                         const storedItem = fetchPRD.data.find((item) => item.ID === prdel);
 
                         if (storedItem) {
+
+                           // Check the new condition
+                        const matchingPoNumber = items.some(
+                          (newItem) =>
+                            newItem.po_number === storedItem.po_number &&
+                            storedPoHeader.some(
+                              (header) =>
+                                header.po_number === newItem.po_number &&
+                                header.doc_reff === "purchaseRequest"
+                            )
+                        );
+                        console.log('mathcing', matchingPoNumber)
+                        if(matchingPoNumber){
                           // Delete the item first
                           await DeleteDataService.postData(`column=id&value=${prdel}`, "PUREQD", authToken, branchId);
                           console.log("Item deleted successfully:", prdel);
@@ -2392,6 +2448,9 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
                           const storedItemResponse = await InsertDataService.postData(updatedStoredItem, "PUREQD", authToken, branchId);
                           console.log("Stored item posted successfully:", storedItemResponse);
                         } else {
+                          console.log("Condition not met for stored item ID:", prdel);
+                        }
+                        } else {
                           console.log("No corresponding stored item found for ID:", prdel);
                         }
                       } catch (error) {
@@ -2409,90 +2468,97 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
 
               let hasNullStatus = false;
 
-              for (const del of dels) {
-                try {
-                  // Now, find the corresponding stored item to update/insert
-                  const storedItem = fetchedDetail.find((item) => item.ID === del);
+                for (const del of dels) {
+                  try {
+                    // Now, find the corresponding stored item to update/insert
+                    const storedItem = fetchedDetail.find((item) => item.ID === del);
 
-                  if (storedItem) {
-                    // Delete the item first
-                    await DeleteDataService.postData(`column=id&value=${del}`, formToDel, authToken, branchId);
-                    console.log("Item deleted successfully:", del);
+                    if (storedItem) {
+                      // Delete the item first
+                      await DeleteDataService.postData(`column=id&value=${del}`, formToDel, authToken, branchId);
+                      console.log("Item deleted successfully:", del);
 
-                    const { rwnum, ID, status, id_trx, ...stored } = storedItem;
+                      const { rwnum, ID, status, id_trx, ...stored } = storedItem;
 
-                    console.log("storeditem", storedItem);
-                    console.log("itemsa", item);
+                      console.log("storeditem", storedItem);
+                      console.log("itemsa", item);
 
-                    let statusDetail;
-                    let invnum;
+                      let statusDetail;
+                      let invnum;
 
-                    for (const item of items) {
-                      // Assuming 'items' is an array of items to check against
-                      if (storedItem.status_detail === "USED") {
-                        statusDetail = "USED";
+                      for (const item of items) {
+                        // Assuming 'items' is an array of items to check against
+                        if (storedItem.status_detail === "USED") {
+                          statusDetail = "USED";
+                        }
+                        if (storedItem.ID === item.ID) {
+                          statusDetail = "USED";
+                          invnum = invoice_number.replace("DRAFT_", "");
+                          break; // Exit the loop early if we find a match
+                        }
                       }
-                      if (storedItem.ID === item.ID) {
-                        statusDetail = "USED";
-                        invnum = invoice_number.replace("DRAFT_", "");
-                        break; // Exit the loop early if we find a match
-                      }
+
+                      const updatedStoredItem = {
+                        ...stored,
+                        status_detail: statusDetail,
+                        invoice_number: invnum,
+                      };
+                      console.log("updatedstatus", updatedStoredItem.status_detail);
+
+                      // Remove unwanted fields
+                       const fieldsToDelete = [
+                        "rwnum",
+                        "ID",
+                        "id",
+                        "status",
+                        "id_trx",
+                        "original_unit_price",
+                        "type_of_vat",
+                        "tax_ppn",
+                        "tax_pph",
+                        "tax_pph_type",
+                        "total_amount_ppn",
+                        "total_amount_pph",
+                        "total_price_idr",
+                        "tax_exchange_rate",
+                        "total_after_discount",
+                        "total_before_discount",
+                        "tax_ppn_amount",
+                        "tax_pph_amount",
+                        "tax_ppn_rate",
+                        "tax_pph_rate",
+                        "subtotal",
+                        "subTotal",
+                        "tax_base",
+                        "discount",
+                        "vat_included",
+                        "new_unit_price",
+                        "requestor",
+                        "bi_middle_rate",
+                        "total_amount_idr",
+                        "total_before_discount_idr",
+                        "total_after_discount_idr",
+                        "tax_base_idr",
+                        "cod_cor_skb",
+                        "tax_pph_amount_idr",
+                        "tax_ppn_amount_idr",
+                        "tax_ppn_amount_idr",
+                        "total_amount_pph_idr",
+                        "total_amount_ppn_idr",
+                      ];
+
+                      fieldsToDelete.forEach((field) => delete updatedStoredItem[field]);
+
+                      // Insert the updated stored item
+                      const storedItemResponse = await InsertDataService.postData(updatedStoredItem, formToDel, authToken, branchId);
+                      console.log("Stored item posted successfully:", storedItemResponse);
+                    } else {
+                      console.log("No corresponding stored item found for ID:", del);
                     }
-
-                    const updatedStoredItem = {
-                      ...stored,
-                      status_detail: statusDetail,
-                      invoice_number: invnum,
-                    };
-                    console.log("updatedstatus", updatedStoredItem.status_detail);
-
-                    // Remove unwanted fields
-                    const fieldsToDelete = [
-                      "rwnum",
-                      "ID",
-                      "id",
-                      "status",
-                      "id_trx",
-                      "original_unit_price",
-                      "type_of_vat",
-                      "tax_ppn",
-                      "tax_pph",
-                      "tax_pph_type",
-                      "total_amount_ppn",
-                      "total_amount_pph",
-                      "total_price_idr",
-                      "tax_exchange_rate",
-                      "total_after_discount",
-                      "total_before_discount",
-                      "tax_ppn_amount",
-                      "tax_pph_amount",
-                      "tax_ppn_rate",
-                      "tax_pph_rate",
-                      "subtotal",
-                      "subTotal",
-                      "tax_base",
-                      "discount",
-                      "vat_included",
-                      "new_unit_price",
-                      "requestor",
-                      "bi_middle_rate",
-                      "total_amount_idr",
-                      "total_before_discount_idr",
-                      "total_after_discount_idr",
-                      "cod_cor_skb",
-                    ];
-
-                    fieldsToDelete.forEach((field) => delete updatedStoredItem[field]);
-
-                    // Insert the updated stored item
-                    const storedItemResponse = await InsertDataService.postData(updatedStoredItem, formToDel, authToken, branchId);
-                    console.log("Stored item posted successfully:", storedItemResponse);
-                  } else {
-                    console.log("No corresponding stored item found for ID:", del);
+                  } catch (error) {
+                    console.error("Error processing item:", del, error);
                   }
-                } catch (error) {
-                  console.error("Error processing item:", del, error);
-                }
+                
               }
 
               const getDocRefList = await LookupService.fetchLookupData(getHeader, authToken, branchId);
@@ -3164,38 +3230,40 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
                               </th>
                               {/* <th>ID</th> */}
                               {/* <th>Invoice Number</th> */}
+                              <th>Invoice Number Vendor</th>
+                              <th>Product</th>
+                              <th>Product Description</th>
+                              <th>Quantity</th>
+                              <th>Unit Price</th>
+                              <th className={items.length > 0 && items[0].currency === "IDR"}>Total Price</th>
+                              <th className={items.length > 0 && items[0].currency === "IDR"}>Tax Exchange Rate</th>
+                              <th>Total Price IDR</th>
+                              <th>Type Of VAT</th>
+                              <th>Tax PPN</th>
+                              <th>Tax PPN Rate %</th>
+                              <th>Tax PPh Type</th>
+                              <th>Tax PPh</th>
+                              <th>Tax PPh Rate %</th>
+                              <th>Tax Base</th>
+                              <th>Tax Base IDR</th>
+                              <th>Tax Invoice Number Vendor</th>
                               <th>Document Referance Number</th>
                               <th>Document Referance Source</th>
-                              <th>Tax Invoice Number Vendor</th>
-                              <th>Invoice Number Vendor</th>
                               {/* <th>Tax Invoice Number Vendor</th> */}
                               {/* <th>Vendor</th> */}
                               <th>Project</th>
                               <th>Project Contract Number</th>
                               <th>Customer</th>
                               <th>Departement</th>
-                              <th>Product</th>
-                              <th>Product Description</th>
                               {/* <th>Currency</th> */}
-                              <th className={items.length > 0 && items[0].currency === "IDR"}>Tax Exchange Rate</th>
-                              <th>Quantity</th>
-                              <th>Unit Price</th>
                               <th>Discount</th>
-                              <th className={items.length > 0 && items[0].currency === "IDR"}>Total Price</th>
-                              <th>Total Price IDR</th>
                               {/* <th>Cod, Cor, Skb</th> */}
-                              <th>Type Of VAT</th>
                               {/* <th>Tax PPN</th> */}
-                              <th>Tax PPN</th>
-                              <th>Tax PPN Rate %</th>
+
                               {/* <th>Tax PPN Amount</th> */}
                               {/* <th>Tax PPh</th> */}
-                              <th>Tax PPh Type</th>
-                              <th>Tax PPh</th>
-                              <th>Tax PPh Rate %</th>
+
                               {/* <th>Tax PPh Amount</th> */}
-                              <th>Tax Base</th>
-                              <th>Tax Base IDR</th>
                               {/* <th>Total Price</th> */}
                               <th>Actions</th>
                             </tr>
@@ -3230,6 +3298,257 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
                                       isDisabled={docRef === ""}
                                     />
                                   </td> */}
+                                  <td>
+                                    <Form.Control type="text" value={item.invoice_number_vendor} onChange={(e) => handleItemChange(index, "invoice_number_vendor", e.target.value)} style={detailFormStyle()} />
+                                  </td>
+                                  <td>
+                                    <Select
+                                      value={productOptions.find((option) => option.value === item.product)} // Menemukan produk yang sesuai
+                                      onChange={(selectedOption) => {
+                                        handleItemChange(index, "product", selectedOption ? selectedOption.value : null); // Memanggil handleItemChange untuk memperbarui state
+                                      }}
+                                      options={productOptions} // Daftar opsi produk
+                                      isClearable
+                                      placeholder="Select Product..."
+                                      styles={{
+                                        control: (provided) => ({
+                                          ...provided,
+                                          ...detailFormStyle(),
+                                        }),
+                                      }}
+                                    />
+                                  </td>
+                                  <td>
+                                    <Form.Control type="text" value={item.product_note} onChange={(e) => handleItemChange(index, "product_note", e.target.value)} style={detailFormStyle()} />
+                                  </td>
+                                  <td>
+                                    <Form.Control
+                                      type="number"
+                                      value={item.quantity || 0}
+                                      min="0"
+                                      onChange={(e) => handleItemChange(index, "quantity", parseFloat(e.target.value))}
+                                      style={{
+                                        ...detailFormStyle(),
+                                        width: `${inputWidth}px`,
+                                      }}
+                                    />
+                                  </td>
+                                  <td>
+                                    {currency === "IDR" ? (
+                                      <Form.Control
+                                        className="text-left"
+                                        type="text"
+                                        value={item.unit_price !== undefined && item.unit_price !== null ? item.unit_price.toLocaleString("en-US") : 0}
+                                        onChange={(e) => {
+                                          const newPrice = parseFloat(e.target.value.replace(/[^\d.-]/g, "")) || 0;
+                                          handleItemChange(index, "unit_price", newPrice);
+                                          dynamicFormWidth(e);
+                                        }}
+                                        style={detailFormStyle()}
+                                      />
+                                    ) : (
+                                      <Form.Control
+                                        className="text-left"
+                                        type="text"
+                                        value={item.unit_price !== undefined && item.unit_price !== null ? item.unit_price.toLocaleString("en-US", { minimumFractionDigits: 2, useGrouping: false }) : "0"}
+                                        onChange={(e) => {
+                                          const input = e.target.value;
+
+                                          // Allow only numbers, periods, and remove unwanted characters
+                                          const sanitizedInput = input.replace(/[^0-9.]/g, "");
+
+                                          // Update the state with sanitized input
+                                          handleItemChange(index, "unit_price", sanitizedInput);
+
+                                          // Optional: You can maintain original price logic if needed
+                                          // handleItemChange(index, 'original_unit_price', sanitizedInput);
+                                        }}
+                                        onBlur={() => {
+                                          const price = parseFloat(item.unit_price) || 0;
+                                          handleItemChange(index, "unit_price", price); // Convert back to number on blur
+                                        }}
+                                        style={detailFormStyle()}
+                                      />
+                                    )}
+                                  </td>
+                                  <td className={currency}>{item.total_price.toLocaleString("en-US", { style: "currency", currency: currency }) || 0} </td>
+                                  <td>
+                                    <Form.Control
+                                      className="text-left"
+                                      type="text"
+                                      value={item.tax_exchange_rate !== undefined && item.tax_exchange_rate !== null ? item.tax_exchange_rate.toLocaleString("en-US") : "0"}
+                                      onChange={(e) => {
+                                        const input = e.target.value;
+
+                                        // Allow only numbers, periods, and remove unwanted characters
+                                        const sanitizedInput = input.replace(/[^0-9.]/g, "");
+
+                                        // Update the state with sanitized input
+                                        handleItemChange(index, "tax_exchange_rate", sanitizedInput);
+
+                                        // Optional: Adjust the width dynamically based on the input
+                                        dynamicFormWidth(e);
+                                      }}
+                                      onBlur={() => {
+                                        const rate = parseFloat(item.tax_exchange_rate) || 0;
+                                        handleItemChange(index, "tax_exchange_rate", rate); // Convert back to number on blur
+                                      }}
+                                      style={detailFormStyle()}
+                                      disabled
+                                    />
+                                  </td>
+                                  <td>{item.total_price_idr?.toLocaleString("en-US", { style: "currency", currency: "IDR" }) ?? "IDR 0.00"}</td>
+                                  <td>
+                                    <Form.Control as="select" value={items[index].type_of_vat || ""} onChange={(selectedOption) => handleItemChange(index, "type_of_vat", selectedOption.target.value)} style={detailFormStyle()}>
+                                      <option value="Select an Option">Select an Option</option>
+                                      <option value="include">Include</option>
+                                      <option value="exclude">Exclude</option>
+                                      <option value="non_ppn">Non PPN</option>
+                                      <option value="PPNRoyalty">PPN Royalty</option>
+                                    </Form.Control>
+                                  </td>
+
+                                  <td>
+                                    <Select
+                                      value={
+                                        items[index].type_of_vat === "PPNRoyalty" ? tax_ppn_royalty_option.find((option) => option.value === item.tax_ppn) : taxPpnTypeOption.find((option) => option.value === items[index].tax_ppn) || null
+                                      }
+                                      onChange={(selectedOption) => {
+                                        // Update the tax_ppn for the specific item
+                                        handleItemChange(index, "tax_ppn", selectedOption ? selectedOption.value : "");
+
+                                        // Update the PpnRate for the specific item
+                                        if (selectedOption) {
+                                          handleItemChange(index, "tax_ppn_rate", selectedOption.RATE);
+                                          setPpnRate(selectedOption.RATE); // Memperbarui nilai RATE jika ada selectedOption
+                                        } else {
+                                          handleItemChange(index, "tax_ppn_rate", 0);
+                                          setPpnRate(null); // Menghapus RATE jika tidak ada selectedOption
+                                        }
+                                      }}
+                                      options={items[index].type_of_vat === "PPNRoyalty" ? tax_ppn_royalty_option : taxPpnTypeOption}
+                                      // options={taxPpnTypeOption}
+                                      isClearable
+                                      placeholder="Select Tax PPN Type..."
+                                      isDisabled={items[index].type_of_vat === "non_ppn"}
+                                      styles={{
+                                        control: (provided) => ({
+                                          ...provided,
+                                          ...detailFormStyle(),
+                                        }),
+                                      }}
+                                    />
+                                  </td>
+
+                                  <td>
+                                    <Form.Control type="number" value={item.tax_ppn_rate} onChange={(e) => handleItemChange(index, "tax_ppn_rate", parseFloat(e.target.value))} readOnly style={detailFormStyle()} />
+                                  </td>
+
+                                  <td>
+                                    <Form.Control
+                                      as="select"
+                                      value={item.type_of_pph}
+                                      onChange={(e) => handleItemChange(index, "type_of_pph", e.target.value)}
+                                      disabled={item.type_of_vat === "PPNRoyalty"} // Disable if PPN Royalty is selected
+                                      style={detailFormStyle()}
+                                    >
+                                      <option value="Select an Option">Select an Option</option>
+                                      <option value="gross">Gross</option>
+                                      <option value="nett">Nett</option>
+                                    </Form.Control>
+                                  </td>
+
+                                  <td>
+                                    <Select
+                                      value={tax_pph_type_option.find((option) => option.value === items[index].tax_pph) || null}
+                                      onChange={(selectedOption) => {
+                                        // Update the tax_pph_type for the specific item
+                                        handleItemChange(index, "tax_pph", selectedOption ? selectedOption.value : "");
+
+                                        // Update the PphRate for the specific item
+                                        if (selectedOption) {
+                                          handleItemChange(index, "tax_pph_rate", selectedOption.RATE);
+                                          setPphRate(selectedOption.RATE); // Memperbarui nilai RATE jika ada selectedOption
+                                        } else {
+                                          handleItemChange(index, "tax_pph_rate", 0);
+                                          setPphRate(null); // Menghapus RATE jika tidak ada selectedOption
+                                        }
+                                      }}
+                                      options={tax_pph_type_option}
+                                      isClearable
+                                      placeholder="Select Tax PPH Type..."
+                                      isDisabled={item.type_of_vat === "PPNRoyalty"} // Disable if PPN Royalty is selected
+                                      styles={{
+                                        control: (provided) => ({
+                                          ...provided,
+                                          ...detailFormStyle(),
+                                        }),
+                                      }}
+                                    />
+                                  </td>
+
+                                  <td>
+                                    <Form.Control type="number" value={item.tax_pph_rate} onChange={(e) => handleItemChange(index, "tax_pph_rate", parseFloat(e.target.value))} readOnly style={detailFormStyle()} />
+                                  </td>
+                                  <td className="">
+                                    {item.currency === "IDR" ? (
+                                      <Form.Control
+                                        type="text"
+                                        disabled
+                                        style={{
+                                          ...detailFormStyle(),
+                                          textAlign: "right",
+                                          width: `${inputWidth}px`,
+                                          marginLeft: "auto",
+                                          display: "flex",
+                                        }}
+                                        value={item.tax_base !== undefined && item.tax_base !== null ? item.tax_base.toLocaleString("en-US") : 0}
+                                        onChange={(e) => {
+                                          const newTaxBase = parseFloat(e.target.value.replace(/[^\d.-]/g, "")) || 0;
+                                          handleItemChange(index, "tax_base", Math.max(0, newTaxBase));
+                                          dynamicFormWidth(e);
+                                        }}
+                                      />
+                                    ) : (
+                                      <Form.Control
+                                        type="text"
+                                        disabled
+                                        style={{
+                                          ...detailFormStyle(),
+                                          textAlign: "right",
+                                          width: `${inputWidth}px`,
+                                          marginLeft: "auto",
+                                          display: "flex",
+                                        }}
+                                        value={item.tax_base !== undefined && item.tax_base !== null ? item.tax_base : 0}
+                                        onChange={(e) => {
+                                          handleItemChange(index, "tax_base", Math.max(0, parseFloat(e.target.value) || 0));
+                                          dynamicFormWidth(e);
+                                        }}
+                                      />
+                                    )}
+                                  </td>
+                                  <td>
+                                    <Form.Control
+                                      type="text"
+                                      disabled
+                                      style={{
+                                        ...detailFormStyle(),
+                                        textAlign: "right",
+                                        width: `${inputWidth}px`,
+                                        marginLeft: "auto",
+                                        display: "flex",
+                                      }}
+                                      value={item.tax_base_idr !== undefined && item.tax_base_idr !== null ? item.tax_base_idr : 0}
+                                      onChange={(e) => {
+                                        handleItemChange(index, "tax_base_idr", Math.max(0, parseFloat(e.target.value) || 0));
+                                        dynamicFormWidth(e);
+                                      }}
+                                    />
+                                  </td>
+                                  <td>
+                                    <Form.Control type="text" value={item.tax_invoice_number} onChange={(e) => handleItemChange(index, "tax_invoice_number", e.target.value)} style={detailFormStyle()} />
+                                  </td>
                                   <td>
                                     {docRef === "purchaseRequest" && (
                                       <Form.Group controlId="formPrNumber">
@@ -3320,12 +3639,6 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
                                         </button>
                                       </div>
                                     )}
-                                  </td>
-                                  <td>
-                                    <Form.Control type="text" value={item.tax_invoice_number} onChange={(e) => handleItemChange(index, "tax_invoice_number", e.target.value)} style={detailFormStyle()} />
-                                  </td>
-                                  <td>
-                                    <Form.Control type="text" value={item.invoice_number_vendor} onChange={(e) => handleItemChange(index, "invoice_number_vendor", e.target.value)} style={detailFormStyle()} />
                                   </td>
                                   {/* <td>
                                     <Form.Control type="number" value={item.tax_invoice_number_vendor} onChange={(e) => handleItemChange(index, "tax_invoice_number_vendor", parseFloat(e.target.value))} />
@@ -3533,26 +3846,7 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
                                   {/* <td>
                                       <Form.Control type="text" value={item.invoice_number} onChange={(e) => handleItemChange(index, "invoice_number", e.target.value)} />
                                     </td> */}
-                                  <td>
-                                    <Select
-                                      value={productOptions.find((option) => option.value === item.product)} // Menemukan produk yang sesuai
-                                      onChange={(selectedOption) => {
-                                        handleItemChange(index, "product", selectedOption ? selectedOption.value : null); // Memanggil handleItemChange untuk memperbarui state
-                                      }}
-                                      options={productOptions} // Daftar opsi produk
-                                      isClearable
-                                      placeholder="Select Product..."
-                                      styles={{
-                                        control: (provided) => ({
-                                          ...provided,
-                                          ...detailFormStyle(),
-                                        }),
-                                      }}
-                                    />
-                                  </td>
-                                  <td>
-                                    <Form.Control type="text" value={item.product_note} onChange={(e) => handleItemChange(index, "product_note", e.target.value)} style={detailFormStyle()} />
-                                  </td>
+
                                   {/* <td>
                                     <Select
                                       value={currencyOptions.find((option) => option.value === item.currency)} // Menemukan mata uang yang sesuai
@@ -3568,82 +3862,6 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
 
                                   <td>
                                     <Form.Control
-                                      className="text-left"
-                                      type="text"
-                                      value={item.tax_exchange_rate !== undefined && item.tax_exchange_rate !== null ? item.tax_exchange_rate.toLocaleString("en-US") : "0"}
-                                      onChange={(e) => {
-                                        const input = e.target.value;
-
-                                        // Allow only numbers, periods, and remove unwanted characters
-                                        const sanitizedInput = input.replace(/[^0-9.]/g, "");
-
-                                        // Update the state with sanitized input
-                                        handleItemChange(index, "tax_exchange_rate", sanitizedInput);
-
-                                        // Optional: Adjust the width dynamically based on the input
-                                        dynamicFormWidth(e);
-                                      }}
-                                      onBlur={() => {
-                                        const rate = parseFloat(item.tax_exchange_rate) || 0;
-                                        handleItemChange(index, "tax_exchange_rate", rate); // Convert back to number on blur
-                                      }}
-                                      style={detailFormStyle()}
-                                      disabled
-                                    />
-                                  </td>
-
-                                  <td>
-                                    <Form.Control
-                                      type="number"
-                                      value={item.quantity || 0}
-                                      min="0"
-                                      onChange={(e) => handleItemChange(index, "quantity", parseFloat(e.target.value))}
-                                      style={{
-                                        ...detailFormStyle(),
-                                        width: `${inputWidth}px`,
-                                      }}
-                                    />
-                                  </td>
-                                  <td>
-                                    {currency === "IDR" ? (
-                                      <Form.Control
-                                        className="text-left"
-                                        type="text"
-                                        value={item.unit_price !== undefined && item.unit_price !== null ? item.unit_price.toLocaleString("en-US") : 0}
-                                        onChange={(e) => {
-                                          const newPrice = parseFloat(e.target.value.replace(/[^\d.-]/g, "")) || 0;
-                                          handleItemChange(index, "unit_price", newPrice);
-                                          dynamicFormWidth(e);
-                                        }}
-                                        style={detailFormStyle()}
-                                      />
-                                    ) : (
-                                      <Form.Control
-                                        className="text-left"
-                                        type="text"
-                                        value={item.unit_price !== undefined && item.unit_price !== null ? item.unit_price.toLocaleString("en-US", { minimumFractionDigits: 2, useGrouping: false }) : "0"}
-                                        onChange={(e) => {
-                                          const input = e.target.value;
-
-                                          // Allow only numbers, periods, and remove unwanted characters
-                                          const sanitizedInput = input.replace(/[^0-9.]/g, "");
-
-                                          // Update the state with sanitized input
-                                          handleItemChange(index, "unit_price", sanitizedInput);
-
-                                          // Optional: You can maintain original price logic if needed
-                                          // handleItemChange(index, 'original_unit_price', sanitizedInput);
-                                        }}
-                                        onBlur={() => {
-                                          const price = parseFloat(item.unit_price) || 0;
-                                          handleItemChange(index, "unit_price", price); // Convert back to number on blur
-                                        }}
-                                        style={detailFormStyle()}
-                                      />
-                                    )}
-                                  </td>
-                                  <td>
-                                    <Form.Control
                                       type="number"
                                       value={item.discount || 0}
                                       min="0"
@@ -3655,9 +3873,6 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
                                     />
                                   </td>
 
-                                  <td className={currency}>{item.total_price.toLocaleString("en-US", { style: "currency", currency: currency }) || 0} </td>
-
-                                  <td>{item.total_price_idr?.toLocaleString("en-US", { style: "currency", currency: "IDR" }) ?? "IDR 0.00"}</td>
                                   {/* <td>
                                     <Select
                                       value={codCorSkbOptions.find((option) => option.value === items[index].cod_cor_skb)} // Find the corresponding COD/COR, SKB option
@@ -3669,207 +3884,6 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
                                       placeholder="Select COD/COR, SKB..." // Placeholder text
                                     />
                                   </td> */}
-                                  <td>
-                                    <Form.Control as="select" value={items[index].type_of_vat || ""} onChange={(selectedOption) => handleItemChange(index, "type_of_vat", selectedOption.target.value)} style={detailFormStyle()}>
-                                      <option value="Select an Option">Select an Option</option>
-                                      <option value="include">Include</option>
-                                      <option value="exclude">Exclude</option>
-                                      <option value="non_ppn">Non PPN</option>
-                                      <option value="PPNRoyalty">PPN Royalty</option>
-                                    </Form.Control>
-                                  </td>
-
-                                  {/* <td>
-                                      <Form.Control type="number" value={item.tax_ppn} onChange={(e) => handleItemChange(index, "tax_ppn", parseFloat(e.target.value))} />
-                                    </td> */}
-                                  <td>
-                                    <Select
-                                      value={
-                                        items[index].type_of_vat === "PPNRoyalty" ? tax_ppn_royalty_option.find((option) => option.value === item.tax_ppn) : taxPpnTypeOption.find((option) => option.value === items[index].tax_ppn) || null
-                                      }
-                                      onChange={(selectedOption) => {
-                                        // Update the tax_ppn for the specific item
-                                        handleItemChange(index, "tax_ppn", selectedOption ? selectedOption.value : "");
-
-                                        // Update the PpnRate for the specific item
-                                        if (selectedOption) {
-                                          handleItemChange(index, "tax_ppn_rate", selectedOption.RATE);
-                                          setPpnRate(selectedOption.RATE); // Memperbarui nilai RATE jika ada selectedOption
-                                        } else {
-                                          handleItemChange(index, "tax_ppn_rate", 0);
-                                          setPpnRate(null); // Menghapus RATE jika tidak ada selectedOption
-                                        }
-                                      }}
-                                      options={items[index].type_of_vat === "PPNRoyalty" ? tax_ppn_royalty_option : taxPpnTypeOption}
-                                      // options={taxPpnTypeOption}
-                                      isClearable
-                                      placeholder="Select Tax PPN Type..."
-                                      isDisabled={items[index].type_of_vat === "non_ppn"}
-                                      styles={{
-                                        control: (provided) => ({
-                                          ...provided,
-                                          ...detailFormStyle(),
-                                        }),
-                                      }}
-                                    />
-                                  </td>
-
-                                  <td>
-                                    <Form.Control type="number" value={item.tax_ppn_rate} onChange={(e) => handleItemChange(index, "tax_ppn_rate", parseFloat(e.target.value))} readOnly style={detailFormStyle()} />
-                                  </td>
-
-                                  {/* <td style={{ textAlign: "right" }}>{item.tax_ppn_amount ? item.tax_ppn_amount.toLocaleString("en-US", { style: "currency", currency: item.currency }) : "IDR 0.00"}</td> */}
-
-                                  {/* <td>
-                                      <Form.Control type="number" value={item.tax_pph} onChange={(e) => handleItemChange(index, "tax_pph", parseFloat(e.target.value))} />
-                                    </td> */}
-                                  {/* {docRef === "purchaseRequest" || docRef === "purchaseOrder" ? (
-                                      <td>
-                                        <Select
-                                          value={selectedTaxPphType}
-                                          onChange={(selectedOption) => {
-                                            setSelectedTaxPphType(selectedOption);
-                                            handleItemChange(index, "tax_pph_type", selectedOption ? selectedOption.value : null);
-                                          }}
-                                          options={tax_pph_type_option}
-                                          isClearable
-                                          placeholder="Select Tax PPH Type..."
-                                        />
-                                      </td>
-                                    ) : (
-                                      <td>
-                                        <Form.Control type="text" value={item.tax_pph_type} onChange={(e) => handleItemChange(index, "tax_pph_type", e.target.value)} />
-                                      </td>
-                                    )} */}
-
-                                  {/* <td>
-                                      <Select
-                                        value={tax_pph_type_option.find((option) => option.value === item.tax_pph_type)}
-                                        onChange={(selectedOption) => {
-                                          handleItemChange(index, "tax_pph_type", selectedOption ? selectedOption.value : "");
-                                          if (selectedOption) {
-                                            handleItemChange(index, "PphRate", selectedOption.RATE);
-                                            setPphRate(selectedOption.RATE); // Memperbarui nilai RATE jika ada selectedOption
-                                          } else {
-                                            handleItemChange(index, "PphRate", 0);
-                                            setPphRate(null); // Menghapus RATE jika tidak ada selectedOption
-                                          }
-                                        }}
-                                        options={tax_pph_type_option}
-                                        isClearable
-                                        placeholder="Select Tax PPH Type..."
-                                      />
-                                    </td> */}
-
-                                  <td>
-                                    <Form.Control
-                                      as="select"
-                                      value={item.type_of_pph}
-                                      onChange={(e) => handleItemChange(index, "type_of_pph", e.target.value)}
-                                      disabled={item.type_of_vat === "PPNRoyalty"} // Disable if PPN Royalty is selected
-                                      style={detailFormStyle()}
-                                    >
-                                      <option value="Select an Option">Select an Option</option>
-                                      <option value="gross">Gross</option>
-                                      <option value="nett">Nett</option>
-                                    </Form.Control>
-                                  </td>
-
-                                  <td>
-                                    <Select
-                                      value={tax_pph_type_option.find((option) => option.value === items[index].tax_pph) || null}
-                                      onChange={(selectedOption) => {
-                                        // Update the tax_pph_type for the specific item
-                                        handleItemChange(index, "tax_pph", selectedOption ? selectedOption.value : "");
-
-                                        // Update the PphRate for the specific item
-                                        if (selectedOption) {
-                                          handleItemChange(index, "tax_pph_rate", selectedOption.RATE);
-                                          setPphRate(selectedOption.RATE); // Memperbarui nilai RATE jika ada selectedOption
-                                        } else {
-                                          handleItemChange(index, "tax_pph_rate", 0);
-                                          setPphRate(null); // Menghapus RATE jika tidak ada selectedOption
-                                        }
-                                      }}
-                                      options={tax_pph_type_option}
-                                      isClearable
-                                      placeholder="Select Tax PPH Type..."
-                                      isDisabled={item.type_of_vat === "PPNRoyalty"} // Disable if PPN Royalty is selected
-                                      styles={{
-                                        control: (provided) => ({
-                                          ...provided,
-                                          ...detailFormStyle(),
-                                        }),
-                                      }}
-                                    />
-                                  </td>
-
-                                  <td>
-                                    <Form.Control type="number" value={item.tax_pph_rate} onChange={(e) => handleItemChange(index, "tax_pph_rate", parseFloat(e.target.value))} readOnly style={detailFormStyle()} />
-                                  </td>
-
-                                  {/* <td>
-                                      <Form.Control type="text" value={item.tax_pph_type} onChange={(e) => handleItemChange(index, "tax_pph_type", e.target.value)} />
-                                    </td> */}
-                                  {/* <td style={{ textAlign: "right" }}>{item.tax_pph_amount ? item.tax_pph_amount.toLocaleString("en-US", { style: "currency", currency: item.currency }) : "IDR 0.00"}</td> */}
-
-                                  <td className="">
-                                    {item.currency === "IDR" ? (
-                                      <Form.Control
-                                        type="text"
-                                        disabled
-                                        style={{
-                                          ...detailFormStyle(),
-                                          textAlign: "right",
-                                          width: `${inputWidth}px`,
-                                          marginLeft: "auto",
-                                          display: "flex",
-                                        }}
-                                        value={item.tax_base !== undefined && item.tax_base !== null ? item.tax_base.toLocaleString("en-US") : 0}
-                                        onChange={(e) => {
-                                          const newTaxBase = parseFloat(e.target.value.replace(/[^\d.-]/g, "")) || 0;
-                                          handleItemChange(index, "tax_base", Math.max(0, newTaxBase));
-                                          dynamicFormWidth(e);
-                                        }}
-                                      />
-                                    ) : (
-                                      <Form.Control
-                                        type="text"
-                                        disabled
-                                        style={{
-                                          ...detailFormStyle(),
-                                          textAlign: "right",
-                                          width: `${inputWidth}px`,
-                                          marginLeft: "auto",
-                                          display: "flex",
-                                        }}
-                                        value={item.tax_base !== undefined && item.tax_base !== null ? item.tax_base : 0}
-                                        onChange={(e) => {
-                                          handleItemChange(index, "tax_base", Math.max(0, parseFloat(e.target.value) || 0));
-                                          dynamicFormWidth(e);
-                                        }}
-                                      />
-                                    )}
-                                  </td>
-
-                                  <td>
-                                    <Form.Control
-                                      type="text"
-                                      disabled
-                                      style={{
-                                        ...detailFormStyle(),
-                                        textAlign: "right",
-                                        width: `${inputWidth}px`,
-                                        marginLeft: "auto",
-                                        display: "flex",
-                                      }}
-                                      value={item.tax_base_idr !== undefined && item.tax_base_idr !== null ? item.tax_base_idr : 0}
-                                      onChange={(e) => {
-                                        handleItemChange(index, "tax_base_idr", Math.max(0, parseFloat(e.target.value) || 0));
-                                        dynamicFormWidth(e);
-                                      }}
-                                    />
-                                  </td>
 
                                   {/* <td>
                                       <Form.Control type="number" value={item.unit_price} onChange={(e) => handleItemChange(index, "unit_price", parseFloat(e.target.value) || 0)} />
@@ -3884,126 +3898,6 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
                               ))
                             )}
                           </tbody>
-                          {/* <tfoot>
-                            <tr className="text-right">
-                              <td colSpan="22">Subtotal Before Discount:</td>
-                              <td>
-                                <strong>
-                                  {items.length > 0
-                                    ? calculateTotalAmount(currency).subTotal.toLocaleString("en-US", {
-                                        style: "currency",
-                                        currency: currency,
-                                        minimumFractionDigits: 0, // No decimal places
-                                        maximumFractionDigits: 0,
-                                      })
-                                    : "IDR 0.00"}
-                                </strong>
-                              </td>
-                            </tr>
-                            <tr className="text-right">
-                              <td colSpan="22">Discount:</td>
-                              <td>
-                                <Form.Control
-                                  className="text-right"
-                                  type="text"
-                                  value={discount !== undefined && discount !== null ? discount.toLocaleString("en-US") : 0}
-                                  onChange={(e) => {
-                                    const newDiscount = parseFloat(e.target.value.replace(/[^\d.-]/g, "")) || 0;
-                                    setDiscount(newDiscount);
-                                  }}
-                                  style={{
-                                    textAlign: "right",
-                                    marginLeft: "auto",
-                                    display: "flex",
-                                  }}
-                                />
-                              </td>
-                            </tr>
-                            <tr className="text-right" hidden>
-                              <td colSpan="16">taxbase with pph:</td>
-                              <td>
-                                <strong>{calculateTotalAmount().taxbasePPH.toLocaleString("en-US", { style: "currency", currency: "IDR" })}</strong>
-                              </td>
-                            </tr>
-                            <tr className="text-right">
-                              <td colSpan="22">Subtotal After Discount:</td>
-                              <td>
-                                <strong>
-                                  {items.length > 0
-                                    ? calculateTotalAmount().subtotalAfterDiscount.toLocaleString("en-US", {
-                                        style: "currency",
-                                        currency: currency,
-                                        minimumFractionDigits: 0,
-                                        maximumFractionDigits: 0,
-                                      })
-                                    : "IDR 0.00"}
-                                </strong>
-                              </td>
-                            </tr>
-                            <tr className="text-right">
-                              <td colSpan="22">Total PPN Amount:</td>
-                              <td>
-                                <Form.Control
-                                  className="text-right"
-                                  type="text"
-                                  value={calculateTotalAmount().totalPPNAmount.toLocaleString("en-US") || 0}
-                                  onChange={(e) => {
-                                    // dynamicFormWidth(e.target.value, index);
-                                    const newItems = [...items];
-                                    const totalPPNAmount = parseFloat(e.target.value.replace(/[^\d.-]/g, "")) || 0;
-                                    newItems.forEach((item) => {
-                                      item.tax_ppn_amount = totalPPNAmount / newItems.length;
-                                    });
-                                    setItems(newItems);
-                                  }}
-                                  style={{
-                                    textAlign: "right",
-                                    marginLeft: "auto",
-                                    display: "flex",
-                                  }}
-                                />
-                              </td>
-                            </tr>
-                            <tr className="text-right">
-                              <td colSpan="22">Total PPh Amount:</td>
-                              <td>
-                                <Form.Control
-                                  className="text-right"
-                                  type="text"
-                                  value={calculateTotalAmount().totalPPHAmount.toLocaleString("en-US") || 0}
-                                  onChange={(e) => {
-                                    // dynamicFormWidth(e.target.value, index);
-                                    const newItems = [...items];
-                                    const totalPPHAmount = parseFloat(e.target.value.replace(/[^\d.-]/g, "")) || 0;
-                                    newItems.forEach((item) => {
-                                      item.tax_pph_amount = totalPPHAmount / newItems.length;
-                                    });
-                                    setItems(newItems);
-                                  }}
-                                  style={{
-                                    textAlign: "right",
-                                    marginLeft: "auto",
-                                    display: "flex",
-                                  }}
-                                />
-                              </td>
-                            </tr>
-                            <tr className="text-right">
-                              <td colSpan="22">Total Amount:</td>
-                              <td>
-                                <strong>
-                                  {items.length > 0
-                                    ? calculateTotalAmount(currency).totalAmount.toLocaleString("en-US", {
-                                        style: "currency",
-                                        currency: currency,
-                                        minimumFractionDigits: 0, // No decimal places
-                                        maximumFractionDigits: 0,
-                                      })
-                                    : "IDR 0.00"}
-                                </strong>
-                              </td>
-                            </tr>
-                          </tfoot> */}
                         </table>
                         <div className="pb-4">
                           <Button className="rounded-3" variant="success" size="sm" onClick={handleAddItem}>

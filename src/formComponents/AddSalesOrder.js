@@ -1,5 +1,5 @@
 import React, { Fragment, useEffect, useState } from "react";
-import { Button, Col, Form, InputGroup, Row, Card, CardBody, CardHeader } from "react-bootstrap";
+import { Button, Col, Form, InputGroup, Row, Card, CardBody, CardHeader, FormControl, CardFooter } from "react-bootstrap";
 import { DragDropContext, Droppable, Draggable } from "react-beautiful-dnd";
 import Swal from "sweetalert2";
 import { messageAlertSwal } from "../config/Swal";
@@ -9,25 +9,27 @@ import { GENERATED_NUMBER } from "../config/ConfigUrl";
 import { generateUniqueId } from "../service/GeneratedId";
 import Select from "react-select";
 import LookupParamService from "../service/LookupParamService";
+import LookupService from "../service/LookupService";
+import UpdateDataService from "../service/UpdateDataService";
+import DeleteDataService from "../service/DeleteDataService";
+import UpdateStatusService from "../service/UpdateStatusService";
 import CreatableSelect from "react-select/creatable";
 
-const AddSalesOrder = ({ setIsAddingNewSalesOrder, handleRefresh, index, item }) => {
+const AddSalesOrder = ({ setIsAddingNewSalesOrder, setIsEditingSalesOrder, handleRefresh, index, item, selectedData }) => {
   const headers = getToken();
   const branchId = getBranch();
   const userId = sessionStorage.getItem("userId");
 
-  // Generate SO Number
-  const generateSONumber = () => {
-    const prefix = "SO";
-    const year = new Date().getFullYear();
-    const uniqueNumber = String(index || 1).padStart(5, "0"); // Default to 1 if index is undefined
-    return `${prefix}/${year}/${uniqueNumber}`;
+  // Function to format the date
+  const formatDate = (date) => {
+    if (!date) return "";
+    const [year, month, day] = date.split("-");
+    return `${day}/${month}/${year}`;
   };
 
   const [so_number, setSoNumber] = useState("");
   const [customer, setCustomer] = useState("");
   const [to_address, setToAddress] = useState("");
-  const [SONumber] = useState(generateSONumber());
   const [project, setProject] = useState("");
   const [status_so, setStatus] = useState("DRAFT");
   const [order_date, setOrderDate] = useState("");
@@ -39,16 +41,29 @@ const AddSalesOrder = ({ setIsAddingNewSalesOrder, handleRefresh, index, item })
   const [negotiation_rate, setNegotiationRate] = useState("");
   const [sales_person, setSalesPerson] = useState("");
   const [manager_person, setManagerPerson] = useState("");
+  const [sub_total, setSubTotal] = useState("");
+  const [total_ppn_amount, setPpnAmount] = useState("");
+  const [total_paid, setTotalPaid] = useState("");
+  const [created_by, setCreatedBy] = useState("");
+  const [approved_by, setApprovedBy] = useState("");
+  const [total_amount_ppn, setTotalPpnAmount] = useState("");
+  const [description, setDescription] = useState("");
+  const [tax_base, setTaxBase] = useState("");
 
   const [product, setProduct] = useState("");
   const [tax_ppn, setPPN] = useState("");
   const [tax_ppn_amount, setTotalAmountPpn] = useState("");
+  const [tax_pph_amount, setTotalAmountPph] = useState("");
   const [type_of_vat, setTypeOfVat] = useState("");
   const [period_start, setPeriodStart] = useState("");
   const [period_end, setPeriodEnd] = useState("");
   const [quantity, setQuantity] = useState("");
   const [unit_price, setUnitPrice] = useState("");
   const [total_price, setTotalPrice] = useState("");
+  const [product_note, setProductNote] = useState("");
+  const { doc_reff, setDocReff } = useState("");
+  const { doc_reff_no, setDocReffNo } = useState("");
+  const { ba_date, setBaDate } = useState("");
 
   const [pph1, setPph1] = useState("");
   const [totalAmountPph1, setTotalAmountPph1] = useState("");
@@ -59,11 +74,6 @@ const AddSalesOrder = ({ setIsAddingNewSalesOrder, handleRefresh, index, item })
   const [taxCode, setTaxCode] = useState("");
   const [totalAmountDpp, setTotalAmountDpp] = useState("");
   const [taxAmount, setTaxAmount] = useState("");
-  const [description, setDescription] = useState("");
-  const { doc_reff, setDocReff } = useState("");
-  const { doc_reff_no, setDocReffNo } = useState("");
-  const [tax_base, setTaxBase] = useState("");
-  const [product_note, setProductNote] = useState("");
 
   const [code_account_name_options, setCodeAccountNameOptions] = useState([]);
   const [dr_cr_options, setDrCrOptions] = useState([]);
@@ -98,11 +108,299 @@ const AddSalesOrder = ({ setIsAddingNewSalesOrder, handleRefresh, index, item })
   const [taxPphTypeOption, setTaxPphTypeOption] = useState([]);
   const [taxPpnTypeOption, setTaxPpnTypeOption] = useState([]);
   const [taxPpnRoyaltyOption, setTaxPpnRoyaltyOption] = useState([]);
-  const [ppnRate, setPpnRate] = useState(null);
+  const [tax_ppn_rate, setTaxPpnRate] = useState("");
+  const [isSubmited, setIsSubmited] = useState(false);
+  const [tax_pph_type_option, setTax_Pph_Type_Option] = useState([]);
+  const [allVendorOptions, setAllVendorOptions] = useState([]);
+  const [vendorOptions, setVendorOptions] = useState([]);
+  const [selectedTaxType, setSelectedTaxType] = useState([]);
 
   const [isLoading, setIsLoading] = useState(false);
 
   const authToken = headers;
+
+  useEffect(() => {
+    if (selectedData) {
+      const { ID, SO_NUMBER } = selectedData[0];
+      console.log("id and SO Number", ID, SO_NUMBER);
+      setSoNumber(SO_NUMBER);
+
+      LookupService.fetchLookupData(`SALE_FORMSAOR&filterBy=SO_NUMBER&filterValue=${SO_NUMBER}&operation=EQUAL`, authToken, branchId)
+        .then((response) => {
+          const data = response.data[0];
+          if (data) {
+            setCustomer(data.customer);
+            setSoNumber(data.so_number);
+            setToAddress(data.to_address);
+            setOrderDate(data.order_date);
+            setProject(data.project);
+            setStatus(data.status_so);
+            setStartPeriod(data.project_period_startdate);
+            setEndPeriod(data.project_period_enddate);
+            setCurrency(data.currency);
+            setContract(data.loi_so_spk_contract);
+            setNegotiationRate(data.negotiation_rate);
+            setPaymentTerm(data.payment_term);
+            setSalesPerson(data.sales_person);
+            setManagerPerson(data.manager_person);
+
+            setProject(data.project);
+            setDescription(data.description);
+          } else {
+            console.log("No data found");
+          }
+        })
+        .catch((error) => {
+          console.error("Failed to load purchase request data:", error);
+        });
+
+      // Fetch items based on SO_NUMBER and set them to state
+      LookupService.fetchLookupData(`SALE_FORMSAORD&filterBy=so_number&filterValue=${SO_NUMBER}&operation=EQUAL`, authToken, branchId)
+        .then((response) => {
+          const fetchedItems = response.data || [];
+          console.log("Items fetched:", fetchedItems);
+
+          setItems(fetchedItems);
+
+          LookupParamService.fetchLookupData("MSDT_FORMPRDT", authToken, branchId)
+            .then((productData) => {
+              console.log("Product lookup data:", productData);
+
+              // Transform and map product data to options
+              const transformedProductData = productData.data.map((item) =>
+                Object.keys(item).reduce((acc, key) => {
+                  acc[key.toUpperCase()] = item[key];
+                  return acc;
+                }, {})
+              );
+
+              const productOptions = transformedProductData.map((item) => ({
+                value: item.NAME,
+                label: item.NAME,
+              }));
+
+              setProductOptions(productOptions); // Set product options to state
+
+              // Fetch currency lookup data
+              LookupParamService.fetchLookupData("MSDT_FORMCCY", authToken, branchId)
+                .then((currencyData) => {
+                  console.log("Currency lookup data:", currencyData);
+
+                  // Transform and map currency data to options
+                  const transformedCurrencyData = currencyData.data.map((item) =>
+                    Object.keys(item).reduce((acc, key) => {
+                      acc[key.toUpperCase()] = item[key];
+                      return acc;
+                    }, {})
+                  );
+
+                  const currencyOptions = transformedCurrencyData.map((item) => ({
+                    value: item.CODE,
+                    label: item.CODE,
+                  }));
+
+                  setCurrencyOptions(currencyOptions); // Set currency options to state
+
+                  // Update fetched items with selected options
+                  const updatedItems = fetchedItems.map((item) => {
+                    const selectedProductOption = productOptions.find((option) => option.value === item.product);
+
+                    console.log("Selected product option:", selectedProductOption);
+
+                    const selectedCurrencyOption = currencyOptions.find((option) => option.value === item.currency);
+
+                    console.log("Selected currency option:", selectedCurrencyOption);
+                    setSelectedCurrency(selectedCurrencyOption);
+                    setSelectedProduct(selectedProductOption);
+                  });
+
+                  // Set the updated items with selected product and currency options to state
+                  setItems(fetchedItems);
+                })
+                .catch((error) => {
+                  console.error("Failed to fetch currency lookup:", error);
+                });
+            })
+            .catch((error) => {
+              console.error("Failed to fetch product lookup:", error);
+            });
+        })
+        .catch((error) => {
+          console.error("Failed to load items:", error);
+        });
+
+      // Lookup PPN & PPh
+      LookupParamService.fetchLookupData("MSDT_FORMTAX", authToken, branchId)
+        .then((data) => {
+          console.log("Currency lookup data:", data);
+
+          // Transform keys to uppercase directly in the received data
+          const transformedData = data.data.map((item) =>
+            Object.keys(item).reduce((acc, key) => {
+              acc[key.toUpperCase()] = item[key];
+              return acc;
+            }, {})
+          );
+          //console.log('Transformed data:', transformedData);
+
+          const options = transformedData
+            .filter((item) => item.TAX_TYPE === "PPh")
+            .map((item) => ({
+              value: item.NAME,
+              label: item.NAME,
+              RATE: item.RATE,
+            }));
+          setTax_Pph_Type_Option(options);
+
+          const optionsPpn = transformedData
+            .filter((item) => item.TAX_TYPE === "PPN")
+            .map((item) => ({
+              value: item.NAME,
+              label: item.NAME,
+              RATE: item.RATE,
+            }));
+          setTaxPpnTypeOption(optionsPpn);
+          const selectedPPNOption = options.find((option) => option.value === selectedData[0].TAX_PPN);
+          setSelectedTaxType(selectedPPNOption || null);
+        })
+        .catch((error) => {
+          console.error("Failed to fetch currency lookup:", error);
+        });
+
+      LookupParamService.fetchLookupData("MSDT_FORMCUST", authToken, branchId)
+        .then((data) => {
+          console.log("Vendor lookup data:", data);
+
+          // Transform keys to uppercase directly in the received data
+          const transformedData = data.data.map((item) =>
+            Object.keys(item).reduce((acc, key) => {
+              acc[key.toUpperCase()] = item[key];
+              return acc;
+            }, {})
+          );
+          //console.log('Transformed data:', transformedData);
+
+          const allOptions = transformedData.map((item) => ({
+            value: item.NAME,
+            label: item.NAME,
+          }));
+          setAllVendorOptions(allOptions);
+
+          const bothOptions = transformedData
+            .filter((item) => item.ENTITY_TYPE === "BOTH")
+            .map((item) => ({
+              value: item.NAME,
+              label: item.NAME,
+            }));
+          setVendorOptions(bothOptions);
+        })
+        .catch((error) => {
+          console.error("Failed to fetch vendor lookup:", error);
+        });
+
+      LookupParamService.fetchLookupData("MSDT_FORMCCY", authToken, branchId)
+        .then((data) => {
+          console.log("Currency lookup data:", data);
+
+          // Transform keys to uppercase directly in the received data
+          const transformedData = data.data.map((item) =>
+            Object.keys(item).reduce((acc, key) => {
+              acc[key.toUpperCase()] = item[key];
+              return acc;
+            }, {})
+          );
+          //console.log('Transformed data:', transformedData);
+
+          const options = transformedData.map((item) => ({
+            value: item.CODE,
+            label: item.CODE,
+          }));
+          setCurrencyOptions(options);
+          // const selectedCurrencyOption = options.find(option => option.value === currency);
+          // setSelectedCurrency(selectedCurrencyOption || null);
+        })
+        .catch((error) => {
+          console.error("Failed to fetch currency lookup:", error);
+        });
+
+      LookupParamService.fetchLookupData("MSDT_FORMPRJT", authToken, branchId)
+        .then((data) => {
+          console.log("Currency lookup data:", data);
+
+          // Transform keys to uppercase directly in the received data
+          const transformedData = data.data.map((item) =>
+            Object.keys(item).reduce((acc, key) => {
+              acc[key.toUpperCase()] = item[key];
+              return acc;
+            }, {})
+          );
+          //console.log('Transformed data:', transformedData);
+
+          const options = transformedData.map((item) => ({
+            value: item.NAME,
+            label: item.NAME,
+          }));
+          setProjectOptions(options);
+          const selectedProjectOption = options.find((option) => option.value === selectedData[0].PROJECT);
+          setSelectedProject(selectedProjectOption || null);
+        })
+        .catch((error) => {
+          console.error("Failed to fetch currency lookup:", error);
+        });
+
+      LookupParamService.fetchLookupData("MSDT_FORMPRDT", authToken, branchId)
+        .then((data) => {
+          console.log("Currency lookup data:", data);
+
+          // Transform keys to uppercase directly in the received data
+          const transformedData = data.data.map((item) =>
+            Object.keys(item).reduce((acc, key) => {
+              acc[key.toUpperCase()] = item[key];
+              return acc;
+            }, {})
+          );
+          //console.log('Transformed data:', transformedData);
+
+          const options = transformedData.map((item) => ({
+            value: item.NAME,
+            label: item.NAME,
+          }));
+          setProductOptions(options);
+          console.log("Product :", options);
+          const selectedProductOption = options.find((option) => option.value === selectedData[0].PRODUCT);
+          setSelectedProduct(selectedProductOption || null);
+        })
+        .catch((error) => {
+          console.error("Failed to fetch currency lookup:", error);
+        });
+
+      LookupParamService.fetchLookupData("MSDT_FORMCUST", authToken, branchId)
+        .then((data) => {
+          console.log("Currency lookup data:", data);
+
+          // Transform keys to uppercase directly in the received data
+          const transformedData = data.data.map((item) =>
+            Object.keys(item).reduce((acc, key) => {
+              acc[key.toUpperCase()] = item[key];
+              return acc;
+            }, {})
+          );
+          //console.log('Transformed data:', transformedData);
+
+          const options = transformedData.map((item) => ({
+            value: item.NAME,
+            label: item.NAME,
+          }));
+          setCustomerOptions(options);
+          console.log("Customer :", customer);
+          const selectedCustomerOption = options.find((option) => option.value === selectedData[0].CUSTOMER);
+          setSelectedCustomer(selectedCustomerOption || null);
+        })
+        .catch((error) => {
+          console.error("Failed to fetch currency lookup:", error);
+        });
+    }
+  }, [selectedData]);
 
   useEffect(() => {
     const generateInitialSoNumber = async () => {
@@ -113,6 +411,15 @@ const AddSalesOrder = ({ setIsAddingNewSalesOrder, handleRefresh, index, item })
     generateInitialSoNumber();
   }, []); // Empty dependency array means this runs once on mount
 
+  function formatIDR(value) {
+    if (isNaN(value)) return "Rp0"; // Jika nilai bukan angka, tampilkan default
+    return new Intl.NumberFormat("id-ID", {
+      style: "currency",
+      currency: "IDR",
+      minimumFractionDigits: 0, // Tanpa desimal
+    }).format(value);
+  }
+
   const generateSoNumber = async (code) => {
     try {
       const uniqueSoNumber = await generateUniqueId(`${GENERATED_NUMBER}?code=${code}`, authToken);
@@ -122,6 +429,11 @@ const AddSalesOrder = ({ setIsAddingNewSalesOrder, handleRefresh, index, item })
       console.error("Failed to generate Voucher Number:", error);
       throw error; // Rethrow the error for proper handling in the calling function
     }
+  };
+
+  const formatNumber = (number) => {
+    if (isNaN(number) || number === null) return "0";
+    return number.toLocaleString("en-US"); // Formats as 50,000
   };
 
   useEffect(() => {
@@ -320,10 +632,10 @@ const AddSalesOrder = ({ setIsAddingNewSalesOrder, handleRefresh, index, item })
     fetchLookupData();
   }, []);
 
-  const handleDeppartementChange = (selectedOption) => {
-    setSelectedDepartement(selectedOption);
-    setDepartment(selectedOption ? selectedOption.value : "");
-  };
+  // const handleDeppartementChange = (selectedOption) => {
+  //   setSelectedDepartement(selectedOption);
+  //   setDepartment(selectedOption ? selectedOption.value : "");
+  // };
 
   const handleProjectChange = (selectedOption) => {
     setSelectedProject(selectedOption);
@@ -333,8 +645,6 @@ const AddSalesOrder = ({ setIsAddingNewSalesOrder, handleRefresh, index, item })
   const handleCustomerChange = (selectedOption) => {
     setSelectedCustomer(selectedOption);
     setCustomer(selectedOption ? selectedOption.value : "");
-
-    // Set the address based on the selected customer
     if (selectedOption) {
       setToAddress(selectedOption.to_address); // Assuming selectedOption contains an address field
     } else {
@@ -357,6 +667,14 @@ const AddSalesOrder = ({ setIsAddingNewSalesOrder, handleRefresh, index, item })
 
   const handleNegotiationRateChange = (selectedOption) => {
     setNegotiationRate(selectedOption || "");
+  };
+
+  const handlePpnAmountChange = (e) => {
+    // Remove any non-numeric characters (except the decimal point)
+    const value = e.target.value.replace(/[^\d.-]/g, "");
+
+    // Convert to number and update state
+    setTotalPpnAmount(parseFloat(value) || 0);
   };
 
   const handleProjectStartChange = (selectedOption) => {
@@ -385,24 +703,35 @@ const AddSalesOrder = ({ setIsAddingNewSalesOrder, handleRefresh, index, item })
     setSalesPerson(selectedOption ? selectedOption.value : "");
   };
 
+  const handleCreatedByChange = (selectedOption) => {
+    setSelectedSalesPerson(selectedOption);
+    setCreatedBy(selectedOption ? selectedOption.value : "");
+  };
+
   const handleManagerPersonChange = (selectedOption) => {
     setSelectedManagerPerson(selectedOption);
     setManagerPerson(selectedOption ? selectedOption.value : "");
   };
 
-  const handleProductChange = (selectedOption) => {
-    setSelectedProduct(selectedOption);
-    setProduct(selectedOption ? selectedOption.value : "");
+  const handleProductChange = (index, selectedOption) => {
+    const updatedItems = [...items]; // Create a copy of the items array
+    updatedItems[index].product = selectedOption ? selectedOption.value : ""; // Update the specific item's product
+    setItems(updatedItems); // Set the updated items array in the state
   };
 
-  const handlePpnChange = (selectedOption) => {
-    setSelectedPpn(selectedOption);
-    setPPN(selectedOption ? selectedOption.value : "");
-  };
+  // const handlePpnChange = (selectedOption) => {
+  //   setSelectedPpn(selectedOption);
+  //   setPPN(selectedOption ? selectedOption.value : "");
+  // };
 
   const handleAddItem = () => {
-    setItems([
-      ...items,
+    // Reset product states for the new item
+    setSelectedProduct(null); // Reset selected product
+    setProduct(""); // Reset product input
+
+    // Add new empty item to the items array
+    setItems((prevItems) => [
+      ...prevItems,
       {
         product: "",
         product_note: "",
@@ -410,38 +739,135 @@ const AddSalesOrder = ({ setIsAddingNewSalesOrder, handleRefresh, index, item })
         doc_reff_no: "",
         period_start: "",
         period_end: "",
-        quantity: "",
+        quantity: 0,
         unit_price: 0,
         total_price: 0,
         type_of_vat: "",
-
+        tax_ppn_rate: 0,
         tax_ppn: "",
         tax_ppn_amount: 0,
         tax_base: 0,
-        type_of_vat: "",
       },
     ]);
   };
-
   const handleItemChange = (index, field, value) => {
-    // Clone the items array to avoid mutating the original state directly
     const newItems = [...items];
+    newItems[index][field] = value;
 
-    // Update the field value for the given index
-    if (field === "product" || field === "currency") {
-      newItems[index][field] = value?.value || null; // Handle dropdown or object inputs
-    } else {
-      newItems[index][field] = value; // For other fields, directly assign the value
+    // Reset fields when 'unit_price' or 'quantity' changes
+    if (field === "unit_price" || field === "quantity") {
+      newItems[index].type_of_vat = "";
+      newItems[index].tax_ppn = "";
+      newItems[index].tax_base = 0;
+      newItems[index].tax_ppn_amount = 0;
+      newItems[index].tax_pph_amount = 0;
+      newItems[index].tax_pph = "";
+      newItems[index].type_of_pph = "";
+      newItems[index].tax_pph_rate = 0;
+      newItems[index].tax_ppn_rate = 0;
+      if (newItems[index].vat_included !== undefined) {
+        newItems[index].vat_included = false;
+      }
     }
 
-    // Recalculate `total_price` if the changed field affects it
+    // Update total price and total price IDR
     if (field === "quantity" || field === "unit_price") {
-      const quantity = parseFloat(newItems[index].quantity) || 0; // Default to 0 if invalid
-      const unitPrice = parseFloat(newItems[index].unit_price) || 0; // Default to 0 if invalid
-      newItems[index].total_price = quantity * unitPrice; // Compute total price
+      newItems[index].total_price = newItems[index].quantity * newItems[index].unit_price;
+
+      // Calculate total_price_idr based on exchange rate if currency is not IDR
+      if (newItems[index].currency === "IDR") {
+        newItems[index].total_price_idr = newItems[index].total_price;
+      } else {
+        newItems[index].total_price_idr = newItems[index].total_price * (newItems[index].tax_exchange_rate || 1);
+      }
     }
 
-    // Update the state with the new array
+    // Extract required values
+    const { total_price, tax_ppn_rate, type_of_vat } = newItems[index];
+
+    // Fungsi untuk menghitung total PPN dari seluruh item
+    const calculateTotalPPNAmount = (items) => {
+      return items.reduce((total, item) => {
+        return total + (item.tax_ppn_amount || 0);
+      }, 0);
+    };
+
+    // Pastikan PPN rate dalam format desimal
+    let pengkali = tax_ppn_rate / 100; // Mengkonversi persentase ke format desimal
+
+    // Handle calculation based on type of VAT
+    if (type_of_vat === "Include") {
+      // Untuk 'Include' VAT, hitung PPN amount dan Tax Base
+      const tax_ppn_amount = total_price * pengkali; // PPN Amount = Total Price * Rate
+      const tax_base = total_price - tax_ppn_amount; // Tax Base = Total Price - PPN Amount
+
+      // Menyimpan nilai yang dihitung
+      newItems[index].tax_ppn_amount = tax_ppn_amount;
+      newItems[index].tax_base = tax_base;
+    } else if (type_of_vat === "Exclude") {
+      // Untuk 'Exclude' VAT, hitung PPN amount dan Tax Base
+      const tax_ppn_amount = total_price * pengkali; // PPN Amount = Total Price * Rate
+      newItems[index].tax_ppn_amount = tax_ppn_amount;
+      newItems[index].tax_base = total_price; // Tax Base adalah total price
+    } else if (type_of_vat === "Non PPN") {
+      // Untuk 'Non PPN', tidak ada PPN yang diterapkan
+      newItems[index].tax_ppn_amount = 0; // PPN Amount adalah 0
+      newItems[index].tax_base = total_price; // Tax Base adalah total price
+    } else {
+      // Handle unexpected VAT types
+      console.error("Unexpected VAT type:", type_of_vat);
+    }
+
+    // Perhitungan New Unit Price berdasarkan VAT dan PPN:
+    if (field === "tax_ppn" || field === "tax_ppn_rate") {
+      if (newItems[index].type_of_vat === "Include") {
+        // Jika VAT sudah termasuk, harga unit baru harus mempertimbangkan PPN
+        newItems[index].new_unit_price = newItems[index].unit_price + newItems[index].unit_price * pengkali;
+
+        // Recalculating the tax base by removing VAT from the total price
+        newItems[index].tax_base = total_price - newItems[index].tax_ppn_amount;
+      } else if (newItems[index].type_of_vat === "Exclude" || newItems[index].type_of_vat === "ppn_royalty") {
+        // Jika VAT dikecualikan, hitung jumlah PPN berdasarkan harga total
+        newItems[index].tax_ppn_amount = total_price * (newItems[index].tax_ppn_rate / 100);
+
+        // Tax base adalah total price dalam hal ini
+        newItems[index].tax_base = total_price;
+      }
+    }
+
+    // Menghitung total PPN dari seluruh item
+    const totalPPN = calculateTotalPPNAmount(newItems); // Menghitung total PPN dari newItems
+    setTotalPpnAmount(totalPPN); // Menyimpan hasil total PPN
+
+    // Update VAT type logic
+    if (field === "type_of_vat") {
+      // Reset VAT-related fields
+      newItems[index].tax_ppn = "";
+      newItems[index].tax_ppn_rate = 0;
+      newItems[index].tax_base = 0;
+      newItems[index].tax_ppn_amount = 0;
+
+      // Retain total_price_idr for non-IDR currencies
+      //   if (newItems[index].currency !== "IDR") {
+      //     const previousTotalPriceIdr = newItems[index].total_price_idr;
+      //     if (newItems[index].type_of_vat === "exclude" && newItems[index].vat_included === true) {
+      //       newItems[index].new_unit_price = newItems[index].new_unit_price - newItems[index].unit_price * pengkali;
+      //       newItems[index].vat_included = false;
+      //     } else if (newItems[index].type_of_vat === "non_ppn") {
+      //       newItems[index].tax_base = previousTotalPriceIdr;
+      //     } else {
+      //       newItems[index].new_unit_price = newItems[index].unit_price;
+      //     }
+      //     newItems[index].total_price = newItems[index].unit_price * newItems[index].quantity;
+      //     newItems[index].total_price_idr = previousTotalPriceIdr; // Keep the previous value
+      //   } else {
+      //     newItems[index].new_unit_price = newItems[index].unit_price;
+      //     newItems[index].total_price = newItems[index].unit_price * newItems[index].quantity;
+      //     newItems[index].total_price_idr = newItems[index].unit_price * newItems[index].quantity;
+      //   }
+    }
+    // console.log('rate', newItems[index].tax_ppn_rate);
+    // Update item state
     setItems(newItems);
   };
 
@@ -474,7 +900,24 @@ const AddSalesOrder = ({ setIsAddingNewSalesOrder, handleRefresh, index, item })
   };
 
   const calculateTotalAmount = () => {
-    return items.reduce((total, item) => total + item.total_price, 0);
+    // Ensure items is an array
+    if (!Array.isArray(items)) return { totalAmount: 0, totalPPNAmount: 0, totalPPHAmount: 0, subTotal: 0, totalPaid: 0 };
+
+    // Calculate total values
+    const totalAmount = items.reduce((total, item) => total + (item.total_price || 0), 0);
+    const totalPPNAmount = items.reduce((total, item) => total + (item.tax_ppn_amount || 0), 0);
+    const totalPPHAmount = items.reduce((total, item) => total + (item.tax_pph_amount || 0), 0);
+
+    // Calculate Sub Total (Handling NaN values for tax_base)
+    const sub_total = items.reduce((total, item) => {
+      const taxBase = isNaN(item.tax_base) || item.tax_base == null ? 0 : item.tax_base;
+      return total + taxBase;
+    }, 0);
+
+    // Calculate totalPaid by adding subTotal and totalPPNAmount
+    const totalPaid = sub_total + totalPPNAmount;
+
+    return { totalAmount, totalPPNAmount, totalPPHAmount, sub_total, totalPaid };
   };
 
   const handleOnDragEnd = (result) => {
@@ -521,6 +964,7 @@ const AddSalesOrder = ({ setIsAddingNewSalesOrder, handleRefresh, index, item })
     setTotalAmountDpp("");
     setTaxAmount("");
     setItems([]);
+    setIsSubmited(false);
     setSelectedItems([]);
   };
 
@@ -561,6 +1005,7 @@ const AddSalesOrder = ({ setIsAddingNewSalesOrder, handleRefresh, index, item })
           sales_person,
           manager_person,
           description,
+          total_amount_ppn,
 
           doc_reff: "awa",
           doc_reff_no,
@@ -586,10 +1031,11 @@ const AddSalesOrder = ({ setIsAddingNewSalesOrder, handleRefresh, index, item })
               // unit_price,
               // total_price,
               // type_of_vat,
-              tax_ppn,
+              // tax_ppn,
               // tax_ppn_amount,
             };
             delete updatedItem.description;
+            delete updatedItem.new_unit_price;
 
             const itemResponse = await InsertDataService.postData(updatedItem, "SAORD", authToken, branchId);
             console.log("Item posted successfully:", itemResponse);
@@ -647,6 +1093,9 @@ const AddSalesOrder = ({ setIsAddingNewSalesOrder, handleRefresh, index, item })
           sales_person,
           manager_person,
           description,
+          total_ppn_amount,
+          sub_total,
+          total_paid,
 
           doc_reff: "awa",
           doc_reff_no,
@@ -664,7 +1113,8 @@ const AddSalesOrder = ({ setIsAddingNewSalesOrder, handleRefresh, index, item })
               ...item,
               //  customer,
               so_number,
-              product,
+              product: item.product || "Default Product",
+
               // to_address,
               // project,
               // status_so,
@@ -679,11 +1129,17 @@ const AddSalesOrder = ({ setIsAddingNewSalesOrder, handleRefresh, index, item })
               // manager_person,
               // description,
               // tax_base,
-              tax_ppn,
+              // tax_ppn,
               // doc_reff: 'awa',
               // doc_reff_no,
             };
             // delete updatedItem.tax_base;
+            delete updatedItem.tax_pph_amount;
+            delete updatedItem.tax_pph;
+            delete updatedItem.type_of_pph;
+            delete updatedItem.tax_pph_rate;
+            delete updatedItem.total_price_idr;
+            delete updatedItem.new_unit_price;
 
             const itemResponse = await InsertDataService.postData(updatedItem, "SAORD", authToken, branchId);
             console.log("Item posted successfully:", itemResponse);
@@ -706,23 +1162,43 @@ const AddSalesOrder = ({ setIsAddingNewSalesOrder, handleRefresh, index, item })
 
   return (
     <Fragment>
+      <section className="content-header">
+        <div className="container-fluid">
+          <div className="row mb-2">
+            <div className="col-sm-6">
+              <h1>{selectedData ? "Edit Sales Order" : "Add Sales Order"}</h1>
+            </div>
+            <div className="col-sm-6">
+              <ol className="breadcrumb float-sm-right">
+                <li className="breadcrumb-item">
+                  <a href="/">Home</a>
+                </li>
+                <li className="breadcrumb-item active">{selectedData ? "Edit Sales Order" : "Add Sales Order"}</li>
+              </ol>
+            </div>
+          </div>
+        </div>
+      </section>
+
       <section className="content">
         <Row>
           <Col md={12}>
             <Card>
               <Card.Header className="d-flex justify-content-between align-items-center">
-                <Card.Title>Sales Order</Card.Title>
+                <Card.Title>General Information</Card.Title>
                 <div className="ml-auto">
-                  <Button
-                    variant="secondary"
-                    className="mr-2"
-                    onClick={() => {
-                      handleRefresh();
-                      setIsAddingNewSalesOrder(false);
-                    }}
-                  >
-                    <i className="fas fa-arrow-left"></i> Go Back
-                  </Button>
+                  {setIsEditingSalesOrder && (
+                    <Button
+                      variant="secondary"
+                      className="mr-2"
+                      onClick={() => {
+                        handleRefresh();
+                        setIsEditingSalesOrder(false);
+                      }}
+                    >
+                      <i className="fas fa-arrow-left"></i> Go Back1
+                    </Button>
+                  )}
                   <Button variant="primary" className="mr-2" onClick={handleSave}>
                     <i className="fas fa-save"></i> Save
                   </Button>
@@ -880,6 +1356,7 @@ const AddSalesOrder = ({ setIsAddingNewSalesOrder, handleRefresh, index, item })
                               <th className={items.length > 0 && items[0].currency === "IDR"}>Total Price</th>
                               <th>Type of VAT</th>
                               <th>PPN</th>
+                              <th>PPN Rate</th>
                               <th>PPN Amount</th>
                               <th>DPP Amount</th>
                               <th>Action</th>
@@ -899,72 +1376,170 @@ const AddSalesOrder = ({ setIsAddingNewSalesOrder, handleRefresh, index, item })
                                     <input type="checkbox" checked={selectedItems.includes(index)} onChange={() => handleSelectItem(index)} />
                                   </td>
                                   <td>
-                                    <Form.Group controlId="product">
-                                      <Select id="product" options={productOptions} isClearable placeholder="Select..." value={selectedProduct} onChange={handleProductChange} required />
+                                    <Form.Group controlId={`product-${index}`} key={index}>
+                                      <Select
+                                        id={`product-${index}`}
+                                        options={productOptions}
+                                        isClearable
+                                        placeholder="Select..."
+                                        value={items[index].product ? { value: items[index].product, label: items[index].product } : null} // Set the value of each Select based on the item's product
+                                        onChange={(selectedOption) => handleProductChange(index, selectedOption)} // Pass the index to handle the change
+                                        styles={{
+                                          control: (base) => ({
+                                            ...base,
+                                            border: "none",
+                                            boxShadow: "none",
+                                            backgroundColor: "transparent",
+                                            outline: "none",
+                                          }),
+                                          menu: (base) => ({
+                                            ...base,
+                                            zIndex: 9999,
+                                          }),
+                                        }}
+                                        required
+                                      />
                                     </Form.Group>
                                   </td>
                                   <td>
-                                    <Form.Control type="text" value={item.product_note} onChange={(e) => handleItemChange(index, "product_note", e.target.value)} />
-                                  </td>
-                                  <td>{/* <Form.Control type="date" value={item.invoiceNumber} onChange={(e) => handleItemChange(index, "BA_Date", e.target.value)} /> */}</td>
-                                  <td>
-                                    <Form.Control type="number" value={item.doc_reff_no} onChange={(e) => handleItemChange(index, "doc_reff_no", e.target.value)} />
-                                  </td>
-                                  <td>
-                                    <Form.Control type="date" value={item.period_start} onChange={(e) => handleItemChange(index, "period_start", e.target.value)} />
-                                  </td>
-                                  <td>
-                                    <Form.Control type="date" value={item.period_end} onChange={(e) => handleItemChange(index, "period_end", e.target.value)} />
+                                    <Form.Control
+                                      type="text"
+                                      value={item.product_note}
+                                      placeholder="Enter a product note"
+                                      onChange={(e) => handleItemChange(index, "product_note", e.target.value)}
+                                      style={{ border: "none", boxShadow: "none", backgroundColor: "transparent" }}
+                                    />
                                   </td>
                                   <td>
-                                    <Form.Control type="number" value={item.quantity || 0} onChange={(e) => handleItemChange(index, "quantity", e.target.value)} />
+                                    <Form.Control type="date" value={item.ba_date} onChange={(e) => handleItemChange(index, "ba_date", e.target.value)} style={{ border: "none", boxShadow: "none", backgroundColor: "transparent" }} />
                                   </td>
                                   <td>
-                                    <Form.Control type="number" value={item.unit_price || 0} onChange={(e) => handleItemChange(index, "unit_price", parseFloat(e.target.value))} />
+                                    <Form.Control
+                                      type="number"
+                                      value={item.doc_reff_no}
+                                      placeholder="Enter a BA Number"
+                                      onChange={(e) => handleItemChange(index, "doc_reff_no", e.target.value)}
+                                      style={{ border: "none", boxShadow: "none", backgroundColor: "transparent" }}
+                                    />
                                   </td>
                                   <td>
-                                    <Form.Control type="number" value={item.total_price || 0} readOnly onChange={(e) => handleItemChange(index, "total_price", parseFloat(e.target.value))} />
+                                    <Form.Control
+                                      type="date"
+                                      value={item.period_start}
+                                      onChange={(e) => handleItemChange(index, "period_start", e.target.value)}
+                                      style={{ border: "none", boxShadow: "none", backgroundColor: "transparent" }}
+                                    />
                                   </td>
+                                  <td>
+                                    <Form.Control type="date" value={item.period_end} onChange={(e) => handleItemChange(index, "period_end", e.target.value)} style={{ border: "none", boxShadow: "none", backgroundColor: "transparent" }} />
+                                  </td>
+                                  <td>
+                                    <Form.Control type="number" value={item.quantity} onChange={(e) => handleItemChange(index, "quantity", e.target.value)} style={{ border: "none", boxShadow: "none", backgroundColor: "transparent" }} />
+                                  </td>
+                                  <td>
+                                    <Form.Control
+                                      type="text"
+                                      value={item.unit_price !== null && item.unit_price !== undefined ? formatNumber(item.unit_price) : "0"}
+                                      onChange={(e) => {
+                                        const numericValue = parseFloat(e.target.value.replace(/,/g, ""));
+                                        handleItemChange(index, "unit_price", isNaN(numericValue) ? 0 : numericValue);
+                                      }}
+                                      style={{ border: "none", boxShadow: "none", backgroundColor: "transparent" }}
+                                    />
+                                  </td>
+                                  <td className={currency}>
+                                    {item.total_price != null && item.total_price >= 0
+                                      ? item.total_price.toLocaleString("en-US", {
+                                          style: "currency",
+                                          currency: currency && typeof currency === "string" && currency.length === 3 ? currency : "IDR",
+                                          minimumFractionDigits: currency === "USD" ? 2 : 0, // Show .00 for USD, omit for IDR
+                                          maximumFractionDigits: currency === "USD" ? 2 : 0, // Consistent precision
+                                        })
+                                      : currency === "USD"
+                                      ? "$0.00"
+                                      : "IDR 0"}
+                                  </td>
+                                  {/* <td>
+                                  <Form.Control type="text" value={item.total_price !== null && item.unit_price !== undefined ? formatNumber(item.total_price) : "0"} readOnlyonChange={(e) => {const numericValue = parseFloat(e.target.value.replace(/,/g, "")); handleItemChange(index, "total_price", isNaN(numericValue) ? 0 : numericValue);}} style={{ border: "none", boxShadow: "none",backgroundColor: "transparent",}}/>
+                                  </td> */}
                                   <td>
                                     <Form.Group controlId="type_of_vat">
-                                      <Form.Select value={item.tax_ppn} onChange={(e) => handleItemChange(index, "tax_ppn", e.target.value)} aria-label="Select PPN">
-                                        <option value="">Type of VAT</option>
-                                        <option value="SubTotal1">INCLUDE</option>
-                                        <option value="SubTotal2">EXCLUDE</option>
-                                        <option value="SubTotal3">NON PPN</option>
+                                      <Form.Select
+                                        value={item.type_of_vat}
+                                        onChange={(e) => handleItemChange(index, "type_of_vat", e.target.value)}
+                                        aria-label="Select PPN"
+                                        style={{ border: "none", boxShadow: "none", backgroundColor: "transparent" }}
+                                      >
+                                        <option value="Select Type of VAT">Select Type of VAT</option>
+                                        <option value="Include">INCLUDE</option>
+                                        <option value="Exclude">EXCLUDE</option>
+                                        <option value="Non PPN">NON PPN</option>
                                       </Form.Select>
                                     </Form.Group>
                                   </td>
                                   <td>
                                     <Select
-                                      value={
-                                        items[index].type_of_vat === "ppn_royalty" ? taxPpnRoyaltyOption.find((option) => option.value === item.tax_ppn) : taxPpnTypeOption.find((option) => option.value === items[index].tax_ppn) || null
-                                      }
+                                      value={taxPpnTypeOption.find((option) => option.value === items[index].tax_ppn) || null}
                                       onChange={(selectedOption) => {
                                         // Update the tax_ppn for the specific item
                                         handleItemChange(index, "tax_ppn", selectedOption ? selectedOption.value : "");
 
                                         // Update the PpnRate for the specific item
-                                        if (selectedOption) {
-                                          handleItemChange(index, "tax_ppn_rate", selectedOption.RATE);
-                                          setPpnRate(selectedOption.RATE); // Memperbarui nilai RATE jika ada selectedOption
-                                        } else {
-                                          handleItemChange(index, "tax_ppn_rate", 0);
-                                          setPpnRate(null); // Menghapus RATE jika tidak ada selectedOption
-                                        }
+                                        handleItemChange(index, "tax_ppn_rate", selectedOption?.RATE ? parseFloat(selectedOption.RATE) : 0);
+
+                                        // Optionally reset RATE if no selection is made
+                                        setTaxPpnRate(selectedOption?.RATE || null);
                                       }}
-                                      options={items[index].type_of_vat === "ppn_royalty" ? taxPpnRoyaltyOption : taxPpnTypeOption}
-                                      // options={taxPpnTypeOption}
+                                      options={taxPpnTypeOption}
                                       isClearable
-                                      placeholder="Select Tax PPN Type..."
-                                      isDisabled={items[index].type_of_vat === "non_ppn"}
+                                      placeholder={items[index].type_of_vat === "Non PPN" ? "-" : "Select Tax PPN Type..."}
+                                      isDisabled={items[index].type_of_vat === "Non PPN"} // Disable for "non_ppn"
+                                      styles={{
+                                        control: (base, state) => ({
+                                          ...base,
+                                          border: "none",
+                                          boxShadow: "none",
+                                          backgroundColor: "transparent",
+                                          outline: "none",
+                                          cursor: state.isDisabled ? "not-allowed" : "default",
+                                          // Hide the dropdown arrow when disabled
+                                          ...(state.isDisabled && {
+                                            backgroundImage: "none",
+                                          }),
+                                        }),
+                                        menu: (base) => ({
+                                          ...base,
+                                          zIndex: 9999, // Ensure dropdown is on top
+                                        }),
+                                      }}
                                     />
                                   </td>
                                   <td>
-                                    <Form.Control type="number" value={item.tax_ppn_amount} onChange={(e) => handleItemChange(index, "tax_ppn_amount", parseFloat(e.target.value))} />
+                                    <FormControl type="number" value={item.tax_ppn_rate} readOnly style={{ border: "none", boxShadow: "none", backgroundColor: "transparent" }} />
                                   </td>
-                                  <td>
-                                    <Form.Control type="number" value={item.tax_base} onChange={(e) => handleItemChange(index, "tax_base", parseFloat(e.target.value))} />
+                                  <td className={currency}>
+                                    {item.tax_ppn_amount != null && item.tax_ppn_amount >= 0
+                                      ? item.tax_ppn_amount.toLocaleString("en-US", {
+                                          style: "currency",
+                                          currency: currency && typeof currency === "string" && currency.length === 3 ? currency : "IDR",
+                                          minimumFractionDigits: currency === "USD" ? 2 : 0, // Show .00 for USD, omit for IDR
+                                          maximumFractionDigits: currency === "USD" ? 2 : 0, // Consistent precision
+                                        })
+                                      : currency === "USD"
+                                      ? "$0.00"
+                                      : "IDR 0"}
+                                  </td>
+                                  <td className={currency}>
+                                    {item.tax_base != null && item.tax_base >= 0
+                                      ? item.tax_base.toLocaleString("en-US", {
+                                          style: "currency",
+                                          currency: currency && typeof currency === "string" && currency.length === 3 ? currency : "IDR",
+                                          minimumFractionDigits: currency === "USD" ? 2 : 0, // Show .00 for USD, omit for IDR
+                                          maximumFractionDigits: currency === "USD" ? 2 : 0, // Consistent precision
+                                        })
+                                      : currency === "USD"
+                                      ? "$0.00"
+                                      : "IDR 0"}
                                   </td>
                                   {/* <td>
                                     <Select
@@ -1036,17 +1611,7 @@ const AddSalesOrder = ({ setIsAddingNewSalesOrder, handleRefresh, index, item })
                               ))
                             )}
                           </tbody>
-                          <tfoot>
-                            {/* <tr>
-                              <td colSpan="6" className="text-right">
-                                Total Amount:
-                              </td>
-                              <td className="text-end">
-                                <strong>{calculateTotalAmount().toLocaleString("en-US", { currency: "IDR", minimumFractionDigits: 2, maximumFractionDigits: 2 })} </strong>
-                              </td>
-                              <td></td>
-                            </tr> */}
-                          </tfoot>
+                          <tfoot></tfoot>
                         </table>
                         {provided.placeholder}
                       </div>
@@ -1054,11 +1619,56 @@ const AddSalesOrder = ({ setIsAddingNewSalesOrder, handleRefresh, index, item })
                   </Droppable>
                 </DragDropContext>
               </Card.Body>
+              <CardFooter>
+                <table className="table table-bordered">
+                  <tbody>
+                    <tr className="text-right">
+                      <td colSpan="16">Sub Total:</td>
+                      <td className="text col-4">
+                        <strong>
+                          {calculateTotalAmount().sub_total.toLocaleString("en-US", {
+                            style: "currency",
+                            currency: "IDR",
+                          })}
+                        </strong>
+                      </td>
+                    </tr>
+
+                    <tr className="text-right">
+                      <td colSpan="16">Total PPN:</td>
+                      <td>
+                        <Form.Control
+                          type="text" // Tetap "text" agar nilai format string dapat tampil
+                          value={total_amount_ppn ? formatIDR(total_amount_ppn) : "Rp0"}
+                          readOnly
+                          style={{
+                            textAlign: "right",
+                            width: "100%",
+                            border: "none",
+                          }}
+                        />
+                      </td>
+                    </tr>
+
+                    <tr className="text-right">
+                      <td colSpan="16">Total Paid:</td>
+                      <td className="text col-2">
+                        <strong>
+                          {(calculateTotalAmount().totalPaid ?? 0).toLocaleString("en-US", {
+                            style: "currency",
+                            currency: "IDR",
+                          })}
+                        </strong>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </CardFooter>
             </Card>
           </Col>
         </Row>
         <Row className="mt-4">
-          <Col md={6}>
+          <Col md={12}>
             <Card>
               <Card.Body>
                 <Form.Group controlId="formDescription">
@@ -1077,47 +1687,53 @@ const AddSalesOrder = ({ setIsAddingNewSalesOrder, handleRefresh, index, item })
             </Card>
           </Col>
 
-          <Col md={6}>
-            <Form.Group controlId="">
-              <Form.Label>Sub Total:</Form.Label>
-              <Form.Control type="text" value="Your Sub Total Value" readOnly placeholder="Sub Total" />
-            </Form.Group>
-            <Form.Group controlId="">
-              <Form.Label>PPN:</Form.Label>
-              <Form.Control type="text" value="PPN" readOnly placeholder="PPN" />
-            </Form.Group>
-            <Form.Group controlId="">
-              <Form.Label>Total:</Form.Label>
-              <Form.Control type="text" value="Total Value" readOnly placeholder="Total" />
-            </Form.Group>
-          </Col>
-
           <Row className="mt-4">
-            <Col md={6}>
+            <Col md={12}>
               <Card>
                 <Card.Body>
-                  <Col md={6}>
-                    <Form.Group controlId="">
-                      <Form.Label>Diajukan Oleh</Form.Label>
-                      <Select
-                        id="salesPerson"
-                        options={SalesPersonOptions} // Use the fetched options here
-                        isClearable
-                        placeholder="Select..."
-                        onChange={handleSalesPersonChange} // Handle selection
-                        required
-                      />
-                    </Form.Group>
-                    <Form.Group controlId="">
-                      <Form.Label>Tanggal Diajukan</Form.Label>
-                      <Form.Control type="date" required />
-                    </Form.Group>
-                  </Col>
+                  <Row style={{ gap: "4cm" }}>
+                    <Col md={5} className="me-3 ms-3">
+                      <Form.Group controlId="">
+                        <Form.Label>Diajukan Oleh</Form.Label>
+                        <Select
+                          id="salesPerson"
+                          value={selectedSalesPerson}
+                          options={SalesPersonOptions} // Use the fetched options here
+                          isClearable
+                          placeholder="Select..."
+                          onChange={handleCreatedByChange} // Handle selection
+                          required
+                        />
+                      </Form.Group>
+                      <Form.Group controlId="">
+                        <Form.Label>Tanggal Diajukan</Form.Label>
+                        <Form.Control type="date" required />
+                      </Form.Group>
+                    </Col>
+
+                    <Col md={5}>
+                      <Form.Group controlId="">
+                        <Form.Label>Disetujui Oleh</Form.Label>
+                        <Select
+                          id="salesPerson"
+                          options={SalesPersonOptions} // Use the fetched options here
+                          isClearable
+                          placeholder="Select..."
+                          onChange={handleSalesPersonChange} // Handle selection
+                          required
+                        />
+                      </Form.Group>
+                      <Form.Group controlId="">
+                        <Form.Label>Tanggal Disetujui</Form.Label>
+                        <Form.Control type="date" required />
+                      </Form.Group>
+                    </Col>
+                  </Row>
                 </Card.Body>
               </Card>
             </Col>
             <Col>
-              <Card>
+              {/* <Card>
                 <Card.Body>
                   <Col md={6}>
                     <Form.Group controlId="">
@@ -1137,9 +1753,41 @@ const AddSalesOrder = ({ setIsAddingNewSalesOrder, handleRefresh, index, item })
                     </Form.Group>
                   </Col>
                 </Card.Body>
-              </Card>
+              </Card> */}
             </Col>
           </Row>
+        </Row>
+        <Row className="mt-4">
+          <Col md={12} className="d-flex justify-content-end">
+            {setIsEditingSalesOrder ? (
+              <Button
+                variant="secondary"
+                className="mr-2"
+                onClick={() => {
+                  handleRefresh();
+                  setIsAddingNewSalesOrder(false);
+                }}
+              >
+                <i className="fas fa-arrow-left"></i> Back
+              </Button>
+            ) : (
+              <></>
+            )}
+            {isSubmited === true ? (
+              <Button onClick={resetForm}>
+                <i className="fas fa-plus"></i> Add New
+              </Button>
+            ) : (
+              <>
+                <Button variant="primary" className="mr-2" onClick={handleSave}>
+                  <i className="fas fa-save"></i> Save
+                </Button>
+                <Button variant="primary" onClick={handleSubmit}>
+                  <i className="fas fa-check"></i> Submit
+                </Button>
+              </>
+            )}
+          </Col>
         </Row>
       </section>
 
