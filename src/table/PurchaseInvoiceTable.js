@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import FormPagination from "../utils/FormPagination";
 import { NumericFormat } from "react-number-format";
 import { FaAddressBook, FaEye, FaFilter, FaSyncAlt } from "react-icons/fa";
-import { FaEdit, FaTrash, FaFileExport } from "react-icons/fa"; // Import icons for Edit, Delete, and Export
+import { FaEdit, FaTrash, FaFileExport, FaClone } from "react-icons/fa"; // Import icons for Edit, Delete, and Export
 import { Button, Modal, Table } from "react-bootstrap";
 import { getBranch, getToken, userLoggin } from "../config/Constant";
 import LookupService from "../service/LookupService";
@@ -28,6 +28,9 @@ const PurchaseInvoiceTable = ({
   handleEditPurchaseInvoice,
   handleSelectData,
   selectedData,
+  duplicatePurchaseInvoice,
+  duplicateFlag,
+  setDuplicateFlag,
   checker,
 }) => {
   const headers = getToken();
@@ -134,12 +137,45 @@ const PurchaseInvoiceTable = ({
     isAddingNewPurchaseInvoice(true);
   };
 
-  // const handleEdit = () => {
-  //   handleEditPurchaseInvoice(true);
-  //   handleSelectData(dataTable.filter((row) => selectedRows.includes(row.INVOICE_NUMBER)));
-  // };
-
   const handleEdit = () => {
+    console.log("selectedRows type:", typeof selectedRows);
+    console.log("selectedRows:", selectedRows);
+
+    // Convert selectedRows Set to an array of invoice numbers
+    // const dataSelected = dataTable.filter((row) => selectedRows.has(row.ID));
+    const dataSelected = getSelectedRowsData();
+    console.log("dataSelected Edit:", dataSelected);
+
+    if (dataSelected.length > 1) {
+      Swal.fire({
+        icon: "warning",
+        title: "Multiple Rows Selected",
+        text: "Please select only one row to edit.",
+        confirmButtonText: "OK",
+      });
+      return; // Exit the function if multiple rows are selected
+    }
+
+    // Check if status_request is 'IN_PROCESS' and userId matches created_by
+    const userId = sessionStorage.getItem("userId");
+    if (!checker && dataSelected[0].INVOICE_STATUS === "IN_PROCESS" && userId === dataSelected[0].CREATED_BY) {
+      Swal.fire({
+        icon: "warning",
+        title: "Edit Restricted",
+        text: 'You cannot edit this invoice while it is "IN_PROCESS".',
+        confirmButtonText: "OK",
+      });
+      return; // Exit the function if the condition is met
+    }
+
+    console.log("sdjflldsf", dataSelected[0].INVOICE_STATUS);
+
+    handleEditPurchaseInvoice(true);
+    handleSelectData(dataSelected); // Pass the selected data for further processing
+    // setDuplicateFlag(false);
+  };
+
+  const handleDuplicatePurchaseInvoice = () => {
     console.log("selectedRows type:", typeof selectedRows);
     console.log("selectedRows:", selectedRows);
 
@@ -159,7 +195,7 @@ const PurchaseInvoiceTable = ({
 
     // Check if status_request is 'IN_PROCESS' and userId matches created_by
     const userId = sessionStorage.getItem("userId");
-    if (!checker && dataSelected[0].STATUS_REQUEST === "IN_PROCESS" && userId === dataSelected[0].REQUESTOR) {
+    if (!checker && dataSelected[0].INVOICE_STATUS === "IN_PROCESS" && userId === dataSelected[0].CREATED_BY) {
       Swal.fire({
         icon: "warning",
         title: "Edit Restricted",
@@ -169,143 +205,10 @@ const PurchaseInvoiceTable = ({
       return; // Exit the function if the condition is met
     }
 
-    handleEditPurchaseInvoice(true);
+    duplicatePurchaseInvoice(true);
     handleSelectData(dataSelected); // Pass the selected data for further processing
+    setDuplicateFlag(true);
   };
-
-  // const handleDelete = (value) => {
-  //     const dataSelected = getSelectedRowsData();
-  //     console.log('dataSelected Delete:', dataSelected);
-
-  //     if (dataSelected.length > 1) {
-  //         Swal.fire({
-  //             icon: 'warning',
-  //             title: 'Multiple Rows Selected',
-  //             text: 'Please select only one row to Delete.',
-  //             confirmButtonText: 'OK',
-  //         });
-  //         return; // Exit the function if multiple rows are selected
-  //     }
-
-  //     // Get the current user's userId
-  //     const userId = sessionStorage.getItem('userId');
-
-  //     // Check if status_request is 'IN_PROCESS' and userId matches created_by
-  //     if (!checker && dataSelected[0].STATUS_REQUEST === 'IN_PROCESS' && userId === dataSelected[0].REQUESTOR) {
-  //         Swal.fire({
-  //             icon: 'warning',
-  //             title: 'Delete Restricted',
-  //             text: 'You cannot delete this request while it is "IN_PROCESS".',
-  //             confirmButtonText: 'OK',
-  //         });
-  //         return; // Exit the function if the condition is met
-  //     }
-  //     console.log('dataSelected Delete:', dataSelected)  // Pass the selected data for further processing
-  // };
-
-  // const handleDelete = async (value) => {
-  //   const dataSelected = getSelectedRowsData(); // Ambil data yang dipilih
-  //   console.log("dataSelected Delete:", dataSelected);
-
-  //   // Cek jika lebih dari satu baris dipilih
-  //   if (dataSelected.length !== 1) {
-  //     Swal.fire({
-  //       icon: "warning",
-  //       title: "Multiple Rows Selected",
-  //       text: "Please select exactly one row to delete.",
-  //       confirmButtonText: "OK",
-  //     });
-  //     return;
-  //   }
-
-  //   const userId = sessionStorage.getItem("userId");
-
-  //   // Cek apakah status IN_PROCESS dan userId cocok dengan REQUESTOR
-  //   if (!checker && dataSelected[0].STATUS_REQUEST === "IN_PROCESS" && userId === dataSelected[0].REQUESTOR) {
-  //     Swal.fire({
-  //       icon: "warning",
-  //       title: "Delete Restricted",
-  //       text: 'You cannot delete this request while it is "IN_PROCESS".',
-  //       confirmButtonText: "OK",
-  //     });
-  //     return;
-  //   }
-
-  //   const puinvcId = dataSelected[0].ID; // ID dari data utama
-  //   const invoice_number = dataSelected[0].INVOICE_NUMBER;
-
-  //   // Konfirmasi sebelum penghapusan
-  //   Swal.fire({
-  //     title: "Are you sure?",
-  //     text: "Do you really want to delete this request and its details? This process cannot be undone.",
-  //     icon: "warning",
-  //     showCancelButton: true,
-  //     confirmButtonText: "Yes, delete it!",
-  //     cancelButtonText: "Cancel",
-  //   }).then(async (result) => {
-  //     if (result.isConfirmed) {
-  //       try {
-  //         // Panggil API untuk menghapus data master (utama)
-  //         const response = await DeleteDataService.postData(`column=id&value=${puinvcId}`, "PUINVC", authToken, branchId);
-
-  //         if (!response.message === "Delete Data Successfully") {
-  //           throw new Error("Failed to delete main request");
-  //         }
-
-  //         // Jika berhasil hapus master, lanjutkan ke detail berdasarkan INVOICE_NUMBER
-  //         const responseDetail = await LookupService.fetchLookupData(`PURC_FORMPUINVCD&filterBy=INVOICE_NUMBER&filterValue=${invoice_number}&operation=EQUAL`, authToken, branchId);
-
-  //         const fetchedItems = responseDetail.data || [];
-  //         console.log("Items fetch:", fetchedItems);
-
-  //         if (fetchedItems.length > 0) {
-  //           // Hapus setiap detail yang ditemukan
-  //           for (const item of fetchedItems) {
-  //             if (item.ID) {
-  //               try {
-  //                 const itemResponseDelete = await DeleteDataService.postData(`column=id&value=${item.ID}`, "PUREQD", authToken, branchId);
-  //                 console.log("Item deleted successfully:", itemResponseDelete);
-  //               } catch (error) {
-  //                 console.error("Error deleting item:", item, error);
-  //                 throw new Error("Failed to delete one or more detail items");
-  //               }
-  //             } else {
-  //               console.log("No ID found for this item, skipping delete:", item);
-  //             }
-  //           }
-  //         } else {
-  //           throw new Error("No details found for this INVOICE_NUMBER");
-  //         }
-
-  //         Swal.fire({
-  //           icon: "success",
-  //           title: "Request and Details Deleted",
-  //           text: "Both the request and its details have been successfully deleted.",
-  //           confirmButtonText: "OK",
-  //         });
-
-  //         handleRefresh();
-
-  //         // Lakukan refresh data atau aksi lain yang diperlukan setelah penghapusan berhasil
-  //       } catch (error) {
-  //         console.error("Error during delete process:", error);
-  //         Swal.fire({
-  //           icon: "error",
-  //           title: "Delete Error",
-  //           text: "Failed to delete the request or its details. Please try again later.",
-  //           confirmButtonText: "OK",
-  //         });
-  //       }
-  //     } else {
-  //       Swal.fire({
-  //         icon: "info",
-  //         title: "Cancelled",
-  //         text: "Your request deletion has been cancelled.",
-  //         confirmButtonText: "OK",
-  //       });
-  //     }
-  //   });
-  // };
 
   const handleDelete = async (value) => {
     try {
@@ -470,10 +373,10 @@ const PurchaseInvoiceTable = ({
     setSelectedRowData(selectedData[0]);
 
     console.log("View selected rows data:", selectedData);
-    const PR_NUMBER = selectedData[0].PR_NUMBER;
-    console.log("Fetching data for PR_NUMBER:", PR_NUMBER);
+    const INVOICE_NUMBER = selectedData[0].INVOICE_NUMBER;
+    console.log("Fetching data for INVOICE_NUMBER:", INVOICE_NUMBER);
 
-    LookupService.fetchLookupData(`PURC_FORMPUREQD&filterBy=PR_NUMBER&filterValue=${PR_NUMBER}&operation=EQUAL`, authToken, branchId)
+    LookupService.fetchLookupData(`PURC_FORMINVCD&filterBy=INVOICE_NUMBER&filterValue=${INVOICE_NUMBER}&operation=EQUAL`, authToken, branchId)
       .then((response) => {
         const fetchedItems = response.data || [];
         console.log("Items fetched from API:", fetchedItems);
@@ -525,7 +428,10 @@ const PurchaseInvoiceTable = ({
                                 </button> */}
                 {selectedRows.size > 0 && (
                   <>
-                    <button type="button" className="btn btn-default" onClick={handleEditPurchaseInvoice}>
+                    <button type="button" className="btn btn-default" onClick={handleDuplicatePurchaseInvoice}>
+                      <FaClone /> Duplicate
+                    </button>
+                    <button type="button" className="btn btn-default" onClick={handleEdit}>
                       <FaEdit /> Edit
                     </button>
                     <button type="button" className="btn btn-default" onClick={handleView}>
@@ -669,7 +575,7 @@ const PurchaseInvoiceTable = ({
                       <td>{item.INVOICE_STATUS}</td>
                       <td>{item.DESCRIPTION}</td>
                       <td>{item.DUE_DATE}</td>
-                      <td>{item.CREATE_BY}</td>
+                      <td>{item.CREATED_BY}</td>
                       <td>{item.TOTAL_AMOUNT}</td>
                       <td>{item.STATUS}</td>
                       {/* <td>{item.DISCOUNT}</td> */}

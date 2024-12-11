@@ -265,7 +265,6 @@ const handleResetFilters = () => {
                         handleRefresh={handleRefresh}
                         selectedData={selectedData}
                         duplicateFlag={duplicateFlag}
-
                     />
                 ) : isAddingNewDuplicatePurchaseRequest ? (
                     <AddPurchaseRequest
@@ -273,7 +272,6 @@ const handleResetFilters = () => {
                         handleRefresh={handleRefresh}
                         selectedData={selectedData}
                         duplicateFlag={duplicateFlag}
-
                     />
                 ) : (
                     <PurchaseRequestTable
