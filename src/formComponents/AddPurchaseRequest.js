@@ -128,7 +128,7 @@ const AddPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, select
               );
 
               const productOptions = transformedProductData.map(item => ({
-                value: item.NAME,
+                value: item.ID,
                 label: item.NAME
               }));
 
@@ -224,7 +224,7 @@ const AddPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, select
           //console.log('Transformed data:', transformedData);
 
           const options = transformedData.map(item => ({
-            value: item.NAME,
+            value: item.ID,
             label: item.NAME
           }));
           setDepartementOptions(options);
@@ -249,7 +249,7 @@ const AddPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, select
           //console.log('Transformed data:', transformedData);
 
           const options = transformedData.map(item => ({
-            value: item.NAME,
+            value: item.ID,
             label: item.NAME,
             project_contract_number: item.CONTRACT_NUMBER,
             customer: item.CUSTOMER
@@ -276,7 +276,7 @@ const AddPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, select
           //console.log('Transformed data:', transformedData);
 
           const options = transformedData.map(item => ({
-            value: item.NAME,
+            value: item.ID,
             label: item.NAME
           }));
           setProductOptions(options);
@@ -306,7 +306,7 @@ const AddPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, select
           );
 
           const options = filteredData.map(item => ({
-            value: item.NAME,
+            value: item.ID,
             label: item.NAME
           }));
 
@@ -373,7 +373,7 @@ const AddPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, select
               );
 
               const productOptions = transformedProductData.map(item => ({
-                value: item.NAME,
+                value: item.ID,
                 label: item.NAME
               }));
 
@@ -494,7 +494,7 @@ const AddPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, select
           //console.log('Transformed data:', transformedData);
 
           const options = transformedData.map(item => ({
-            value: item.NAME,
+            value: item.ID,
             label: item.NAME,
             project_contract_number: item.CONTRACT_NUMBER,
             customer: item.CUSTOMER
@@ -551,7 +551,7 @@ const AddPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, select
           );
 
           const options = filteredData.map(item => ({
-            value: item.NAME,
+            value: item.ID,
             label: item.NAME
           }));
 
@@ -631,7 +631,7 @@ const AddPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, select
           console.log('Transformed data project:', transformedData);
 
           const options = transformedData.map(item => ({
-            value: item.NAME,
+            value: item.ID,
             label: item.NAME,
             project_contract_number: item.CONTRACT_NUMBER,
             customer: item.CUSTOMER
@@ -656,7 +656,7 @@ const AddPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, select
           //console.log('Transformed data:', transformedData);
 
           const options = transformedData.map(item => ({
-            value: item.NAME,
+            value: item.ID,
             label: item.NAME
           }));
           setProductOptions(options);
@@ -683,7 +683,7 @@ const AddPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, select
           );
 
           const options = filteredData.map(item => ({
-            value: item.NAME,
+            value: item.ID,
             label: item.NAME
           }));
           setVendorOptions(options);
@@ -999,7 +999,7 @@ const AddPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, select
           console.log('Data posted successfully:', response);
 
           if (response.message === "insert Data Successfully") {
-            await handleItemsInsert(pr_number,duplicateFlag);
+            await handleItemsInsert(pr_number, duplicateFlag);
             messageAlertSwal('Success', response.message, 'success');
             // resetForm();
           }
@@ -1552,6 +1552,14 @@ const AddPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, select
     setScheduleDate(date);
   };
 
+  const detailFormStyle = () => {
+    return {
+      border: 'none',
+      background: 'transparent',
+      color: 'black'
+
+    }
+  }
 
   return (
     <Fragment>
@@ -1648,7 +1656,7 @@ const AddPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, select
                     </Col>
 
 
-                    <Col md={6}>
+                    {/* <Col md={6}>
                       <Form.Group controlId="formDocNo">
                         <Form.Label>Doc. No</Form.Label>
                         <Form.Control
@@ -1659,7 +1667,7 @@ const AddPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, select
                           disabled
                         />
                       </Form.Group>
-                    </Col>
+                    </Col> */}
 
                     <Col md={6}>
                       <Form.Group controlId="formRequestor">
@@ -1761,203 +1769,256 @@ const AddPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, select
                 <DragDropContext onDragEnd={handleOnDragEnd}>
                   <Droppable droppableId="items">
                     {(provided) => (
-                      <div
-                        className="table-responsive"
-                        {...provided.droppableProps}
-                        ref={provided.innerRef}
-                      >
-                        <table className="table table-bordered">
-                          <thead>
-                            <tr>
-                              <th>
-                                <input
-                                  type="checkbox"
-                                  onChange={handleSelectAll}
-                                  checked={selectedItems.length === items.length && items.length > 0}
-                                />
-                              </th>
-                              <th>Document Reference Number</th>
-                              <th>Document Reference Source</th>
-                              <th>Vendor</th>
-                              <th>Project</th>
-                              <th>Project Contract Number</th>
-                              <th>Customer</th>
-                              <th>Departement</th>
-                              <th>Product</th>
-                              <th>Product Description</th>
-                              <th>Quantity</th>
-                              <th>Unit Price</th>
-                              <th>Total Price</th>
-                              <th>Actions</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {items.length === 0 ? (
+                      <>
+                        <div
+                          className="table-responsive"
+                          {...provided.droppableProps}
+                          ref={provided.innerRef}
+                        >
+                          <table className="table table-bordered">
+                            <thead>
                               <tr>
-                                <td colSpan="14" className="text-center">No data available</td>
+                                <th>
+                                  <input
+                                    type="checkbox"
+                                    onChange={handleSelectAll}
+                                    checked={selectedItems.length === items.length && items.length > 0}
+                                  />
+                                </th>
+                                <th>Document Reference Number</th>
+                                <th>Document Reference Source</th>
+                                <th>Vendor</th>
+                                <th>Project</th>
+                                <th>Project Contract Number</th>
+                                <th>Customer</th>
+                                <th>Departement</th>
+                                <th>Product</th>
+                                <th>Product Description</th>
+                                <th>Quantity</th>
+                                <th>Unit Price</th>
+                                <th>Total Price</th>
+                                <th>Actions</th>
                               </tr>
-                            ) : (
-                              items.map((item, index) => (
-                                <tr key={index} className={selectedItems.includes(index) ? 'table-active' : ''}>
-                                  <td>
-                                    <input
-                                      type="checkbox"
-                                      checked={selectedItems.includes(index)}
-                                      onChange={() => handleSelectItem(index)}
-                                    />
-                                  </td>
-                                  <td>
-                                    <Form.Control
-                                      type="text"
-                                      placeholder="Enter Document Reference"
-                                      value={item.doc_reff_no}
-                                      onChange={(e) => handleItemChange(index, 'doc_reff_no', e.target.value)}
-                                    />
-                                  </td>
-                                  <td>
-                                    {setIsEditingPurchaseRequest ? (
-                                      <>
-                                        {/* Display the document link and edit button when editing */}
-                                        <a href={item.doc_source} target="_blank" rel="noopener noreferrer">
-                                          {item.doc_source}
-                                        </a>
-                                        {/* <button
+                            </thead>
+                            <tbody>
+                              {items.length === 0 ? (
+                                <tr>
+                                  <td colSpan="14" className="text-center">No data available</td>
+                                </tr>
+                              ) : (
+                                items.map((item, index) => (
+                                  <tr key={index} className={selectedItems.includes(index) ? 'table-active' : ''}>
+                                    <td>
+                                      <input
+                                        type="checkbox"
+                                        checked={selectedItems.includes(index)}
+                                        onChange={() => handleSelectItem(index)}
+                                      />
+                                    </td>
+                                    <td>
+                                      <Form.Control
+                                        type="text"
+                                        placeholder="Enter Document Reference"
+                                        value={item.doc_reff_no}
+                                        onChange={(e) => handleItemChange(index, 'doc_reff_no', e.target.value)}
+                                        style={detailFormStyle()}
+                                      />
+                                    </td>
+                                    <td>
+                                      {setIsEditingPurchaseRequest ? (
+                                        <>
+                                          {/* Display the document link and edit button when editing */}
+                                          <a href={item.doc_source} target="_blank" rel="noopener noreferrer">
+                                            {item.doc_source}
+                                          </a>
+                                          {/* <button
                                           type="button"
                                           onClick={() => handleEditClick(index)}
                                           style={{ marginLeft: '10px', border: 'none', background: 'transparent' }}
                                         >
                                           <i className="fa fa-edit" aria-hidden="true"></i>
                                         </button> */}
-                                      </>
-                                    ) : (
-                                      // Display file input when not editing
-                                      <Form.Control
-                                        type="file"
-                                        onChange={(e) => handleItemChange(index, 'file', e)}
+                                        </>
+                                      ) : (
+                                        // Display file input when not editing
+                                        <Form.Control
+                                          type="file"
+                                          onChange={(e) => handleItemChange(index, 'file', e)}
+                                        />
+                                      )}
+                                    </td>
+                                    <td>
+                                      <Select
+                                        id={`vendor-${index}`} // unique id for each row
+                                        value={vendorOptions.find(option => option.value === item.vendor)} // Set the selected value
+                                        onChange={(selectedOption) => handleVendorChange(selectedOption, index)} // Pass the index to the handler
+                                        options={vendorOptions}
+                                        isClearable
+                                        placeholder="Select..."
+                                        styles={{
+                                          control: (provided) => ({
+                                            ...provided,
+                                            ...detailFormStyle()
+                                          }),placeholder: (provided) => ({
+                                            ...provided,
+                                            color: 'black', // Sets placeholder text color to black
+                                          }),
+                                        }}
+                                        required
                                       />
-                                    )}
-                                  </td>
-                                  <td>
-                                    <Select
-                                      id={`vendor-${index}`} // unique id for each row
-                                      value={vendorOptions.find(option => option.value === item.vendor)} // Set the selected value
-                                      onChange={(selectedOption) => handleVendorChange(selectedOption, index)} // Pass the index to the handler
-                                      options={vendorOptions}
-                                      isClearable
-                                      placeholder="Select..."
-                                      required
-                                    />
-                                  </td>
-                                  <td>
-                                    <Select
-                                      id={`project-${index}`} // Unique id for each project select
-                                      value={projectOptions.find(option => option.value === item.project)} // Set selected value for project
-                                      onChange={(selectedOption) => handleProjectChange(selectedOption, index)} // Pass the index to handler
-                                      options={projectOptions}
-                                      isClearable
-                                      placeholder="Select a project..."
-                                      required
-                                    />
-                                  </td>
-                                  <td>
-                                    <Form.Control
-                                      type="text"
-                                      placeholder="Enter Project Contract Number"
-                                      value={item.project_contract_number} // Bind to the specific item's field
-                                      onChange={(e) => handleItemChange(index, 'project_contract_number', e.target.value)} // Update the project contract number
-                                      disabled // Keep it disabled if you don't want it to be editable
-                                    />
-                                  </td>
-                                  <td>
-                                    <Form.Control
-                                      type="text"
-                                      value={item.customer} // Bind to the specific item's field
-                                      onChange={(e) => handleItemChange(index, 'customer', e.target.value)} // Update the customer
-                                      disabled // Keep it disabled if it should not be editable
-                                    />
-                                  </td>
-                                  <td>
-                                    <Select
-                                      id={`departement-${index}`} // Unique id for each department select
-                                      value={departementOptions.find(option => option.value === item.departement)} // Set the selected value for department
-                                      onChange={(selectedOption) => handleDepartementChange(selectedOption, index)} // Pass the index to the handler
-                                      options={departementOptions}
-                                      isClearable
-                                      placeholder="Select a department..."
-                                      required
-                                    />
-                                  </td>
+                                    </td>
+                                    <td>
+                                      <Select
+                                        id={`project-${index}`} // Unique id for each project select
+                                        value={projectOptions.find(option => option.value === item.project)} // Set selected value for project
+                                        onChange={(selectedOption) => handleProjectChange(selectedOption, index)} // Pass the index to handler
+                                        options={projectOptions}
+                                        isClearable
+                                        placeholder="Select a project..."
+                                        styles={{
+                                          control: (provided) => ({
+                                            ...provided,
+                                            ...detailFormStyle()
+                                          }),placeholder: (provided) => ({
+                                            ...provided,
+                                            color: 'black', // Sets placeholder text color to black
+                                          }),
+                                        }}
+                                        required
+                                      />
+                                    </td>
+                                    <td>
+                                      <Form.Control
+                                        type="text"
+                                        placeholder="Enter Project Contract Number"
+                                        value={item.project_contract_number} // Bind to the specific item's field
+                                        onChange={(e) => handleItemChange(index, 'project_contract_number', e.target.value)} // Update the project contract number
+                                        style={detailFormStyle()}
+                                        disabled // Keep it disabled if you don't want it to be editable
+                                      />
+                                    </td>
+                                    <td>
+                                      <Form.Control
+                                        type="text"
+                                        value={item.customer} // Bind to the specific item's field
+                                        onChange={(e) => handleItemChange(index, 'customer', e.target.value)} // Update the customer
+                                        style={detailFormStyle()}
+                                        disabled // Keep it disabled if it should not be editable
+                                      />
+                                    </td>
+                                    <td>
+                                      <Select
+                                        id={`departement-${index}`} // Unique id for each department select
+                                        value={departementOptions.find(option => option.value === item.departement)} // Set the selected value for department
+                                        onChange={(selectedOption) => handleDepartementChange(selectedOption, index)} // Pass the index to the handler
+                                        options={departementOptions}
+                                        isClearable
+                                        placeholder="Select a department..."
+                                        styles={{
+                                          control: (provided) => ({
+                                            ...provided,
+                                            ...detailFormStyle()
+                                          }),
+                                          placeholder: (provided) => ({
+                                            ...provided,
+                                            color: 'black', // Sets placeholder text color to black
+                                          }),
 
-                                  <td>
-                                    <Select
-                                      value={productOptions.find(option => option.value === item.product)}
-                                      onChange={(selectedOption) => handleItemChange(index, 'product', selectedOption)}
-                                      options={productOptions}
-                                      isClearable
-                                      placeholder="Select product"
-                                    />
-                                  </td>
-                                  <td>
-                                    <Form.Control
-                                      type="text"
-                                      value={item.product_note}
-                                      onChange={(e) => handleItemChange(index, 'product_note', e.target.value)}
-                                    />
-                                  </td>
-                                  <td>
-                                    <Form.Control
-                                      type="number"
-                                      value={item.quantity}
-                                      onChange={(e) => handleItemChange(index, 'quantity', parseFloat(e.target.value))}
-                                      style={{ width: '80px' }}
-                                    />
-                                  </td>
-                                  <td>
-                                    {/* <Form.Control
+                                        }}
+                                        required
+                                      />
+                                    </td>
+
+                                    <td>
+                                      <Select
+                                        value={productOptions.find(option => option.value === item.product)}
+                                        onChange={(selectedOption) => handleItemChange(index, 'product', selectedOption)}
+                                        options={productOptions}
+                                        isClearable
+                                        styles={{
+                                          control: (provided) => ({
+                                            ...provided,
+                                            ...detailFormStyle()
+                                          }),placeholder: (provided) => ({
+                                            ...provided,
+                                            color: 'black', // Sets placeholder text color to black
+                                          }),
+                                        }}
+                                        placeholder="Select product"
+                                      />
+                                    </td>
+                                    <td>
+                                      <Form.Control
+                                        type="text"
+                                        value={item.product_note}
+                                        onChange={(e) => handleItemChange(index, 'product_note', e.target.value)}
+                                        style={detailFormStyle()}
+                                      />
+                                    </td>
+                                    <td>
+                                      <Form.Control
+                                        type="number"
+                                        value={item.quantity}
+                                        onChange={(e) => handleItemChange(index, 'quantity', parseFloat(e.target.value))}
+
+                                        style={{
+                                          // width: `${inputWidth[index] || 75}px`,
+                                          ...detailFormStyle(),
+                                          width: '75px',
+                                        }}
+                                      />
+                                    </td>
+                                    <td>
+                                      {/* <Form.Control
                                       type="number"
                                       value={item.unit_price}
                                       onChange={(e) => handleItemChange(index, 'unit_price', parseFloat(e.target.value) || 0)}
                                     /> */}
-                                    <CurrencyInput
-                                      id={`currency-input-${index}`}
-                                      name="unit_price"
-                                      className="form-control"
-                                      value={item.unit_price || ''} // Empty string if undefined
-                                      decimalsLimit={4} // IDR: No decimals, Others: 2 decimals
-                                      onValueChange={(value) => {
-                                        const numericValue = parseFloat(value) || 0; // Ensure numeric value
-                                        handleItemChange(index, 'unit_price', numericValue);
-                                      }}
-                                      onFocus={() => {
-                                        handleItemChange(index, 'unit_price', ''); // Kosongkan nilai saat fokus
-                                      }} // Optional: Highlight text on focus
-                                      style={{ width: '100%', textAlign: 'right' }}
-                                    />
-                                  </td>
-                                  <td className="text-end">{item.total_price.toLocaleString('en-US', { currency: currency, minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                                  <td>
-                                    <Button
-                                      variant="danger"
-                                      size="sm"
-                                      onClick={() => handleDeleteItem(index)}
-                                    >
-                                      <i className="fas fa-trash"></i>
-                                    </Button>
-                                  </td>
-                                </tr>
-                              ))
-                            )}
-                          </tbody>
-                          <tfoot>
+                                      <CurrencyInput
+                                        id={`currency-input-${index}`}
+                                        name="unit_price"
+                                        className="form-control"
+                                        value={item.unit_price || ''} // Empty string if undefined
+                                        decimalsLimit={4} // IDR: No decimals, Others: 2 decimals
+                                        onValueChange={(value) => {
+                                          const numericValue = parseFloat(value) || 0; // Ensure numeric value
+                                          handleItemChange(index, 'unit_price', numericValue);
+                                        }}
+                                        onFocus={() => {
+                                          handleItemChange(index, 'unit_price', ''); // Kosongkan nilai saat fokus
+                                        }} // Optional: Highlight text on focus
+                                        style={{ ...detailFormStyle(), width: '100%', textAlign: 'right' }}
+                                      />
+                                    </td>
+                                    <td className="text-end">{item.total_price.toLocaleString('en-US', { currency: currency, minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                                    <td>
+                                      <Button
+                                        variant="danger"
+                                        size="sm"
+                                        onClick={() => handleDeleteItem(index)}
+                                      >
+                                        <i className="fas fa-trash"></i>
+                                      </Button>
+                                    </td>
+                                  </tr>
+                                ))
+                              )}
+                            </tbody>
+
+                          </table>
+
+                          {provided.placeholder}
+                        </div>
+                        <table className='table table-bordered' >
+                          <tbody>
                             <tr>
-                              <td colSpan="12" className="text-right">Total Amount:</td>
+                              <td colSpan="16" className="text-right">Total Amount:</td>
                               <td className="text-end"><strong>{calculateTotalAmount().toLocaleString('en-US', { currency: 'IDR', minimumFractionDigits: 2, maximumFractionDigits: 2 })} </strong></td>
-                              <td></td>
+
                             </tr>
-                          </tfoot>
+                          </tbody>
                         </table>
-                        {provided.placeholder}
-                      </div>
+                      </>
                     )}
                   </Droppable>
                 </DragDropContext>
@@ -1991,24 +2052,24 @@ const AddPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, select
 
         <Row className="mt-5">
           <Col md={12} className="d-flex justify-content-end">
-          {(setIsEditingPurchaseRequest || setIsAddingNewDuplicatePurchaseRequest) && (
-                    <>
-                      <Button
-                        variant="secondary"
-                        className="mr-2"
-                        onClick={() => {
-                          handleRefresh();
-                          if (setIsEditingPurchaseRequest) {
-                            setIsEditingPurchaseRequest(false);
-                          } else if (setIsAddingNewDuplicatePurchaseRequest) {
-                            setIsAddingNewDuplicatePurchaseRequest(false);
-                          }
-                        }}
-                      >
-                        <i className="fas fa-arrow-left"></i> Go Back
-                      </Button>
-                    </>
-                  )}
+            {(setIsEditingPurchaseRequest || setIsAddingNewDuplicatePurchaseRequest) && (
+              <>
+                <Button
+                  variant="secondary"
+                  className="mr-2"
+                  onClick={() => {
+                    handleRefresh();
+                    if (setIsEditingPurchaseRequest) {
+                      setIsEditingPurchaseRequest(false);
+                    } else if (setIsAddingNewDuplicatePurchaseRequest) {
+                      setIsAddingNewDuplicatePurchaseRequest(false);
+                    }
+                  }}
+                >
+                  <i className="fas fa-arrow-left"></i> Go Back
+                </Button>
+              </>
+            )}
 
             {!isSubmitted ? (
               <>
