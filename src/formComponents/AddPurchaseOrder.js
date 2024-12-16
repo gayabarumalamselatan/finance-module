@@ -4,7 +4,7 @@ import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd';
 import Swal from 'sweetalert2';
 import { messageAlertSwal } from "../config/Swal";
 import InsertDataService from '../service/InsertDataService';
-import { getBranch, getToken, userLoggin } from '../config/Constant';
+import { getBranch, getToken, idUser, userLoggin } from '../config/Constant';
 import { DOWNLOAD_FILES, FORM_SERVICE_UPDATE_DATA, GENERATED_NUMBER, UPLOAD_FILES } from '../config/ConfigUrl';
 import { generateUniqueId } from '../service/GeneratedId';
 import Select from 'react-select';
@@ -18,6 +18,7 @@ import DeleteDataService from '../service/DeleteDataService';
 import FormService from '../service/FormService';
 import DatePicker from 'react-datepicker';
 import moment from 'moment';
+import { FaCalendar } from 'react-icons/fa';
 
   const AddPurchaseOrder = ({ 
     setIsAddingNewPurchaseOrder, 
@@ -41,6 +42,7 @@ import moment from 'moment';
     const [selectedItems, setSelectedItems] = useState([]);
     const [isLoading, setIsLoading] = useState(false);
     const [currencyOptions, setCurrencyOptions] = useState([]);
+    const [isAddFile, setIsAddFile] = useState(false);
 
     // PO Fields
     const [po_number, setPoNumber] = useState('');
@@ -61,7 +63,6 @@ import moment from 'moment';
     const [statusPo, setStatusPo] = useState('');
     const [PPNRoyaltyOptions, setPPNRoyaltyOptions] = useState([]);
     const [isCurrencyIsSet, setIsCurrencyIsSet] = useState(false);
-    
 
     // PO Lookup
     const [projectOptions, setProjectOptions] = useState([]);
@@ -74,7 +75,10 @@ import moment from 'moment';
     const [selectedProduct, setSelectedProduct] = useState(null);
     const [PROptions, setPROptions] = useState([]);
     const [docRefNumber, setDocRefNumber] = useState('');
+    const [currency_id, setCurrencyId] = useState('');
     const [to, setTo] = useState('');
+    const [form_to_id, setFormToId] = useState('');
+    const [vendor_id, setVendorId] = useState('');
     const [toOptions, setToOptions] = useState([]);
     const [selectedTo, setSelectedTo] = useState(null);
     const [toAddress, setToAddress] = useState('');
@@ -98,7 +102,6 @@ import moment from 'moment';
     const lookupDepartment = () => {
        LookupParamService.fetchLookupDataView("MSDT_FORMDPRT", authToken, branchId)
        .then(data => {
-         console.log('Department lookup data:', data);
  
          // Transform keys to uppercase directly in the received data
          const transformedData = data.data.map(item =>
@@ -109,8 +112,9 @@ import moment from 'moment';
          );
  
          const options = transformedData.map(item => ({
-           value: item.NAME,
-           label: item.NAME
+            id: item.ID,
+            value: item.NAME,
+            label: item.NAME
          }));
  
          setDepartementOptions(options);
@@ -122,10 +126,9 @@ import moment from 'moment';
 
 
     // Lookup Tax Type
-    const lookupTaxType = () => {
+    const lookupTaxType = (selectedData) => {
       LookupParamService.fetchLookupDataView("MSDT_FORMTAX", authToken, branchId)
       .then(data => {
-        console.log('Tax Type lookup data:', data);
 
         // Transform keys to uppercase directly in the received data
         const transformedData = data.data.map(item =>
@@ -134,7 +137,6 @@ import moment from 'moment';
             return acc;
           }, {})
         );
-        //console.log('Transformed data:', transformedData);
 
         const options = transformedData.filter(item => item.TAX_TYPE === 'PPN').map(item => ({
           value: item.NAME,
@@ -149,6 +151,11 @@ import moment from 'moment';
           RATE: item.RATE
         }));
         setPPNRoyaltyOptions(RoyaltyOption);
+
+        if(selectedData){
+          const selectedTaxTypeOption = options.find(option => option.value === selectedData[0].TAX_PPN);
+          setSelectedTaxType(selectedTaxTypeOption || null);
+        }
       })
       .catch(error => {
         console.error('Failed to fetch Tax Type lookup:', error);
@@ -157,11 +164,10 @@ import moment from 'moment';
 
 
     // Lookup Vendor
-    const lookupVendor = () => {
+    const lookupVendor = (selectedData) => {
       
       LookupParamService.fetchLookupDataView("MSDT_FORMCUST", authToken, branchId)
       .then(data => {
-        console.log('Vendor lookup data:', data);
 
         // Transform keys to uppercase directly in the received data
         const transformedData = data.data.map(item =>
@@ -170,9 +176,9 @@ import moment from 'moment';
             return acc;
           }, {})
         );
-        //console.log('Transformed data:', transformedData);
 
         const options = transformedData.filter(item => item.ENTITY_TYPE === 'BOTH' || item.ENTITY_TYPE === 'Vendor').map(item => ({
+          id: item.ID,
           value: item.NAME,
           label: item.NAME,
           vendAddress: item.ADDRESS
@@ -180,11 +186,13 @@ import moment from 'moment';
         setVendorOptions(options);
 
         const optionForTo = transformedData.map(item => ({
+          id: item.ID,
           value: item.NAME,
           label: item.NAME,
           vendAddress: item.ADDRESS
         }));
         setToOptions(optionForTo);
+        console.log('toopt', optionForTo)
 
         const uniqueAddress = [...new Set(transformedData.map(item => item.ADDRESS))];
         const optionsForToAddress = uniqueAddress.map(address => ({
@@ -192,6 +200,25 @@ import moment from 'moment';
           label: address
         }));
         setToAddressOptions(optionsForToAddress);
+
+        if(selectedData){
+          // Vendor
+          const selectVendor = options.find(option => option.value === selectedData[0].VENDOR) || "";
+          setSelectedVendor(selectVendor || null);
+          setVendor(selectVendor.value);
+          setVendorId(selectVendor.id)
+
+          // To
+          const selectTo = optionForTo.find(option => option.value === selectedData[0].FORM_TO) || "";
+          setSelectedTo(selectTo || null);
+          setTo(selectTo.value);
+          setFormToId(selectTo.id)
+
+          // To Address
+          const selectToAddress = optionsForToAddress.find(option => option.value === selectedData[0].TO_ADDRESS) || "";
+          setSelectedToAddress(selectToAddress || null);
+          setToAddress(selectToAddress.value);
+        }
 
       }).catch(error => {
         console.error('Failed to fetch vendor lookup:', error);
@@ -204,7 +231,6 @@ import moment from 'moment';
       
       LookupParamService.fetchLookupDataView("MSDT_FORMPRJT", authToken, branchId)
       .then(data => {
-        console.log('Project lookup data:', data);
 
         // Transform keys to uppercase directly in the received data
         const transformedData = data.data.map(item =>
@@ -215,6 +241,7 @@ import moment from 'moment';
         );
 
         const options = transformedData.map(item => ({
+          id: item.ID,
           value: item.NAME,
           label: item.NAME,
           customer: item.CUSTOMER,
@@ -227,6 +254,7 @@ import moment from 'moment';
         }))
 
         const contractNumOptions = transformedData.map(item=> ({
+          id: item.id,
           value: item.CONTRACT_NUMBER,
           label: item.CONTRACT_NUMBER,
           customer: item.CUSTOMER,
@@ -244,7 +272,6 @@ import moment from 'moment';
     const lookupProduct = () => {
       LookupParamService.fetchLookupDataView("MSDT_FORMPRDT", authToken, branchId)
       .then(data => {
-        console.log('Product lookup data:', data);
 
         // Transform keys to uppercase directly in the received data
         const transformedData = data.data.map(item =>
@@ -253,9 +280,9 @@ import moment from 'moment';
             return acc;
           }, {})
         );
-        //console.log('Transformed data:', transformedData);
 
         const options = transformedData.map(item => ({
+          id: item.ID,
           value: item.NAME,
           label: item.NAME
         }));  
@@ -265,6 +292,96 @@ import moment from 'moment';
       });
     }
 
+    // Lookup Currency
+    const lookupCurrency = (selectedData) => {
+       // Lookup Currency
+       LookupParamService.fetchLookupDataView("MSDT_FORMCCY", authToken, branchId)
+       .then(data => {
+ 
+         // Transform keys to uppercase directly in the received data
+         const transformedData = data.data.map(item =>
+           Object.keys(item).reduce((acc, key) => {
+             acc[key.toUpperCase()] = item[key];
+             return acc;
+           }, {})
+         );
+ 
+         const options = transformedData.map(item => ({
+           id: item.ID,
+           value: item.CODE,
+           label: item.CODE
+         }));
+         setCurrencyOptions(options);
+ 
+         // Default Currency
+         
+         if(selectedData) {
+          const selectCurrency = options.find(option => option.value === selectedData[0].CURRENCY)
+          setSelectedCurrency(selectCurrency || null)
+          setCurrency(selectCurrency.value);
+          setCurrencyId(selectCurrency.id);
+         }else if(!selectedData){
+          const defaultCurrency = options.find(option => option.value === 'IDR');
+          if(defaultCurrency){
+            setSelectedCurrency(defaultCurrency);
+            setCurrency(defaultCurrency.value);
+            setCurrencyId(defaultCurrency.id);
+          }
+         }
+         console.log('isselceted', selectedData)
+       }).catch(error => {
+         console.error('Failed to fetch currency lookup:', error);
+       }); 
+    }
+
+    // Lookup Pr
+    const lookupPR = (selectedCurrency, selectedVendor) => {
+      let prUrl = "PURC_FORMPUREQ&filterBy=STATUS&filterValue=APPROVED&operation=EQUAL";
+      if(selectedCurrency) {
+        prUrl += `&filterBy=CURRENCY&operation=EQUAL&filterValue=${selectedCurrency}`
+      }
+      if(selectedVendor){
+        prUrl += `&filterBy=VENDOR&operation=EQUAL&filterValue=${selectedVendor}`
+      }
+      console.log(prUrl); 
+      LookupService.fetchLookupData(prUrl, authToken, branchId)
+      .then(data => {
+
+        // Transform keys to uppercase directly in the received data
+        const transformedData = data.data.map(item =>
+          Object.keys(item).reduce((acc, key) => {
+            acc[key.toUpperCase()] = item[key];
+            return acc;
+          }, {})
+        );
+        console.log('Transformed data:', transformedData);
+
+        const options = transformedData.filter(item => item.STATUS_REQUEST === 'PARTIAL_REQUESTED' || item.STATUS_REQUEST === 'IN_PROCESS').map(item => {
+          const label = item.PR_NUMBER;
+          if (label.startsWith('DRAFT')) {
+            return null; // or you can return an empty object {}
+          }
+          return {
+            value: item.PR_NUMBER,
+            label: label.replace('DRAFT ', ''), // remove 'DRAFT ' from the label
+            DEPARTEMENT: item.DEPARTEMENT,
+            COMPANY: item.COMPANY,
+            PROJECT: item.PROJECT,
+            CUSTOMER: item.CUSTOMER,
+            REQUESTDATE: item.REQUEST_DATE,
+            VENDOR: item.VENDOR,
+            ENDTOENDID: item.ENDTOENDID,
+            ID: item.ID,
+            REQUESTOR: item.REQUESTOR,
+          };
+        }).filter(option => option !== null);
+
+        setPROptions(options);
+
+      }).catch(error => {
+        console.error('Failed to fetch currency lookup:', error);
+      });
+    }
 
     // Lookup
     useEffect(() => {
@@ -295,7 +412,7 @@ import moment from 'moment';
           setDiscount(data.discount);
           setTermConditions(data.term_conditions);
           setDescription(data.description);
-          setCurrency(data.currency);
+          // setCurrency(data.currency);
         }).catch(error => {
           console.error('Failed to load purchase request data:', error);
         });
@@ -309,177 +426,55 @@ import moment from 'moment';
           setItems(fetchedItems.map(item => ({
             ...item,
           })));
-          
-          })
+
+          if(docRef === 'purchaseRequest'){
+            const prDetailPromises = fetchedItems.map(item => {
+            
+              return LookupService.fetchLookupData(`PURC_FORMPUREQD&filterBy=PR_NUMBER&filterValue=${item.doc_reff_no}&operation=EQUAL`, authToken, branchId)
+                  .then(prResponse => {
+                      return prResponse.data || [];
+                  })
+                  .catch(error => {
+                      console.error(`Failed to load PR details for ${item.doc_reff_no}:`, error);
+                      return []; 
+                  });
+            });
+            console.log('prdetailpromise', prDetailPromises)
+  
+            
+            Promise.all(prDetailPromises)
+            .then(allFetchedPRDetails => {
+              const flattenedPRDetails = allFetchedPRDetails.flat();
+              const uniquePRDetails = Array.from(new Set(flattenedPRDetails.map(item => item.ID)))
+              .map(id => flattenedPRDetails.find(item => item.ID === id));
+              setFetchedPRDetail(uniquePRDetails);
+            })
+            .catch(error => {
+                console.error('Failed to load all PR details:', error);
+            });
+          }
+        })
         .catch(error => {
             console.error('Failed to load items:', error);
         });
 
-        LookupParamService.fetchLookupData("MSDT_FORMTAX", authToken, branchId)
-        .then(data => {
-          console.log('Currency lookup data:', data);
-
-          // Transform keys to uppercase directly in the received data
-          const transformedData = data.data.map(item =>
-              Object.keys(item).reduce((acc, key) => {
-              acc[key.toUpperCase()] = item[key];
-              return acc;
-              }, {})
-          );
-          //console.log('Transformed data:', transformedData);
-
-          const options = transformedData.filter(item => item.TAX_TYPE === 'PPN').map(item => ({
-              value: item.NAME,
-              label: item.NAME,
-              RATE: item.RATE
-          }));
-          
-          setTaxTypeOptions(options);
-          const selectedTaxTypeOption = options.find(option => option.value === selectedData[0].TAX_PPN);
-          setSelectedTaxType(selectedTaxTypeOption || null);
-        }).catch(error => {
-          console.error('Failed to fetch currency lookup:', error);
-        });
-
-
-
-        // Lookup vendor to dan to address
-        LookupParamService.fetchLookupDataView("MSDT_FORMCUST", authToken, branchId)
-        .then(data => {
-          console.log('Currency lookup data:', data);
-
-          // Transform keys to uppercase directly in the received data
-          const transformedData = data.data.map(item =>
-            Object.keys(item).reduce((acc, key) => {
-              acc[key.toUpperCase()] = item[key];
-              return acc;
-            }, {})
-          );
-          //console.log('Transformed data:', transformedData);
-
-          const options = transformedData.filter(item => item.ENTITY_TYPE === 'BOTH' || item.ENTITY_TYPE === 'Vendor').map(item => ({
-            value: item.NAME,
-            label: item.NAME,
-            vendAddress: item.ADDRESS
-          }));
-
-          setVendorOptions(options);
-          const selectVendor = options.find(option => option.value === selectedData[0].VENDOR) || "";
-          setSelectedVendor(selectVendor || null);
-          setVendor(selectVendor.value);
-
-          const optionForTo = transformedData.map(item => ({
-            value: item.NAME,
-            label: item.NAME,
-            vendAddress: item.ADDRESS
-          }));
-
-          setToOptions(optionForTo);
-          const selectTo = optionForTo.find(option => option.value === selectedData[0].FORM_TO) || "";
-          setSelectedTo(selectTo || null);
-          setTo(selectTo.value);
-
-          const uniqueAddress = [...new Set(transformedData.map(item => item.ADDRESS))];
-          const optionsForToAddress = uniqueAddress.map(address => ({
-            value: address,
-            label: address
-          }));
-
-          setToAddressOptions(optionsForToAddress);
-          const selectToAddress = optionsForToAddress.find(option => option.value === selectedData[0].TO_ADDRESS) || "";
-          setSelectedToAddress(selectToAddress || null);
-          setToAddress(selectToAddress.value);
-        }).catch(error => {
-          console.error('Failed to fetch currency lookup:', error);
-        });
+        lookupVendor(selectedData);
+        lookupCurrency(selectedData);
       }
+      
+      lookupPR();
 
-
-
-      // Lookup Purchase Request
-      LookupService.fetchLookupData("PURC_FORMPUREQ&filterBy=STATUS&filterValue=APPROVED&operation=EQUAL", authToken, branchId)
-      .then(data => {
-        console.log('Currency lookup data:', data);
-
-        // Transform keys to uppercase directly in the received data
-        const transformedData = data.data.map(item =>
-          Object.keys(item).reduce((acc, key) => {
-            acc[key.toUpperCase()] = item[key];
-            return acc;
-          }, {})
-        );
-        //console.log('Transformed data:', transformedData);
-
-        const options = transformedData.filter(item => item.STATUS_REQUEST === 'PARTIAL_REQUESTED' || item.STATUS_REQUEST === 'IN_PROCESS').map(item => {
-          const label = item.PR_NUMBER;
-          if (label.startsWith('DRAFT')) {
-            return null; // or you can return an empty object {}
-          }
-          return {
-            value: item.PR_NUMBER,
-            label: label.replace('DRAFT ', ''), // remove 'DRAFT ' from the label
-            DEPARTEMENT: item.DEPARTEMENT,
-            COMPANY: item.COMPANY,
-            PROJECT: item.PROJECT,
-            CUSTOMER: item.CUSTOMER,
-            REQUESTDATE: item.REQUEST_DATE,
-            VENDOR: item.VENDOR,
-            ENDTOENDID: item.ENDTOENDID,
-            ID: item.ID,
-            REQUESTOR: item.REQUESTOR,
-          };
-        }).filter(option => option !== null);
-
-        setPROptions(options);
-
-      }).catch(error => {
-        console.error('Failed to fetch currency lookup:', error);
-      });
-
+      lookupCurrency();
       
       lookupDepartment();
 
       lookupTaxType();
 
-      // Lookup Currency
-      LookupParamService.fetchLookupDataView("MSDT_FORMCCY", authToken, branchId)
-      .then(data => {
-        console.log('Currency lookup data:', data);
-
-        // Transform keys to uppercase directly in the received data
-        const transformedData = data.data.map(item =>
-          Object.keys(item).reduce((acc, key) => {
-            acc[key.toUpperCase()] = item[key];
-            return acc;
-          }, {})
-        );
-        //console.log('Transformed data:', transformedData);
-
-        const options = transformedData.map(item => ({
-          value: item.CODE,
-          label: item.CODE
-        }));
-        setCurrencyOptions(options);
-
-        // Default Currency
-        const defaultCurrency = options.find(option => option.value === 'IDR');
-        if(defaultCurrency){
-          setSelectedCurrency(defaultCurrency);
-          setCurrency(defaultCurrency.value);
-        }
-      }).catch(error => {
-        console.error('Failed to fetch currency lookup:', error);
-      });
-
-
       lookupVendor();
-
 
       lookupProject();
         
-
       lookupProduct();
-
         
     }, []);
 
@@ -488,6 +483,7 @@ import moment from 'moment';
     const handleVendorChange = (selectedOption) => {
       setSelectedVendor(selectedOption);
       setVendor(selectedOption ? selectedOption.value : '');
+      setVendorId(selectedOption ? selectedOption.id  : '');
 
       if(selectedOption){
         // Autofill To
@@ -497,11 +493,13 @@ import moment from 'moment';
         const toAddressOption = toAddressOptions.find((option) => option.value === selectedOption.vendAddress);
         setSelectedToAddress(toAddressOption);
         setToAddress(toAddressOption ? toAddressOption.value : '');
+        setFormToId(selectedOption ? selectedOption.id : "")
       }else{
         setSelectedTo(null);
         setTo('');
         setSelectedToAddress(null);
         setToAddress('');
+        setFormToId('')
       }
     }
     
@@ -509,6 +507,7 @@ import moment from 'moment';
     const handleToChange = (selectedOption) => {
       setSelectedTo(selectedOption);
       setTo(selectedOption ? selectedOption.value : '');
+      setFormToId(selectedOption ? selectedOption.id : '');
       
       // Autofill
       if(selectedOption) {
@@ -519,7 +518,7 @@ import moment from 'moment';
         setSelectedToAddress(null);
         setToAddress('');
       }
-    }    
+    }     
 
     
     // New Item List PR Handle
@@ -541,7 +540,7 @@ import moment from 'moment';
             const fetchedDatas = response.data || [];
             console.log('Items fetched:', fetchedDatas);
             
-            lookupProduct();
+            // lookupProduct();
             
             // Fetch currency lookup data
             LookupParamService.fetchLookupDataView("MSDT_FORMCCY", authToken, branchId)
@@ -601,7 +600,10 @@ import moment from 'moment';
                 ...item,  
                 doc_reff_no: item.pr_number,
                 doc_source: item.doc_source,
-                discount: item.discount || 0
+                discount: item.discount || 0,
+                currency: currency,
+                currency_id: currency_id,
+                requestor_id: parseInt(idUser),
               };
             });
 
@@ -673,12 +675,10 @@ import moment from 'moment';
         }
     };
 
-
     const handleOptionChange = (setter, stateSetter, selectedOption) => {
       setter(selectedOption);
       stateSetter(selectedOption ? selectedOption.value : '');
     };
-
 
     const generateUploadId = async (code) => {
       try {
@@ -693,6 +693,7 @@ import moment from 'moment';
     const handleAddItem = () => {
       setItems([...items, { 
         product: '', 
+        product_id: '',
         product_note: '', 
         quantity: 1, 
         currency: 'IDR', 
@@ -716,7 +717,14 @@ import moment from 'moment';
         project_contract_number: '',
         company:'PT. Abhimata Persada',
         requestor: userId,
+        requestor_id: parseInt(idUser),
         doc_source: '',
+        order_id: '',
+        customer_id: '',
+        department_id: '',
+        project_id: '',
+        vendor_id: vendor_id,
+        currency_id: currency_id,
       }]);
     };
 
@@ -827,12 +835,19 @@ import moment from 'moment';
     };
 
     const handleDeleteItem = (index) => {
+      const itemToRemove = items[index];
       const newItems = items.filter((item, i) => i !== index);
       setItems(newItems);
       setSelectedItems(selectedItems.filter((i) => i !== index));
+
+      console.log('items', itemToRemove);
+
+      // Reset curency
       if(newItems.length === 0){
         console.log('lengt',selectedItems.length)
         setIsCurrencyIsSet(false);
+        setFetchedPRDetail([]);
+        return;
       }
     };
 
@@ -847,17 +862,26 @@ import moment from 'moment';
     const handleSelectAll = () => {
       if (selectedItems.length === items.length) {
         setSelectedItems([]);
+        setFetchedPRDetail([]);
       } else {
         setSelectedItems(items.map((_, index) => index));
       }
     };
+
+    const handleDeleteLast = () => {
+      const newItems = items.slice(0, items.length - 1); // Create a new array excluding the last item
+      setItems(newItems);
+      setSelectedItems([]);
+      if (newItems.length === 0) {
+          setIsCurrencyIsSet(false);
+      }
+  };
 
     const handleDeleteSelected = () => {
       const newItems = items.filter((_, index) => !selectedItems.includes(index));
       setItems(newItems);
       setSelectedItems([]);
       if(newItems.length === 0){
-        console.log('lengt',selectedItems.length)
         setIsCurrencyIsSet(false);
       }
     };
@@ -928,8 +952,12 @@ import moment from 'moment';
       setSelectedVendor(null);
       setCurrency(currencyOptions.find(option => option.value === 'IDR').value);
       setSelectedCurrency(currencyOptions.find(option => option.value === 'IDR'));
+      setCurrencyId(currencyOptions.find(option => option.value === 'IDR').id);
+      setVendorId('');
+      setFormToId('');
     };
 
+    console.log('currency', currency)
    
     const generatePrNumber = async (code) => {
       try {
@@ -951,7 +979,9 @@ import moment from 'moment';
     'original_unit_price',
     'new_unit_price',
     'vat_included',
-    'subTotal'
+    'subTotal',
+    'request_id',
+    'company_id'
   ];
 
   const storedToDelete = [
@@ -970,7 +1000,8 @@ import moment from 'moment';
     'discount',
     'vat_included',
     'new_unit_price',
-    'requestor'
+    'requestor',
+    'requestor_id'
   ];
 
   const handleItemsInsert = async (po_number, duplicateFlag) => {
@@ -1031,8 +1062,33 @@ import moment from 'moment';
       total_discount: calculateTotalAmount().totalDiscount,
       vendor,
       currency,
+      form_to_id,
+      vendor_id,
+      currency_id
     };
   };
+
+
+  async function postItems(items, IDforOrderID, po_number, fieldsToDelete, authToken, branchId) {
+    for (const item of items) {
+      const { rwnum, ID, status, id_trx, ...rest } = item;
+      const updatedItem = {
+        ...item,
+        order_id: IDforOrderID,
+        po_number,
+        tax_ppn: item.tax_ppn,
+      };
+  
+      fieldsToDelete.forEach(field => delete updatedItem[field]);
+  
+      try {
+        const itemResponse = await InsertDataService.postData(updatedItem, "PUORD", authToken, branchId);
+        console.log('Item posted successfully:', itemResponse);
+      } catch (error) {
+        console.error('Error posting item:', error);
+      }
+    }
+  }
 
 
     // Handle Save
@@ -1088,6 +1144,9 @@ import moment from 'moment';
             response = await InsertDataService.postData(generalInfo, "PUOR", authToken, branchId);
           }
 
+          const getIDforOrderID = await LookupService.fetchLookupData(`PURC_FORMPUOR&filterBy=po_number&filterValue=${po_number}&operation=EQUAL`, authToken, branchId);
+          const IDforOrderID = getIDforOrderID.data[0].ID;
+
           console.log('Data posted successfully:', response);
           
           if (response.message === "Update Data Successfully") {
@@ -1128,46 +1187,16 @@ import moment from 'moment';
             }
 
             // After deletion, insert updated items
-            for (const item of items) {
-                // Exclude rwnum, ID, status, and id_trx fields
-                const { rwnum, ID, status, id_trx, ...rest } = item;
-
-                const updatedItem = {
-                    ...rest,
-                    po_number
-                };
-
-                fieldsToDelete.forEach(field => delete updatedItem[field]);
-
-                try {
-                    const itemResponse = await InsertDataService.postData(updatedItem, "PUORD", authToken, branchId);
-                    console.log('Item inserted successfully:', itemResponse);
-                } catch (error) {
-                    console.error('Error inserting item:', updatedItem, error);
-                }
-            }
+            await postItems(items, IDforOrderID, po_number, fieldsToDelete, authToken, branchId);
 
             // Show success message and reset form
             messageAlertSwal('Success', response.message, 'success');
-
-        }
+          }
 
           if (response.message === "insert Data Successfully") {
-            // Iterate over items array and post each item individually
-            for (const item of items) {
-              const { rwnum, ID, status, id_trx, ...rest } = item;
-              const updatedItem = {
-                ...item,
-                po_number,
-                tax_ppn: item.tax_ppn,
-              };
-
-              fieldsToDelete.forEach(field => delete updatedItem[field]);
-
-              const itemResponse = await InsertDataService.postData(updatedItem, "PUORD", authToken, branchId);
-              console.log('Item posted successfully:', itemResponse);
-            }
-
+            // Panggil fungsi untuk post item ke puord
+            await postItems(items, IDforOrderID, po_number, fieldsToDelete, authToken, branchId)
+          }
             //Set status workflow VERIFIED
             LookupService.fetchLookupData(`PURC_FORMPUOR&filterBy=endtoendid&filterValue=${endToEndId}&operation=EQUAL`, authToken, branchId)
             .then(response => {
@@ -1191,7 +1220,7 @@ import moment from 'moment';
             });
             messageAlertSwal('Success', response.message, 'success');
             // resetForm();
-          }
+          
         } catch (err) {
           console.error(err);
           setIsLoading(false);
@@ -1263,6 +1292,9 @@ import moment from 'moment';
             response = await InsertDataService.postData(generalInfo, "PUOR", authToken, branchId);
           }
 
+          const getIDforOrderID = await LookupService.fetchLookupData(`PURC_FORMPUOR&filterBy=po_number&filterValue=${po_number}&operation=EQUAL`, authToken, branchId);
+          const IDforOrderID = getIDforOrderID.data[0].ID;
+
           console.log('Data posted successfully:', response);
 
           if (response.message === "Update Data Successfully") {
@@ -1310,6 +1342,7 @@ import moment from 'moment';
               const updatedItem = {
                 ...rest,
                 po_number,
+                order_id: IDforOrderID,
               };
 
               fieldsToDelete.forEach(field => delete updatedItem[field]);
@@ -1321,8 +1354,8 @@ import moment from 'moment';
                 console.error('Error inserting item:', updatedItem, error);
               }
 
-              if(datacek && docRef === 'purchaseRequest'){
-                const fetchCheckIsUsed = await LookupService.fetchLookupData(`PURC_FORMPUREQD&filterBy=pr_number&filterValue=${item.pr_number}&operation=EQUAL`, authToken, branchId);
+              if(docRef === 'purchaseRequest' || selectedData){
+                const fetchCheckIsUsed = await LookupService.fetchLookupData(`PURC_FORMPUREQD&filterBy=pr_number&filterValue=${item.doc_reff_no}&operation=EQUAL`, authToken, branchId);
                 const checkIsUsedData = fetchCheckIsUsed.data;
                 console.log('fetchedisuseddata', checkIsUsedData);
   
@@ -1349,15 +1382,15 @@ import moment from 'moment';
                       let ponumb;
 
                       const usedDataEntry = checkIsUsedData.find(entry => entry.ID === del);
-
+                      console.log('usedDataEn', usedDataEntry)
                       if (usedDataEntry) {
                           // If the status_detail is "USED", use the po_number from the used data
                           if (usedDataEntry.status_detail === "USED") {
                               ponumb = usedDataEntry.po_number; // Set ponumb from checkIsUsedData
                           }
                       }
-  
-                      for (const item of items) { 
+                      
+                      for (const item of fetchedPRDetail) { 
                         if(storedItem.status_detail === "USED"){
                           statusDetail = "USED";
                         };
@@ -1447,6 +1480,7 @@ import moment from 'moment';
               const updatedItem = {
                 ...rest,
                 po_number,
+                order_id: IDforOrderID,
                 tax_ppn: item.tax_ppn,
                 type_of_vat: item.type_of_vat
               };
@@ -1640,11 +1674,7 @@ import moment from 'moment';
     //   });
     // }
 
-    const [isAddFile, setIsAddFile] = useState(false);
 
-    const handleAddFile = () => {
-      setIsAddFile(true);
-    }
 
     // Disabling used PR Number Logic
     const usedOptions = new Set(items.map(item => item.doc_reff_no)); 
@@ -1658,6 +1688,33 @@ import moment from 'moment';
         border: 'none',
         background: 'transparent',
         color: '#000'
+      }
+    }
+
+    const SubmitAndSaveButton = () => {
+      if(isSubmited === true) {
+        return(
+          <Button
+          onClick={resetForm}
+          >
+            <i className="fas fa-plus"></i> Add New
+          </Button>
+        )
+      } else {
+        return(
+          <>
+            <Button variant="primary" className='mr-2' onClick={handleSave}>
+              <i className="fas fa-save"></i> {
+                isEditingPurchaseOrder ? 'save Changes' : 'Save'
+              }
+            </Button>
+            <Button variant="primary" onClick={handleSubmit}>
+              <i className="fas fa-check"></i> {
+                isEditingPurchaseOrder ? 'Submit Changes' : 'Submit'
+              }
+            </Button>
+          </>
+        )
       }
     }
 
@@ -1715,22 +1772,8 @@ import moment from 'moment';
                       :
                       <></>
                     }
-                     {isSubmited === true ?
-                      <Button
-                      onClick={resetForm}
-                      >
-                        <i className="fas fa-plus"></i> Add New
-                      </Button>
-                      :
-                      <>
-                      <Button variant="primary" className='mr-2' onClick={handleSave}>
-                        <i className="fas fa-save"></i> Save
-                      </Button>
-                      <Button variant="primary" onClick={handleSubmit}>
-                        <i className="fas fa-check"></i> Submit
-                      </Button>
-                      </>
-                      }
+                    
+                      {SubmitAndSaveButton()}
                   </div>
                 </Card.Header>
 
@@ -1795,6 +1838,7 @@ import moment from 'moment';
                               className='form-control'
                               placeholder='Select order date'
                             />
+                            <FaCalendar style={{marginLeft:"-30px", zIndex: '2'}} className='my-auto'/>
                           </div>
                         </Form.Group>
                       </Col>
@@ -1806,7 +1850,13 @@ import moment from 'moment';
                             id='vendor'
                             value={selectedVendor}
                             options={vendorOptions}
-                            onChange={handleVendorChange}
+                            // onChange={handleVendorChange}
+                            onChange={(selectedOption) => {
+                              if(docRef === 'purchaseRequest') {
+                                lookupPR(selectedCurrency ? selectedCurrency.value : '', selectedOption ? selectedOption.value : '' )
+                              }
+                              handleVendorChange(selectedOption)
+                            }}
                             placeholder = "Vendor..."
                             isClearable
                             required
@@ -1908,7 +1958,11 @@ import moment from 'moment';
                             value={selectedCurrency}
                             options={currencyOptions}
                             onChange={(selectedOption) => {
+                              if(docRef === 'purchaseRequest') {
+                                lookupPR(selectedOption ? selectedOption.value : '', selectedVendor ? selectedVendor.value : '')
+                              }
                               handleOptionChange(setSelectedCurrency, setCurrency, selectedOption);
+                              setCurrencyId(selectedOption ? selectedOption.id : '');
                             }}
                             placeholder = "Currency..."
                             isClearable
@@ -2108,8 +2162,8 @@ import moment from 'moment';
                                                 null
                                             }
                                             onChange={(selectedOption) => {
-                                              setSelectedProduct(selectedOption);
                                               handleItemChange(index, 'product', selectedOption ? selectedOption.value : null);
+                                              handleItemChange(index, 'product_id', selectedOption ? selectedOption.id : null);
                                             }}
                                             options={productOptions}
                                             isClearable
@@ -2329,7 +2383,9 @@ import moment from 'moment';
                                           id='requestor'
                                           placeholder='Requestor...'
                                           value={item.requestor}
-                                          onChange={(e) => handleItemChange(index, 'requestor', e.target.value)}
+                                          onChange={(e) => {
+                                            handleItemChange(index, 'requestor', e.target.value)
+                                          }}
                                           style={detailFormStyle()}
                                           readOnly
                                         />
@@ -2347,12 +2403,15 @@ import moment from 'moment';
                                           options={projectOptions}
                                           onChange={(selectedOption) => {
                                             handleItemChange(index, 'project', selectedOption ? selectedOption.value : null);
+                                            handleItemChange(index, 'project_id', selectedOption ? selectedOption.id : null);
                                             if(selectedOption){
                                               handleItemChange(index, 'project_contract_number', selectedOption.project_contract_number);
                                               handleItemChange(index, 'customer', selectedOption.customer);
+                                              handleItemChange(index, 'customer_id', selectedOption.id);
                                             }else{
                                               handleItemChange(index, "customer", ""); 
                                               handleItemChange(index, "project_contract_number", "");
+                                              handleItemChange(index, "customer_id", ""); 
                                             }
                                           }}
                                           placeholder="Project..."
@@ -2408,6 +2467,7 @@ import moment from 'moment';
                                           }
                                           onChange={(selectedOption) => {
                                             handleItemChange(index, 'customer', selectedOption ? selectedOption.value : null)
+                                            handleItemChange(index, 'customer_id', selectedOption ? selectedOption.id : null)
                                           }}
                                           options={customerOptions}
                                           placeholder='Customer...'
@@ -2434,6 +2494,7 @@ import moment from 'moment';
                                           }
                                           onChange={(selectedOption)  => {
                                             handleItemChange(index, 'departement', selectedOption ? selectedOption.value : null)
+                                            handleItemChange(index, 'department_id', selectedOption ? selectedOption.id : null)
                                           }}
                                           options={departementOptions}
                                           placeholder='Department...'
@@ -2470,6 +2531,15 @@ import moment from 'moment';
                                 onClick={handleAddItem}
                               >
                                 <i className="fas fa-plus"></i> New Item
+                              </Button>
+                              <Button
+                                variant="danger"
+                                size="sm"
+                                className="ml-2 rounded-3"
+                                onClick={handleDeleteLast}
+                                disabled={items.length === 0}
+                              >
+                                <i className="fas fa-trash"></i> Delete 
                               </Button>
                             </div>
                             {provided.placeholder}
@@ -2641,22 +2711,7 @@ import moment from 'moment';
                 :
                 <></>
               }
-              {isSubmited === true ?
-              <Button
-              onClick={resetForm}
-              >
-                <i className="fas fa-plus"></i> Add New
-              </Button>
-              :
-              <>
-              <Button variant="primary" className='mr-2' onClick={handleSave}>
-                <i className="fas fa-save"></i> Save
-              </Button>
-              <Button variant="primary" onClick={handleSubmit}>
-                <i className="fas fa-check"></i> Submit
-              </Button>
-              </>
-              }
+              {SubmitAndSaveButton()}
             </Col>
           </Row>
         </section>

@@ -1,5 +1,5 @@
 import React, { Fragment, useEffect, useState } from "react";
-import { Button, Col, Form, InputGroup, Row, Card } from "react-bootstrap";
+import { Button, Col, Form, InputGroup, Row, Card, CardHeader } from "react-bootstrap";
 import { DragDropContext, Droppable, Draggable } from "react-beautiful-dnd";
 import Swal from "sweetalert2";
 import { messageAlertSwal } from "../config/Swal";
@@ -17,6 +17,7 @@ import DeleteDataService from "../service/DeleteDataService";
 import UpdateStatusService from "../service/UpdateStatusService";
 import DatePicker from "react-datepicker";
 import moment from "moment";
+import { FaCalendar } from "react-icons/fa";
 
 const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchaseInvoice, handleRefresh, index, item, selectedData, duplicateFlag, setDuplicateFlag, setIsAddingNewDuplicatePurchaseInvoice }) => {
   const headers = getToken();
@@ -40,6 +41,7 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
   const [projectOptions, setProjectOptions] = useState([]);
   const [selectedProject, setSelectedProject] = useState(null);
   const [productOptions, setProductOptions] = useState([]);
+  const [coaOptions, setCoaOptions] = useState([]);
   const [codCorSkbOptions, setCodCorSkbOptions] = useState([]);
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [vendor, setVendor] = useState("");
@@ -692,6 +694,30 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
         console.error("Failed to fetch currency lookup:", error);
       });
 
+    // buat coa
+    LookupParamService.fetchLookupDataView("MSDT_FORMCOAA", authToken, branchId)
+      .then((data) => {
+        console.log("Currency lookup data:", data);
+
+        // Transform keys to uppercase directly in the received data
+        const transformedData = data.data.map((item) =>
+          Object.keys(item).reduce((acc, key) => {
+            acc[key.toUpperCase()] = item[key];
+            return acc;
+          }, {})
+        );
+        //console.log('Transformed data:', transformedData);
+
+        const options = transformedData.map((item) => ({
+          value: item.CODE,
+          label: item.CODE,
+        }));
+        setCoaOptions(options);
+      })
+      .catch((error) => {
+        console.error("Failed to fetch currency lookup:", error);
+      });
+
     // buat payment term
     LookupParamService.fetchLookupDataView("MSDT_FORMPYTM", authToken, branchId)
       .then((data) => {
@@ -928,8 +954,9 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
     setSelectedPaymentTerm(selectedOption);
     setPaymentTerm(selectedOption ? selectedOption.value : "");
 
+    const formatDate = moment(invoice_date).format("YYYY-MM-DD"); // format tanggal jadi "yyyy-MM-dd"; // format tanggal jadi "yyyy-MM-dd"
     const payload = {
-      date: invoice_date,
+      date: formatDate,
       count: selectedOption ? selectedOption.value : "",
       dateType: selectedOption ? selectedOption.dateType : "",
     };
@@ -1093,187 +1120,180 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
     if (selectedOption) {
       // Fetch lookup data based on the selected option
       LookupParamService.fetchLookupDataView(`PURC_FORMPUOR&filterBy=PO_NUMBER&filterValue=${selectedOption.value}&operation=EQUAL`, authToken, branchId)
-          .then(response => {
-            const fetchedDatas = response.data || [];
-            console.log('Datas fetched:', fetchedDatas);
-
-            const PoHeaderItems = [...storedPoHeader];
-
-            // Simpan Header PO untuk cek Docref Po
-            if (PoHeaderItems.length <= index) {
-              PoHeaderItems.length = index + fetchedDatas.length;
-            }
-
-            fetchedDatas.forEach((fetchedData, i) => {
-              const targetIndex = index + i;
-    
-              // Dynamically grow the array if necessary
-              if (PoHeaderItems.length <= targetIndex) {
-                PoHeaderItems.push(fetchedData); // Add at the end if the index exceeds current length
-              } else {
-                PoHeaderItems[targetIndex] = {
-                  ...PoHeaderItems[targetIndex], // Preserve existing data
-                  ...fetchedData,
-                };
-              }
-            });
-
-            const sanitizedPoHeaders = PoHeaderItems.filter((item) => item !== undefined);
-
-            setStoredPoHeader(sanitizedPoHeaders);
-
-            console.log('poHeaders', storedPoHeader);
-
-      LookupService.fetchLookupData(`PURC_FORMPUORD&filterBy=PO_NUMBER&filterValue=${selectedOption.value}&operation=EQUAL`, authToken, branchId)
         .then((response) => {
-          const fetchedItems = response.data || [];
-          console.log("Items fetched:", fetchedItems);
+          const fetchedDatas = response.data || [];
+          console.log("Datas fetched:", fetchedDatas);
 
+          const PoHeaderItems = [...storedPoHeader];
 
-          // Filter fetched items where status_detail is null
-          const filteredItems = fetchedItems.filter((item) => item.status_detail === null);
-          console.log("Filtered items:", filteredItems);
+          // Simpan Header PO untuk cek Docref Po
+          if (PoHeaderItems.length <= index) {
+            PoHeaderItems.length = index + fetchedDatas.length;
+          }
 
-          
+          fetchedDatas.forEach((fetchedData, i) => {
+            const targetIndex = index + i;
 
-          // Fetch product lookup data
-          LookupParamService.fetchLookupDataView("MSDT_FORMPRDT", authToken, branchId)
-            .then((productData) => {
-              console.log("Product lookup data:", productData);
+            // Dynamically grow the array if necessary
+            if (PoHeaderItems.length <= targetIndex) {
+              PoHeaderItems.push(fetchedData); // Add at the end if the index exceeds current length
+            } else {
+              PoHeaderItems[targetIndex] = {
+                ...PoHeaderItems[targetIndex], // Preserve existing data
+                ...fetchedData,
+              };
+            }
+          });
 
-              // Transform and map product data to options
-              const transformedProductData = productData.data.map((item) =>
-                Object.keys(item).reduce((acc, key) => {
-                  acc[key.toUpperCase()] = item[key];
-                  return acc;
-                }, {})
-              );
+          const sanitizedPoHeaders = PoHeaderItems.filter((item) => item !== undefined);
 
-              const productOptions = transformedProductData.map((item) => ({
-                value: item.NAME,
-                label: item.NAME,
-              }));
+          setStoredPoHeader(sanitizedPoHeaders);
 
-              setProductOptions(productOptions); // Set product options to state
+          console.log("poHeaders", storedPoHeader);
 
-              // Fetch currency lookup data
-              LookupParamService.fetchLookupDataView("MSDT_FORMCCY", authToken, branchId)
-                .then((currencyData) => {
-                  console.log("Currency lookup data:", currencyData);
+          LookupService.fetchLookupData(`PURC_FORMPUORD&filterBy=PO_NUMBER&filterValue=${selectedOption.value}&operation=EQUAL`, authToken, branchId)
+            .then((response) => {
+              const fetchedItems = response.data || [];
+              console.log("Items fetched:", fetchedItems);
 
-                  
-                    
+              // Filter fetched items where status_detail is null
+              const filteredItems = fetchedItems.filter((item) => item.status_detail === null);
+              console.log("Filtered items:", filteredItems);
 
-                  // Transform and map currency data to options
-                  const transformedCurrencyData = currencyData.data.map((item) =>
+              // Fetch product lookup data
+              LookupParamService.fetchLookupDataView("MSDT_FORMPRDT", authToken, branchId)
+                .then((productData) => {
+                  console.log("Product lookup data:", productData);
+
+                  // Transform and map product data to options
+                  const transformedProductData = productData.data.map((item) =>
                     Object.keys(item).reduce((acc, key) => {
                       acc[key.toUpperCase()] = item[key];
                       return acc;
                     }, {})
                   );
 
-                  const currencyOptions = transformedCurrencyData.map((item) => ({
-                    value: item.CODE,
-                    label: item.CODE,
+                  const productOptions = transformedProductData.map((item) => ({
+                    value: item.NAME,
+                    label: item.NAME,
                   }));
 
-                  setCurrencyOptions(currencyOptions); // Set currency options to state
+                  setProductOptions(productOptions); // Set product options to state
 
-                  LookupParamService.fetchLookupDataView("MSDT_FORMTAX", authToken, branchId)
-                    .then((data) => {
-                      console.log("Currency lookup data:", data);
+                  // Fetch currency lookup data
+                  LookupParamService.fetchLookupDataView("MSDT_FORMCCY", authToken, branchId)
+                    .then((currencyData) => {
+                      console.log("Currency lookup data:", currencyData);
 
-                      // Transform keys to uppercase directly in the received data
-                      const transformedData = data.data.map((item) =>
+                      // Transform and map currency data to options
+                      const transformedCurrencyData = currencyData.data.map((item) =>
                         Object.keys(item).reduce((acc, key) => {
                           acc[key.toUpperCase()] = item[key];
                           return acc;
                         }, {})
                       );
-                      //console.log('Transformed data:', transformedData);
 
-                      const options = transformedData
-                        .filter((item) => item.TAX_TYPE === "PPh")
-                        .map((item) => ({
-                          value: item.NAME,
-                          label: item.NAME,
-                          RATE: item.RATE,
-                        }));
-                      setTax_Pph_Type_Option(options);
+                      const currencyOptions = transformedCurrencyData.map((item) => ({
+                        value: item.CODE,
+                        label: item.CODE,
+                      }));
 
-                      const optionsPpn = transformedData
-                        .filter((item) => item.TAX_TYPE === "PPN")
-                        .map((item) => ({
-                          value: item.NAME,
-                          label: item.NAME,
-                          RATE: item.RATE,
-                        }));
-                      setTaxPpnTypeOption(optionsPpn);
+                      setCurrencyOptions(currencyOptions); // Set currency options to state
 
-                      const optionsPpnRoyalty = transformedData
-                        .filter((item) => item.TAX_TYPE === "PPN Royalty")
-                        .map((item) => ({
-                          value: item.NAME,
-                          label: item.NAME,
-                          RATE: item.RATE,
-                        }));
-                      setTaxPpnRoyaltyOption(optionsPpnRoyalty);
+                      LookupParamService.fetchLookupDataView("MSDT_FORMTAX", authToken, branchId)
+                        .then((data) => {
+                          console.log("Currency lookup data:", data);
+
+                          // Transform keys to uppercase directly in the received data
+                          const transformedData = data.data.map((item) =>
+                            Object.keys(item).reduce((acc, key) => {
+                              acc[key.toUpperCase()] = item[key];
+                              return acc;
+                            }, {})
+                          );
+                          //console.log('Transformed data:', transformedData);
+
+                          const options = transformedData
+                            .filter((item) => item.TAX_TYPE === "PPh")
+                            .map((item) => ({
+                              value: item.NAME,
+                              label: item.NAME,
+                              RATE: item.RATE,
+                            }));
+                          setTax_Pph_Type_Option(options);
+
+                          const optionsPpn = transformedData
+                            .filter((item) => item.TAX_TYPE === "PPN")
+                            .map((item) => ({
+                              value: item.NAME,
+                              label: item.NAME,
+                              RATE: item.RATE,
+                            }));
+                          setTaxPpnTypeOption(optionsPpn);
+
+                          const optionsPpnRoyalty = transformedData
+                            .filter((item) => item.TAX_TYPE === "PPN Royalty")
+                            .map((item) => ({
+                              value: item.NAME,
+                              label: item.NAME,
+                              RATE: item.RATE,
+                            }));
+                          setTaxPpnRoyaltyOption(optionsPpnRoyalty);
+                        })
+                        .catch((error) => {
+                          console.error("Failed to fetch currency lookup:", error);
+                        });
+
+                      const newItems = [...items];
+                      const newStored = [...items];
+
+                      const storedPRItems = fetchedItems.map((item) => {
+                        return {
+                          ...item,
+                        };
+                      });
+
+                      storedPRItems.forEach((fetchedItem, i) => {
+                        newStored[index + i] = {
+                          ...newStored[index + i],
+                          ...fetchedItem,
+                        };
+                      });
+
+                      setFetchedDetail(newStored);
+
+                      // Update fetched items with selected options
+                      const updatedFetchedItems = fetchedItems.map((item) => {
+                        return {
+                          ...item,
+                          doc_reff_no: item.po_number,
+                          tax_exchange_rate: tax_exchange_rate,
+                          // selectedProduct: productOptions.find((option) => option.value === item.product),
+                          // selectedCurrency: currencyOptions.find((option) => option.value === item.currency),
+                          // selectedVendor: allvendoroptions.find((option) => option.value === item.vendor),
+                          // selectedProject: projectOptions.find((option) => option.value === item.project),
+                          // selectedDepartement: departementOptions.find((option) => option.value === item.departement),
+                          // selectedCustomer: customerOptions.find((option) => option.value === item.customer),
+                          // selectedContractNumber: contractNumberOption.find((option) => option.value === item.project_contract_number),
+                          // selectedTaxPpnType: taxPpnTypeOption.find((option) => option.value === item.tax_ppn),
+                        };
+                      });
+
+                      updatedFetchedItems.forEach((fetchedItem, i) => {
+                        // Either update the existing index or add new items for each fetched object
+                        newItems[index + i] = {
+                          ...newItems[index + i],
+                          ...fetchedItem,
+                        };
+                      });
+
+                      // Set the updated items to state
+                      setItems(newItems);
+                      console.log("poitems", newItems);
                     })
                     .catch((error) => {
-                      console.error("Failed to fetch currency lookup:", error);
+                      console.error("Failed to fetch PR Items", error);
                     });
-
-                  const newItems = [...items];
-                  const newStored = [...items];
-
-                  const storedPRItems = fetchedItems.map((item) => {
-                    return {
-                      ...item,
-                    };
-                  });
-
-                  storedPRItems.forEach((fetchedItem, i) => {
-                    newStored[index + i] = {
-                      ...newStored[index + i],
-                      ...fetchedItem,
-                    };
-                  });
-
-                  
-                  setFetchedDetail(newStored);
-                  
-
-                  // Update fetched items with selected options
-                  const updatedFetchedItems = fetchedItems.map((item) => {
-                    return {
-                      ...item,
-                      doc_reff_no: item.po_number,
-                      tax_exchange_rate: tax_exchange_rate,
-                      // selectedProduct: productOptions.find((option) => option.value === item.product),
-                      // selectedCurrency: currencyOptions.find((option) => option.value === item.currency),
-                      // selectedVendor: allvendoroptions.find((option) => option.value === item.vendor),
-                      // selectedProject: projectOptions.find((option) => option.value === item.project),
-                      // selectedDepartement: departementOptions.find((option) => option.value === item.departement),
-                      // selectedCustomer: customerOptions.find((option) => option.value === item.customer),
-                      // selectedContractNumber: contractNumberOption.find((option) => option.value === item.project_contract_number),
-                      // selectedTaxPpnType: taxPpnTypeOption.find((option) => option.value === item.tax_ppn),
-                    };
-                  });
-
-                  updatedFetchedItems.forEach((fetchedItem, i) => {
-                    // Either update the existing index or add new items for each fetched object
-                    newItems[index + i] = {
-                      ...newItems[index + i],
-                      ...fetchedItem,
-                    };
-                  });
-
-                  // Set the updated items to state
-                  setItems(newItems);
-                  console.log("poitems", newItems);
-                }).catch(error => {
-                  console.error('Failed to fetch PR Items', error);
-                });
                 })
                 .catch((error) => {
                   console.error("Failed to fetch currency lookup:", error);
@@ -1522,9 +1542,11 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
         if (newItems[index].type_of_vat === "include") {
           newItems[index].tax_base_idr = newItems[index].tax_base * (newItems[index].tax_exchange_rate || 1);
           newItems[index].tax_ppn_amount_idr = newItems[index].tax_base_idr * (newItems[index].tax_ppn_rate / 100); // Bottom rounding
-        } else if (newItems[index].type_of_vat === "exclude" || newItems[index].type_of_vat === "ppn_royalty") {
+        } else if (newItems[index].type_of_vat === "exclude" || newItems[index].type_of_vat === "PPNRoyalty") {
           newItems[index].tax_ppn_amount_idr = Math.floor(newItems[index].total_price_idr * (newItems[index].tax_ppn_rate / 100)); // Bottom rounding
           newItems[index].tax_base_idr = newItems[index].total_price_idr;
+          // newItems[index].tax_base = Math.floor(newItems[index].total_price / (1 + newItems[index].tax_ppn_rate / 100));
+          // newItems[index].tax_ppn_amount = Math.floor(newItems[index].tax_base * (newItems[index].tax_ppn_rate / 100)); // Bottom rounding
         }
       }
       if (field === "tax_pph_type" || field === "tax_pph_rate") {
@@ -1553,7 +1575,7 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
         newItems[index].tax_base = Math.round(newItems[index].total_price / (1 + newItems[index].tax_ppn_rate / 100));
         newItems[index].tax_ppn_amount = Math.floor(newItems[index].tax_base * (newItems[index].tax_ppn_rate / 100)); // Bottom rounding
         newItems[index].vat_included = true;
-      } else if (newItems[index].type_of_vat === "exclude" || newItems[index].type_of_vat === "ppn_royalty") {
+      } else if (newItems[index].type_of_vat === "exclude" || newItems[index].type_of_vat === "PPNRoyalty") {
         newItems[index].tax_ppn_amount = Math.floor(newItems[index].total_price * (newItems[index].tax_ppn_rate / 100)); // Bottom rounding
         newItems[index].tax_base = newItems[index].total_price;
       }
@@ -1700,7 +1722,7 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
     let total_amount = subtotalAfterDiscount;
 
     // Determine if any items qualify for royalty
-    const hasRoyalty = items.some((item) => item.type_of_vat === "ppn_royalty");
+    const hasRoyalty = items.some((item) => item.type_of_vat === "PPNRoyalty");
 
     // Determine if any items are non_ppn
     const hasNonPPN = items.some((item) => item.type_of_vat === "non_ppn");
@@ -1709,6 +1731,7 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
     if (hasRoyalty) {
       // If there are royalties, total amount is subtotalAfterDiscount + totalPPNAmount
       total_amount = subtotalAfterDiscount + totalPPNAmount;
+      // total_amount = Math.ceil(total_amount);
     } else if (hasNonPPN) {
       // If there are non_ppn items, total amount is subtotalAfterDiscount - totalPPHAmount
       total_amount = subtotalAfterDiscount - totalPPHAmount;
@@ -1821,6 +1844,43 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
     setIsSubmited(false);
   };
 
+  const handleItemsInsert = async (invoice_number, duplicateFlag) => {
+    for (const item of items) {
+      let updatedItem;
+      if (duplicateFlag) {
+        updatedItem = {
+          doc_reff_no: item.doc_reff_no,
+          doc_source: item.doc_source,
+          tax_invoice_number: item.tax_invoice_number,
+          project_contract_number: item.project_contract_number,
+          customer: item.customer,
+          departement: item.departement,
+          product: item.product,
+          product_note: item.product_note,
+          quantity: item.quantity,
+          unit_price: item.unit_price,
+          total_price: item.total_price,
+          total_price_idr: item.total_price_idr,
+          tax_exchange_rate: item.tax_exchange_rate,
+          type_of_vat: item.type_of_vat,
+          tax_ppn: item.tax_ppn,
+          tax_ppn_rate: item.tax_ppn_rate,
+          type_of_pph: item.type_of_pph,
+          tax_pph: item.tax_pph,
+          tax_pph_rate: item.tax_pph_rate,
+          tax_base: item.tax_base,
+          tax_base_idr: item.tax_base_idr,
+          id_upload: item.id_upload,
+          po_number: invoice_number,
+        };
+      } else {
+        updatedItem = { ...item, invoice_number };
+      }
+      await InsertDataService.postData(updatedItem, "INVCD", authToken, branchId);
+      console.log("Item posted successfully:", updatedItem);
+    }
+  };
+
   const handleSave = async (event) => {
     event.preventDefault();
 
@@ -1897,15 +1957,20 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
         let response;
 
         // Check if updating existing data or inserting new data
-        if (selectedData) {
+        if (selectedData && duplicateFlag === false) {
           const id = selectedData[0].ID;
           response = await UpdateDataService.postData(generalInfo, `PUINVC&column=id&value=${id}`, authToken, branchId);
         } else if (existingData && existingData.length > 0) {
-          const id = existingData[0].ID;
-          response = await UpdateDataService.postData(generalInfo, `PUINVC&column=id&value=${id}`, authToken, branchId);
+          const ida = existingData[0].ID;
+          response = await UpdateDataService.postData(generalInfo, `PUINVC&column=id&value=${ida}`, authToken, branchId);
         } else {
           response = await InsertDataService.postData(generalInfo, "PUINVC", authToken, branchId);
         }
+
+        const getIDforINVID = await LookupService.fetchLookupData(`PURC_FORMPUINVC&filterBy=invoice_number&filterValue=${invoice_number}&operation=EQUAL`, authToken, branchId);
+        const idforIVCID = getIDforINVID.data[0];
+
+        console.log('the id', idforIVCID.ID)
 
         console.log("Data posted successfully:", response);
 
@@ -1949,8 +2014,9 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
             const updatedItem = {
               ...rest,
               invoice_number,
+              invoice_id: ID,
             };
-            delete updatedItem.ID;
+            // delete updatedItem.ID;
             delete updatedItem.id;
             delete updatedItem.vat;
             delete updatedItem.tax_pph_type;
@@ -2002,6 +2068,7 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
             const updatedItem = {
               ...rest,
               invoice_number,
+              invoice_id: idforIVCID.ID,
               type_of_vat: item.type_of_vat,
               tax_ppn: item.tax_ppn,
               tax_base: item.tax_base,
@@ -2010,7 +2077,7 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
               tax_exchange_rate: item.tax_exchange_rate,
               total_after_discount: item.subtotalAfterDiscount,
             };
-            delete updatedItem.ID;
+            // delete updatedItem.ID;
             delete updatedItem.id;
             delete updatedItem.vat;
             delete updatedItem.tax_pph_type;
@@ -2109,11 +2176,6 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
       return; // Prevent form submission
     }
 
-    // if (!tax_exchange_rate) {
-    //   messageAlertSwal("Error", "Tax Exchange Rate cannot be empty.", "error");
-    //   return;
-    // }
-
     // Show SweetAlert2 confirmation
     const result = await Swal.fire({
       title: "Are you sure?",
@@ -2179,7 +2241,7 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
         let response;
 
         // Check if updating existing data or inserting new data
-        if (selectedData) {
+        if (selectedData && duplicateFlag === false) {
           const id = selectedData[0].ID;
           response = await UpdateDataService.postData(generalInfo, `PUINVC&column=id&value=${id}`, authToken, branchId);
         } else {
@@ -2356,100 +2418,91 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
                         const storedItem = fetchPRD.data.find((item) => item.ID === prdel);
 
                         if (storedItem) {
+                          // Check the new condition
+                          const matchingPoNumber = items.some((newItem) => newItem.po_number === storedItem.po_number && storedPoHeader.some((header) => header.po_number === newItem.po_number && header.doc_reff === "purchaseRequest"));
+                          console.log("mathcing", matchingPoNumber);
+                          if (matchingPoNumber) {
+                            // Delete the item first
+                            await DeleteDataService.postData(`column=id&value=${prdel}`, "PUREQD", authToken, branchId);
+                            console.log("Item deleted successfully:", prdel);
 
-                           // Check the new condition
-                        const matchingPoNumber = items.some(
-                          (newItem) =>
-                            newItem.po_number === storedItem.po_number &&
-                            storedPoHeader.some(
-                              (header) =>
-                                header.po_number === newItem.po_number &&
-                                header.doc_reff === "purchaseRequest"
-                            )
-                        );
-                        console.log('mathcing', matchingPoNumber)
-                        if(matchingPoNumber){
-                          // Delete the item first
-                          await DeleteDataService.postData(`column=id&value=${prdel}`, "PUREQD", authToken, branchId);
-                          console.log("Item deleted successfully:", prdel);
+                            const { rwnum, ID, status, id_trx, ...stored } = storedItem;
 
-                          const { rwnum, ID, status, id_trx, ...stored } = storedItem;
+                            console.log("storeditem", storedItem);
+                            console.log("itemsa", item);
 
-                          console.log("storeditem", storedItem);
-                          console.log("itemsa", item);
+                            let invoicenum;
 
-                          let invoicenum;
+                            const usedDataEntry = fetchPRD.data.find((entry) => entry.ID === prdel);
 
-                          const usedDataEntry = fetchPRD.data.find((entry) => entry.ID === prdel);
-
-                          if (usedDataEntry) {
-                            // If the status_detail is "USED", use the po_number from the used data
-                            if (usedDataEntry.status_detail === "USED") {
-                              invoicenum = usedDataEntry.invoice_number; // Set ponumb from checkIsUsedData
+                            if (usedDataEntry) {
+                              // If the status_detail is "USED", use the po_number from the used data
+                              if (usedDataEntry.status_detail === "USED") {
+                                invoicenum = usedDataEntry.invoice_number; // Set ponumb from checkIsUsedData
+                              }
                             }
-                          }
 
-                          for (const item of items) {
-                            // Assuming 'items' is an array of items to check against
-                            if (storedItem.po_number === item.po_number && (storedItem.po_number === item.doc_reff_no || storedItem.pr_number === item.doc_reff_no)) {
-                              invoicenum = invoice_number.replace("DRAFT_", "");
+                            for (const item of items) {
+                              // Assuming 'items' is an array of items to check against
+                              if (storedItem.po_number === item.po_number && (storedItem.po_number === item.doc_reff_no || storedItem.pr_number === item.doc_reff_no)) {
+                                invoicenum = invoice_number.replace("DRAFT_", "");
+                              }
                             }
+                            console.log("invoicenumc", invoice_number);
+
+                            const updatedStoredItem = {
+                              ...stored,
+                              invoice_number: invoicenum,
+                            };
+                            console.log("updatedstatus", updatedStoredItem.status_detail);
+                            console.log("incovid", invoicenum);
+
+                            // Remove unwanted fields
+                            const fieldsToDelete = [
+                              "rwnum",
+                              "ID",
+                              "id",
+                              "status",
+                              "id_trx",
+                              "original_unit_price",
+                              "type_of_vat",
+                              "tax_ppn",
+                              "tax_pph",
+                              "tax_pph_type",
+                              "total_amount_ppn",
+                              "total_amount_pph",
+                              "total_price_idr",
+                              "tax_exchange_rate",
+                              "total_after_discount",
+                              "total_before_discount",
+                              "tax_ppn_amount",
+                              "tax_pph_amount",
+                              "tax_ppn_rate",
+                              "tax_pph_rate",
+                              "subtotal",
+                              "subTotal",
+                              "tax_base",
+                              "discount",
+                              "vat_included",
+                              "new_unit_price",
+                              "requestor",
+                              "total_amount_idr",
+                              "total_before_discount_idr",
+                              "total_after_discount_idr",
+                              "total_amount_ppn_idr",
+                              "total_amount_pph_idr",
+                              "cod_cor_skb",
+                              "tax_base_idr",
+                            ];
+
+                            fieldsToDelete.forEach((field) => delete updatedStoredItem[field]);
+
+                            // Insert the updated stored item
+                            const storedItemResponse = await InsertDataService.postData(updatedStoredItem, "PUREQD", authToken, branchId);
+                            console.log("Stored item posted successfully:", storedItemResponse);
+                          } else {
+                            console.log("Condition not met for stored item ID:", prdel);
                           }
-                          console.log("invoicenumc", invoice_number);
-
-                          const updatedStoredItem = {
-                            ...stored,
-                            invoice_number: invoicenum,
-                          };
-                          console.log("updatedstatus", updatedStoredItem.status_detail);
-                          console.log("incovid", invoicenum);
-
-                          // Remove unwanted fields
-                          const fieldsToDelete = [
-                            "rwnum",
-                            "ID",
-                            "id",
-                            "status",
-                            "id_trx",
-                            "original_unit_price",
-                            "type_of_vat",
-                            "tax_ppn",
-                            "tax_pph",
-                            "tax_pph_type",
-                            "total_amount_ppn",
-                            "total_amount_pph",
-                            "total_price_idr",
-                            "tax_exchange_rate",
-                            "total_after_discount",
-                            "total_before_discount",
-                            "tax_ppn_amount",
-                            "tax_pph_amount",
-                            "tax_ppn_rate",
-                            "tax_pph_rate",
-                            "subtotal",
-                            "subTotal",
-                            "tax_base",
-                            "discount",
-                            "vat_included",
-                            "new_unit_price",
-                            "requestor",
-                            "total_amount_idr",
-                            "total_before_discount_idr",
-                            "total_after_discount_idr",
-                            "total_amount_ppn_idr",
-                            "total_amount_pph_idr",
-                            "cod_cor_skb",
-                            "tax_base_idr",
-                          ];
-
-                          fieldsToDelete.forEach((field) => delete updatedStoredItem[field]);
-
-                          // Insert the updated stored item
-                          const storedItemResponse = await InsertDataService.postData(updatedStoredItem, "PUREQD", authToken, branchId);
-                          console.log("Stored item posted successfully:", storedItemResponse);
-                        } else {
-                          console.log("Condition not met for stored item ID:", prdel);
-                        }
                         } else {
                           console.log("No corresponding stored item found for ID:", prdel);
                         }
@@ -2468,97 +2521,96 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
 
               let hasNullStatus = false;
 
-                for (const del of dels) {
-                  try {
-                    // Now, find the corresponding stored item to update/insert
-                    const storedItem = fetchedDetail.find((item) => item.ID === del);
+              for (const del of dels) {
+                try {
+                  // Now, find the corresponding stored item to update/insert
+                  const storedItem = fetchedDetail.find((item) => item.ID === del);
 
-                    if (storedItem) {
-                      // Delete the item first
-                      await DeleteDataService.postData(`column=id&value=${del}`, formToDel, authToken, branchId);
-                      console.log("Item deleted successfully:", del);
+                  if (storedItem) {
+                    // Delete the item first
+                    await DeleteDataService.postData(`column=id&value=${del}`, formToDel, authToken, branchId);
+                    console.log("Item deleted successfully:", del);
 
-                      const { rwnum, ID, status, id_trx, ...stored } = storedItem;
+                    const { rwnum, ID, status, id_trx, ...stored } = storedItem;
 
-                      console.log("storeditem", storedItem);
-                      console.log("itemsa", item);
+                    console.log("storeditem", storedItem);
+                    console.log("itemsa", item);
 
-                      let statusDetail;
-                      let invnum;
+                    let statusDetail;
+                    let invnum;
 
-                      for (const item of items) {
-                        // Assuming 'items' is an array of items to check against
-                        if (storedItem.status_detail === "USED") {
-                          statusDetail = "USED";
-                        }
-                        if (storedItem.ID === item.ID) {
-                          statusDetail = "USED";
-                          invnum = invoice_number.replace("DRAFT_", "");
-                          break; // Exit the loop early if we find a match
-                        }
+                    for (const item of items) {
+                      // Assuming 'items' is an array of items to check against
+                      if (storedItem.status_detail === "USED") {
+                        statusDetail = "USED";
                       }
-
-                      const updatedStoredItem = {
-                        ...stored,
-                        status_detail: statusDetail,
-                        invoice_number: invnum,
-                      };
-                      console.log("updatedstatus", updatedStoredItem.status_detail);
-
-                      // Remove unwanted fields
-                       const fieldsToDelete = [
-                        "rwnum",
-                        "ID",
-                        "id",
-                        "status",
-                        "id_trx",
-                        "original_unit_price",
-                        "type_of_vat",
-                        "tax_ppn",
-                        "tax_pph",
-                        "tax_pph_type",
-                        "total_amount_ppn",
-                        "total_amount_pph",
-                        "total_price_idr",
-                        "tax_exchange_rate",
-                        "total_after_discount",
-                        "total_before_discount",
-                        "tax_ppn_amount",
-                        "tax_pph_amount",
-                        "tax_ppn_rate",
-                        "tax_pph_rate",
-                        "subtotal",
-                        "subTotal",
-                        "tax_base",
-                        "discount",
-                        "vat_included",
-                        "new_unit_price",
-                        "requestor",
-                        "bi_middle_rate",
-                        "total_amount_idr",
-                        "total_before_discount_idr",
-                        "total_after_discount_idr",
-                        "tax_base_idr",
-                        "cod_cor_skb",
-                        "tax_pph_amount_idr",
-                        "tax_ppn_amount_idr",
-                        "tax_ppn_amount_idr",
-                        "total_amount_pph_idr",
-                        "total_amount_ppn_idr",
-                      ];
-
-                      fieldsToDelete.forEach((field) => delete updatedStoredItem[field]);
-
-                      // Insert the updated stored item
-                      const storedItemResponse = await InsertDataService.postData(updatedStoredItem, formToDel, authToken, branchId);
-                      console.log("Stored item posted successfully:", storedItemResponse);
-                    } else {
-                      console.log("No corresponding stored item found for ID:", del);
+                      if (storedItem.ID === item.ID) {
+                        statusDetail = "USED";
+                        invnum = invoice_number.replace("DRAFT_", "");
+                        break; // Exit the loop early if we find a match
+                      }
                     }
-                  } catch (error) {
-                    console.error("Error processing item:", del, error);
+
+                    const updatedStoredItem = {
+                      ...stored,
+                      status_detail: statusDetail,
+                      invoice_number: invnum,
+                    };
+                    console.log("updatedstatus", updatedStoredItem.status_detail);
+
+                    // Remove unwanted fields
+                    const fieldsToDelete = [
+                      "rwnum",
+                      "ID",
+                      "id",
+                      "status",
+                      "id_trx",
+                      "original_unit_price",
+                      "type_of_vat",
+                      "tax_ppn",
+                      "tax_pph",
+                      "tax_pph_type",
+                      "total_amount_ppn",
+                      "total_amount_pph",
+                      "total_price_idr",
+                      "tax_exchange_rate",
+                      "total_after_discount",
+                      "total_before_discount",
+                      "tax_ppn_amount",
+                      "tax_pph_amount",
+                      "tax_ppn_rate",
+                      "tax_pph_rate",
+                      "subtotal",
+                      "subTotal",
+                      "tax_base",
+                      "discount",
+                      "vat_included",
+                      "new_unit_price",
+                      "requestor",
+                      "bi_middle_rate",
+                      "total_amount_idr",
+                      "total_before_discount_idr",
+                      "total_after_discount_idr",
+                      "tax_base_idr",
+                      "cod_cor_skb",
+                      "tax_pph_amount_idr",
+                      "tax_ppn_amount_idr",
+                      "tax_ppn_amount_idr",
+                      "total_amount_pph_idr",
+                      "total_amount_ppn_idr",
+                    ];
+
+                    fieldsToDelete.forEach((field) => delete updatedStoredItem[field]);
+
+                    // Insert the updated stored item
+                    const storedItemResponse = await InsertDataService.postData(updatedStoredItem, formToDel, authToken, branchId);
+                    console.log("Stored item posted successfully:", storedItemResponse);
+                  } else {
+                    console.log("No corresponding stored item found for ID:", del);
                   }
-                
+                } catch (error) {
+                  console.error("Error processing item:", del, error);
+                }
               }
 
               const getDocRefList = await LookupService.fetchLookupData(getHeader, authToken, branchId);
@@ -2643,6 +2695,8 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
   };
 
   // console.log("subl", items.tax_exchange_rate);
+
+  // set tanggal hari ini
   useEffect(() => {
     const today = new Date().toISOString().split("T")[0]; // Get today's date in YYYY-MM-DD format
     setInvoiceDate(today);
@@ -2759,7 +2813,7 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
                         }
                       }}
                     >
-                      <i className="fas fa-arrow-left"></i> Back
+                      <i className="fas fa-arrow-left"></i> Go Back
                     </Button>
                   ) : (
                     <></>
@@ -2784,36 +2838,6 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
               <Card.Body>
                 <Form>
                   <Row>
-                    {/* <Col md={6}>
-                        <Form.Group controlId="formTitle">
-                          <Form.Label>Title</Form.Label>
-                          <Form.Control type="text" placeholder="Enter Title" value={title || ""} onChange={(e) => setTitle(e.target.value)} disabled={docRef === "purchaseOrder"} required />
-                        </Form.Group>
-                      </Col> */}
-
-                    {/* {docRef === "purchaseRequest" ? (
-                        <Col md={6}>
-                          <Form.Group controlId="formId">
-                            <Form.Label>ID</Form.Label>
-                            <Form.Control
-                              type="number"
-                              placeholder="Enter ID"
-                              value={ID}
-                              onChange={(e) => setID(e.target.value)}
-                              required
-                              disabled={true} // Add this prop to disable the field
-                            />
-                          </Form.Group>
-                        </Col>
-                      ) : (
-                        <Col md={6}>
-                          <Form.Group controlId="formId">
-                            <Form.Label>ID</Form.Label>
-                            <Form.Control type="number" placeholder="Enter ID" value={ID} onChange={(e) => setID(e.target.value)} required />
-                          </Form.Group>
-                        </Col>
-                      )} */}
-
                     <Col md={6} hidden>
                       <Form.Group controlId="formInternalMemo">
                         <Form.Label>End To End Id</Form.Label>
@@ -2831,8 +2855,9 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
                     <Col md={6}>
                       <Form.Group controlId="formInvoiceDate">
                         <Form.Label>Invoice Date</Form.Label>
-                        <div>
+                        <div className="input-group">
                           <DatePicker selected={invoice_date} onChange={(date) => setInvoiceDate(date)} dateFormat={"dd-MM-yyyy"} className="form-control" placeholder="Select Invoice Date" required />
+                          <FaCalendar style={{ marginLeft: "-30px", zIndex: "2" }} className="my-auto" />
                         </div>
                       </Form.Group>
                     </Col>
@@ -2850,63 +2875,19 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
                       </Form.Group>
                     </Col>
 
-                    {/* {docRef === "purchaseRequest" && (
-                      <Col md={6}>
-                        <Form.Group controlId="formPrNumber">
-                          <Form.Label>PR Number</Form.Label>
-                          <Select value={selectedPrNumber} onChange={handlePrNumberChange} options={prNumberOptions} isClearable placeholder="Select PR Number..." />
-                        </Form.Group>
-                      </Col>
-                    )}
-
-                    {docRef === "purchaseOrder" && (
-                      <Col md={6}>
-                        <Form.Group controlId="formPoNumber">
-                          <Form.Label>PO Number</Form.Label>
-                          <Select value={selectedPoNumber} onChange={handlePoNumberChange} options={poNumberOptions} isClearable placeholder="Select PO Number..." />
-                        </Form.Group>
-                      </Col>
-                    )}
-
-                    {docRef === "internalMemo" && (
-                      <Col md={6}>
-                        <Form.Group controlId="formInternalMemo">
-                          <Form.Label>Internal Memo</Form.Label>
-                          <Form.Control type="text" placeholder="Enter Internal Memo" value={internalmemo} onChange={(e) => setInternalMemo(e.target.value)} required />
-                        </Form.Group>
-                      </Col>
-                    )}
-
-                    {docRef === "customerContract" && (
-                      <Col md={6}>
-                        <Form.Group controlId="formInternalMemo">
-                          <Form.Label>Customer Contract</Form.Label>
-                          <Form.Control type="text" placeholder="Enter Document Contract" value={customer_contract} onChange={(e) => setCustomerContract(e.target.value)} required />
-                        </Form.Group>
-                      </Col>
-                    )} */}
-                    {/* 
-                    {docRef === "purchaseOrder" ? (
-                      <Col md={6}>
-                        <Form.Group controlId="formPaymentTerm">
-                          <Form.Label>Payment Term</Form.Label>
-                          <Select value={selectedPaymentTerm} onChange={handlePaymentTermChange} options={paymentTermOptions} isClearable placeholder="Select Payment Term..." />
-                        </Form.Group>
-                      </Col>
-                    ) : ( */}
                     <Col md={6}>
                       <Form.Group controlId="formPaymentTerm">
                         <Form.Label>Payment Term</Form.Label>
                         <Select value={selectedPaymentTerm} onChange={handlePaymentTermChange} options={paymentTermOptions} isClearable placeholder="Select Payment Term..." />
                       </Form.Group>
                     </Col>
-                    {/* )} */}
 
                     <Col md={6}>
                       <Form.Group controlId="formDueDate">
                         <Form.Label>Due Date</Form.Label>
-                        <div>
-                          <DatePicker selected={due_date} onChange={(date) => setDueDate(date)} dateFormat={"dd-MM-yyyy"} className="form-control" placeholder="Select Due Date" required />
+                        <div className="input-group">
+                          <DatePicker selected={due_date} onChange={(date) => setDueDate(date)} dateFormat="dd-MM-yyyy" className="form-control" placeholderText="Select Due Date" required />
+                          <FaCalendar style={{ marginLeft: "-30px", zIndex: "2" }} className="my-auto" />
                         </div>
                       </Form.Group>
                     </Col>
@@ -2934,143 +2915,12 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
                       </Form.Group>
                     </Col>
 
-                    {/* <Col md={6}>
-                      <Form.Group controlId="formBiMiddleRate">
-                        <Form.Label>Bi Middle Rate</Form.Label>
-                        <Form.Control
-                          type="number"
-                          placeholder="Enter Bi Middle Rate"
-                          min="0"
-                          value={bi_middle_rate}
-                          onChange={(e) => {
-                            const value = parseFloat(e.target.value);
-                            setBiMiddleRate(isNaN(value) ? 0 : value);
-                          }}
-                          required
-                        />
-                      </Form.Group>
-                    </Col>
-                     */}
-
                     <Col md={6}>
                       <Form.Group controlId="formCreatedBy">
                         <Form.Label>Created By</Form.Label>
                         <Form.Control type="text" placeholder="Insert Created By" value={createdBy} onChange={(e) => setCreatedBy(e.target.value)} disabled />
                       </Form.Group>
                     </Col>
-
-                    {/* <Col md={6}>
-                      <Form.Group controlId="formDocSource">
-                        <Form.Label>Choose File</Form.Label>
-                        <Form.Control
-                          type="file"
-                          placeholder="Choose File"
-                          onChange={(e) => {
-                            if (e.target.files && e.target.files[0]) {
-                              setDocSource(e.target.files[0]);
-                            } else {
-                              setDocSource(null); // or some other default value
-                            }
-                          }}
-                        />
-                      </Form.Group>
-                    </Col> */}
-
-                    {/* {docRef === "purchaseRequest" && (
-                        <Col md={6}>
-                          <Form.Group controlId="formVendor">
-                            <Form.Label>Vendor</Form.Label>
-                            <Select value={selectedVendor} onChange={handleVendorChange} options={vendorOptions} isClearable placeholder="Select Vendor..." />
-                          </Form.Group>
-                        </Col>
-                      )}
-
-                      {docRef === "purchaseOrder" && (
-                        <Col md={6}>
-                          <Form.Group controlId="formProject">
-                            <Form.Label>Project</Form.Label>
-                            <Select value={selectedProject} onChange={handleProjectChange} options={projectOptions} isClearable placeholder="Select Project..." />
-                          </Form.Group>
-                        </Col>
-                      )}
-
-                      {docRef === "purchaseOrder" && (
-                        <Col md={6}>
-                          <Form.Group controlId="formVendor">
-                            <Form.Label>Vendor</Form.Label>
-                            <Select value={selectedVendor} onChange={handleVendorChange} options={vendorOptions} isClearable placeholder="Select Vendor..." />
-                          </Form.Group>
-                        </Col>
-                      )}
-
-                      {docRef === "purchaseOrder" && (
-                        <Col md={6}>
-                          <Form.Group controlId="formPaymentTerm">
-                            <Form.Label>Payment Term</Form.Label>
-                            <Select value={selectedPaymentTerm} onChange={handlePaymentTermChange} options={paymentTermOptions} isClearable placeholder="Select Payment Term..." />
-                          </Form.Group>
-                        </Col>
-                      )}
-
-                      {docRef === "purchaseOrder" && (
-                        <Col md={6}>
-                          <Form.Group controlId="formDueDate">
-                            <Form.Label>Due Date</Form.Label>
-                            <Form.Control type="date" value={dueDate} onChange={(e) => setDueDate(e.target.value)} required />
-                          </Form.Group>
-                        </Col>
-                      )} */}
-
-                    {/* <Col md={6}>
-                        <Form.Group controlId="formPrNumber">
-                          <Form.Label>PR Number</Form.Label>
-                          <Select value={selectedPrNumber} onChange={handlePrNumberChange} options={prNumberOptions} isClearable placeholder="Select PR Number..." />
-                        </Form.Group>
-                      </Col> */}
-
-                    {/* <Col md={6}>
-                        <Form.Group controlId="formPoNumber">
-                          <Form.Label>PO Number</Form.Label>
-                          <Select value={selectedPoNumber} onChange={handlePoNumberChange} options={poNumberOptions} isClearable placeholder="Select PO Number..." />
-                        </Form.Group>
-                      </Col> */}
-
-                    {/* <Col md={6}>
-                        <Form.Group controlId="formInternalMemo">
-                          <Form.Label>Internal Memo</Form.Label>
-                          <Form.Control type="text" placeholder="Enter Internal Memo" value={internalmemo} onChange={(e) => setInternalMemo(e.target.value)} required />
-                        </Form.Group>
-                      </Col> */}
-
-                    {/* <Col md={6}>
-                        <Form.Group controlId="formInvoiceType">
-                          <Form.Label>Invoice Type</Form.Label>
-                          <Form.Control type="text" placeholder="Enter Invoice Type" value={invoice_type} onChange={(e) => setInvoiceType(e.target.value)} />
-                        </Form.Group>
-                      </Col> */}
-
-                    {/* {docRef === "purchaseRequest" ? (
-                      <Col md={6}>
-                        <Form.Group controlId="formProject">
-                          <Form.Label>Project</Form.Label>
-                          <Select
-                            value={selectedProject}
-                            onChange={handleProjectChange}
-                            options={projectOptions}
-                            isClearable
-                            placeholder="Select Project..."
-                            isDisabled={true} // Add this prop to disable the field
-                          />
-                        </Form.Group>
-                      </Col>
-                    ) : (
-                      <Col md={6}>
-                        <Form.Group controlId="formProject">
-                          <Form.Label>Project</Form.Label>
-                          <Select value={selectedProject} onChange={handleProjectChange} options={projectOptions} isClearable placeholder="Select Project..." isDisabled={docRef === "purchaseOrder"} />
-                        </Form.Group>
-                      </Col>
-                    )} */}
 
                     <Col md={6}>
                       <Form.Group controlId="formVendor">
@@ -3104,12 +2954,6 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
                       </Form.Group>
                     </Col>
 
-                    {/* <Col md={6}>
-                        <Form.Group controlId="formTypeOfPayment">
-                          <Form.Label>Type of Payment</Form.Label>
-                          <Form.Control type="text" placeholder="Enter Type Of Payment" value={type_of_payment} onChange={(e) => setTypeOfPayment(e.target.value)} />
-                        </Form.Group>
-                      </Col> */}
                     <Col md={6}>
                       <Form.Group controlId="formTotalAmountPpnIdr">
                         <Form.Label>Total Amount PPN IDR</Form.Label>
@@ -3167,7 +3011,7 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
                         <Form.Control
                           type="number"
                           placeholder="Enter Total Amount IDR"
-                          min="0"
+                          min="1"
                           value={total_after_discount_idr}
                           onChange={(e) => {
                             const value = parseFloat(e.target.value);
@@ -3404,7 +3248,7 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
                                       <option value="include">Include</option>
                                       <option value="exclude">Exclude</option>
                                       <option value="non_ppn">Non PPN</option>
-                                      <option value="PPNRoyalty">PPN Royalty</option>
+                                      {currency !== "IDR" ? <option value="PPNRoyalty">PPN Royalty</option> : <></>}
                                     </Form.Control>
                                   </td>
 
@@ -3640,48 +3484,6 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
                                       </div>
                                     )}
                                   </td>
-                                  {/* <td>
-                                    <Form.Control type="number" value={item.tax_invoice_number_vendor} onChange={(e) => handleItemChange(index, "tax_invoice_number_vendor", parseFloat(e.target.value))} />
-                                  </td> */}
-                                  {/* {docRef === "purchaseRequest" && (
-                                    <td>
-                                      <Form.Group controlId="formVendor">
-                                        <Select
-                                          value={vendorOptions.find((option) => option.value === item.vendor)}
-                                          onChange={(selectedOption) => handleItemChange(index, "vendor", selectedOption ? selectedOption.value : null)}
-                                          options={vendorOptions}
-                                          isClearable
-                                          placeholder="Select Vendor..."
-                                        />
-                                      </Form.Group>
-                                    </td>
-                                  )}
-                                  {docRef === "purchaseOrder" && (
-                                    <td>
-                                      <Form.Group controlId="formVendor">
-                                        <Select
-                                          value={allvendoroptions.find((option) => option.value === item.vendor)}
-                                          onChange={(selectedOption) => handleItemChange(index, "vendor", selectedOption ? selectedOption.value : null)}
-                                          options={allvendoroptions}
-                                          isClearable
-                                          placeholder="Select Vendor..."
-                                        />
-                                      </Form.Group>
-                                    </td>
-                                  )}
-                                  {!(docRef === "purchaseRequest" || docRef === "purchaseOrder") && (
-                                    <td>
-                                      <Form.Group controlId="formVendor">
-                                        <Select
-                                          value={allvendoroptions.find((option) => option.value === item.vendor)}
-                                          onChange={(selectedOption) => handleItemChange(index, "vendor", selectedOption.value)}
-                                          options={allvendoroptions}
-                                          isClearable
-                                          placeholder="Select Vendor..."
-                                        />
-                                      </Form.Group>
-                                    </td>
-                                  )} */}
 
                                   {docRef === "purchaseRequest" ? (
                                     <td>
@@ -3823,42 +3625,6 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
                                       required
                                     />
                                   </td>
-
-                                  {/* <td>
-                                      <Form.Control type="text" value={item.product_note} onChange={(e) => handleItemChange(index, "product_note", e.target.value)} />
-                                    </td>
-                                    <td>
-                                      <Form.Control type="number" value={item.quantity} onChange={(e) => handleItemChange(index, "quantity", parseFloat(e.target.value) || 0)} />
-                                    </td> */}
-                                  {/* {docRef === "purchaseRequest" || docRef === "purchaseOrder" ? (
-                                      <td>
-                                        <Form.Control type="number" value={item.id || selectedPrNumber?.id} onChange={(e) => handleItemChange(index, "id", e.target.value)} />
-                                      </td>
-                                    ) : (
-                                      <td>
-                                        <Form.Control type="number" value={item.id} onChange={(e) => handleItemChange(index, "id", e.target.value)} />
-                                      </td>
-                                    )} */}
-                                  {/* <td>
-                                      <Form.Control type="number" value={item.id || selectedPrNumber?.id} onChange={(e) => handleItemChange(index, "id", e.target.value)} />
-                                    </td> */}
-
-                                  {/* <td>
-                                      <Form.Control type="text" value={item.invoice_number} onChange={(e) => handleItemChange(index, "invoice_number", e.target.value)} />
-                                    </td> */}
-
-                                  {/* <td>
-                                    <Select
-                                      value={currencyOptions.find((option) => option.value === item.currency)} // Menemukan mata uang yang sesuai
-                                      onChange={(selectedOption) => {
-                                        handleItemChange(index, "currency", selectedOption ? selectedOption.value : null); // Memanggil handleItemChange untuk memperbarui mata uang per baris
-                                      }}
-                                      options={currencyOptions} // Daftar opsi mata uang
-                                      // isClearable
-                                      placeholder="Select Currency"
-                                      defaultValue={currencyOptions.find((option) => option.value === (item.currency || "USD"))} // Set default value to USD if item.currency is not set
-                                    />
-                                  </td> */}
 
                                   <td>
                                     <Form.Control
@@ -4102,6 +3868,92 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
           </Col>
         </Row>
 
+        {/* <Row>
+          <Col md={12}>
+            <Card>
+              <Card.Header>
+                <div className="d-flex justify-content-between align-items-center">
+                  <Card.Title>Tax Invoice</Card.Title>
+                </div>
+              </Card.Header>
+              <Card.Body>
+                <DragDropContext onDragEnd={handleOnDragEnd}>
+                  <Droppable droppableId="items">
+                    {(provided) => (
+                      <div className="table-responsive" {...provided.droppableProps} ref={provided.innerRef}>
+                        <table className="table table-bordered">
+                          <thead>
+                            <tr>
+                              <th>
+                                <input type="checkbox" onChange={handleSelectAll} checked={selectedItems.length === items.length && items.length > 0} />
+                              </th>
+                              <th>Tax Account</th>
+                              <th>Tax Code</th>
+                              <th>Tax Amount</th>
+                              <th>Tax Amount IDR</th>
+                              <th>Actions</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {items.length === 0 ? (
+                              <tr>
+                                <td colSpan="26" className="text-center">
+                                  No data available
+                                </td>
+                              </tr>
+                            ) : (
+                              items.map((item, index) => (
+                                <tr key={index} className={selectedItems.includes(index) ? "table-active" : ""}>
+                                  <td>
+                                    <input type="checkbox" checked={selectedItems.includes(index)} onChange={() => handleSelectItem(index)} />
+                                  </td>
+                                  <td>
+                                    <Select
+                                      id="tax_account"
+                                      value={coaOptions.find((option) => option.value === item.tax_account)}
+                                      onChange={(selectedOption) => {
+                                        handleItemChange(index, "tax_account", selectedOption ? selectedOption.value : null);
+                                      }}
+                                      options={coaOptions}
+                                      placeholder="Tax Account..."
+                                      isClearable
+                                      styles={{
+                                        control: (provided) => ({
+                                          ...provided,
+                                          ...detailFormStyle(),
+                                        }),
+                                      }}
+                                      required
+                                    />
+                                  </td>
+                                  <td>
+                                    <Form.Control type="text" value={item.invoice_number_vendor} onChange={(e) => handleItemChange(index, "invoice_number_vendor", e.target.value)} style={detailFormStyle()} />
+                                  </td>
+                                  <td>
+                                    <Button variant="danger" size="sm" onClick={() => handleDeleteItem(index)}>
+                                      <i className="fas fa-trash"></i>
+                                    </Button>
+                                  </td>
+                                </tr>
+                              ))
+                            )}
+                          </tbody>
+                        </table>
+                        <div className="pb-4">
+                          <Button className="rounded-3" variant="success" size="sm" onClick={handleAddItem}>
+                            <i className="fas fa-plus"></i> New Item
+                          </Button>
+                        </div>
+                        {provided.placeholder}
+                      </div>
+                    )}
+                  </Droppable>
+                </DragDropContext>
+              </Card.Body>
+            </Card>
+          </Col>
+        </Row> */}
+
         <Row className="mt-4">
           <Col md={12} className="d-flex justify-content-end">
             {setIsEditingPurchaseInvoice ? (
@@ -4118,7 +3970,7 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
                   }
                 }}
               >
-                <i className="fas fa-arrow-left"></i> Back
+                <i className="fas fa-arrow-left"></i> Go Back
               </Button>
             ) : (
               <></>
