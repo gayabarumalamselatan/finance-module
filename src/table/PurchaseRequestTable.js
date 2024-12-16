@@ -714,7 +714,6 @@ const PurchaseRequestTable = ({
                                                 <th>Departement</th>
                                                 <th>Product</th>
                                                 <th>Product Description</th>
-                                                <th>Currency</th>
                                                 <th>Quantity</th>
                                                 <th>Unit Price</th>
                                                 <th>Total Price</th>
@@ -735,7 +734,6 @@ const PurchaseRequestTable = ({
                                                         <td>{detail.department}</td>
                                                         <td>{detail.product}</td>
                                                         <td>{detail.product_note}</td>
-                                                        <td>{detail.currency}</td>
                                                         <td>{detail.quantity}</td>
                                                         <td style={{ textAlign: "right" }}>{DisplayFormat(detail.unit_price)}</td>
                                                         <td style={{ textAlign: "right" }}>{DisplayFormat(detail.total_price)}</td>

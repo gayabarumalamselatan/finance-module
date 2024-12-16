@@ -27,6 +27,7 @@ import { se } from 'date-fns/locale';
 import moment from 'moment';
 
 const AddPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, selectedData, duplicateFlag, setIsAddingNewDuplicatePurchaseRequest }) => {
+  // console.log('selectedData:', selectedData[0]);
   const headers = getToken();
   const branchId = getBranch();
   const userId = sessionStorage.getItem('userId');
@@ -50,7 +51,7 @@ const AddPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, select
   const [description, setDescription] = useState('');
   const [due_date, setDueDate] = useState('');
   const [endtoendid, setEntoendid] = useState('');
-  const [currency, setCurrency] = useState('IDR');
+  const [currency, setCurrency] = useState('');
   const [selectedItems, setSelectedItems] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [currencyOptions, setCurrencyOptions] = useState([]);
@@ -150,7 +151,7 @@ const AddPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, select
                   );
 
                   const currencyOptions = transformedCurrencyData.map(item => ({
-                    value: item.CODE,
+                    value: item.ID,
                     label: item.CODE
                   }));
 
@@ -202,7 +203,7 @@ const AddPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, select
           //console.log('Transformed data:', transformedData);
 
           const options = transformedData.map(item => ({
-            value: item.CODE,
+            value: item.ID,
             label: item.CODE
           }));
           setCurrencyOptions(options);
@@ -254,7 +255,7 @@ const AddPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, select
             value: item.ID,
             label: item.NAME,
             project_contract_number: item.CONTRACT_NUMBER,
-            customer: item.CUSTOMER
+            customer: item.CUSTOMER_ID
           }));
           setProjectOptions(options);
           const selectedProjectOption = options.find(option => option.value === selectedData[0].PROJECT);
@@ -282,10 +283,6 @@ const AddPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, select
             label: item.NAME
           }));
           setProductOptions(options);
-          console.log('Product :', options);
-          const selectedProductOption = options.find(option => option.value === selectedData[0].PRODUCT);
-          console.log('product : ', selectedProductOption);
-          setSelectedProduct(selectedProductOption || null);
         })
         .catch(error => {
           console.error('Failed to fetch currency lookup:', error);
@@ -311,15 +308,7 @@ const AddPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, select
             value: item.ID,
             label: item.NAME
           }));
-
-          console.log('Vendor ops :', options);
-
-
           setVendorOptions(options);
-
-          const selectedVendorOption = options.find(option => option.value === selectedData[0].VENDOR);
-          console.log('Vendor :', selectedVendorOption);
-          setSelectedVendor(selectedVendorOption || null);
         })
         .catch(error => {
           console.error('Failed to fetch currency lookup:', error);
@@ -395,7 +384,7 @@ const AddPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, select
                   );
 
                   const currencyOptions = transformedCurrencyData.map(item => ({
-                    value: item.CODE,
+                    value: item.ID,
                     label: item.CODE
                   }));
 
@@ -447,7 +436,7 @@ const AddPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, select
           //console.log('Transformed data:', transformedData);
 
           const options = transformedData.map(item => ({
-            value: item.CODE,
+            value: item.ID,
             label: item.CODE
           }));
           setCurrencyOptions(options);
@@ -471,12 +460,12 @@ const AddPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, select
           //console.log('Transformed data:', transformedData);
 
           const options = transformedData.map(item => ({
-            value: item.NAME,
+            value: item.ID,
             label: item.NAME
           }));
           setDepartementOptions(options);
-          const selectedDepartementOption = options.find(option => option.value === selectedData[0].DEPARTEMENT);
-          setSelectedDepartement(selectedDepartementOption || null);
+          // const selectedDepartementOption = options.find(option => option.value === selectedData[0].DEPARTEMENT);
+          // setSelectedDepartement(selectedDepartementOption || null);
         })
         .catch(error => {
           console.error('Failed to fetch currency lookup:', error);
@@ -499,7 +488,7 @@ const AddPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, select
             value: item.ID,
             label: item.NAME,
             project_contract_number: item.CONTRACT_NUMBER,
-            customer: item.CUSTOMER
+            customer: item.CUSTOMER_ID
           }));
           setProjectOptions(options);
           const selectedProjectOption = options.find(option => option.value === selectedData[0].PROJECT);
@@ -587,7 +576,7 @@ const AddPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, select
           //console.log('Transformed data:', transformedData);
 
           const options = transformedData.map(item => ({
-            value: item.CODE,
+            value: item.ID,
             label: item.CODE
           }));
           setCurrencyOptions(options);
@@ -609,7 +598,7 @@ const AddPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, select
           //console.log('Transformed data:', transformedData);
 
           const options = transformedData.map(item => ({
-            value: item.NAME,
+            value: item.ID,
             label: item.NAME
           }));
           setDepartementOptions(options);
@@ -636,7 +625,7 @@ const AddPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, select
             value: item.ID,
             label: item.NAME,
             project_contract_number: item.CONTRACT_NUMBER,
-            customer: item.CUSTOMER
+           customer: item.CUSTOMER_ID
           }));
           setProjectOptions(options);
         })
@@ -703,12 +692,38 @@ const AddPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, select
     // Update the specific item at the provided index
     updatedItems[index] = {
       ...updatedItems[index], // Copy the existing fields
-      departement: selectedOption ? selectedOption.value : '' // Update the department field
+      department_id: selectedOption ? selectedOption.value : '' // Update the department field
     };
 
     setItems(updatedItems); // Set the updated items array in state
   };
 
+  const handleCurrencyChange = (selectedOption, index) => {
+    console.log('Currency:', selectedOption);
+    setSelectedCurrency(selectedOption); // Optional: If you need to use the selected option elsewhere
+    const updatedItems = [...items]; // Copy the current items array
+
+    // Update the specific item at the provided index
+    updatedItems[index] = {
+      ...updatedItems[index], // Copy the existing fields
+      currency_id: selectedOption ? selectedOption.value : '' // Update the department field
+    };
+
+    setItems(updatedItems); // Set the updated items array in state
+  };
+
+  const handleProductChange = (selectedOption, index) => {
+    setSelectedProduct(selectedOption); // Optional: If you need to use the selected option elsewhere
+    const updatedItems = [...items]; // Copy the current items array
+
+    // Update the specific item at the provided index
+    updatedItems[index] = {
+      ...updatedItems[index], // Copy the existing fields
+      product_id: selectedOption ? selectedOption.value : '' // Update the department field
+    };
+
+    setItems(updatedItems); // Set the updated items array in state
+  };
 
 
   const handleProjectChange = (selectedOption, index) => {
@@ -720,9 +735,9 @@ const AddPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, select
     // Update the specific item at the provided index
     updatedItems[index] = {
       ...updatedItems[index], // Copy the existing fields
-      project: selectedOption ? selectedOption.value : '', // Set the project
+      project_id: selectedOption ? selectedOption.value : '', // Set the project
       project_contract_number: selectedOption ? selectedOption.project_contract_number : '', // Set project contract number
-      customer: selectedOption ? selectedOption.customer : '' // Set the customer
+      customer_id: selectedOption ? selectedOption.customer : '' // Set the customer
     };
 
     // Update the items array in state
@@ -736,7 +751,7 @@ const AddPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, select
     const updatedItems = [...items]; // Copy the items array
     updatedItems[index] = {
       ...updatedItems[index], // Copy the existing item fields
-      vendor: selectedOption ? selectedOption.value : '' // Update the vendor field
+      vendor_id: selectedOption ? selectedOption.value : '' // Update the vendor field
     };
     setItems(updatedItems); // Set the new state
     setSelectedVendor(selectedOption); // Optionally update this if you need it elsewhere
@@ -788,7 +803,7 @@ const AddPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, select
 
 
   const handleAddItem = () => {
-    setItems([...items, { doc_reff_no: '', doc_source: '', vendor: '', project: '', project_contract_number: '', customer: '', departement: '', product: '', product_note: '', quantity: '', unit_price: 0, total_price: 0, id_upload: '' }]);
+    setItems([...items, { doc_reff_no: '',currency_id: '', doc_source: '', vendor_id: '', project_id: '', project_contract_number: '', customer_id: '', department_id: '', product_id: '', product_note: '', quantity: '', unit_price: 0, total_price: 0, id_upload: '' }]);
   };
 
   const handleItemChange = async (index, field, value) => {
@@ -944,7 +959,6 @@ const AddPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, select
           status_request: 'DRAFT',
           due_date,
           endtoendid,
-          currency
         };
 
         // Check if pr_number exists in API
@@ -1088,12 +1102,12 @@ const AddPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, select
         updatedItem = {
           doc_reff_no: item.doc_reff_no,
           doc_source: item.doc_source,
-          vendor: item.vendor,
-          project: item.project,
+          vendor_id: item.vendor,
+          project_id: item.project,
           project_contract_number: item.project_contract_number,
-          customer: item.customer,
-          departement: item.departement,
-          product: item.product,
+          customer_id: item.customer,
+          department_id: item.departement,
+          product_id: item.product,
           product_note: item.product_note,
           quantity: item.quantity,
           unit_price: item.unit_price,
@@ -1173,8 +1187,7 @@ const AddPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, select
             total_amount,
             status_request: 'IN_PROCESS',
             due_date,
-            endtoendid,
-            currency
+            endtoendid
           };
 
           const response = await UpdateDataService.postData(generalInfo, `PUREQ&column=id&value=${id}`, authToken, branchId);
@@ -1214,8 +1227,7 @@ const AddPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, select
             total_amount,
             status_request: 'IN_PROCESS',
             due_date,
-            endtoendid,
-            currency
+            endtoendid
           };
 
           const response = await InsertDataService.postData(generalInfo, "PUREQ", authToken, branchId);
@@ -1723,17 +1735,7 @@ const AddPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, select
                         </div>
                       </Form.Group>
                     </Col>
-                    <Col md={6}>
-                      <Form.Group controlId="formCurrency">
-                        <Form.Label>Currency</Form.Label>
-                        <Select
-                          value={currencyOptions.find(option => option.value === currency)}
-                          onChange={(selectedOption) => setCurrency(selectedOption ? selectedOption.value : selectedOption)}
-                          options={currencyOptions}
-                          placeholder="Select currency"
-                        />
-                      </Form.Group>
-                    </Col>
+                    
                   </Row>
                 </Form>
               </Card.Body>
@@ -1793,9 +1795,10 @@ const AddPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, select
                                 <th>Project</th>
                                 <th>Project Contract Number</th>
                                 <th>Customer</th>
-                                <th>Departement</th>
+                                <th>Department</th>
                                 <th>Product</th>
                                 <th>Product Description</th>
+                                <th>Currency</th>
                                 <th>Quantity</th>
                                 <th>Unit Price</th>
                                 <th>Total Price</th>
@@ -1852,7 +1855,7 @@ const AddPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, select
                                     <td>
                                       <Select
                                         id={`vendor-${index}`} // unique id for each row
-                                        value={vendorOptions.find(option => option.value === item.vendor)} // Set the selected value
+                                        value={vendorOptions.find(option => option.value === item.vendor_id) || null}// Set the selected value
                                         onChange={(selectedOption) => handleVendorChange(selectedOption, index)} // Pass the index to the handler
                                         options={vendorOptions}
                                         isClearable
@@ -1872,7 +1875,7 @@ const AddPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, select
                                     <td>
                                       <Select
                                         id={`project-${index}`} // Unique id for each project select
-                                        value={projectOptions.find(option => option.value === item.project)} // Set selected value for project
+                                        value={projectOptions.find(option => option.value === item.project_id)} // Set selected value for project
                                         onChange={(selectedOption) => handleProjectChange(selectedOption, index)} // Pass the index to handler
                                         options={projectOptions}
                                         isClearable
@@ -1902,8 +1905,8 @@ const AddPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, select
                                     <td>
                                       <Form.Control
                                         type="text"
-                                        value={item.customer} // Bind to the specific item's field
-                                        onChange={(e) => handleItemChange(index, 'customer', e.target.value)} // Update the customer
+                                        value={item.customer_id} // Bind to the specific item's field
+                                        onChange={(e) => handleItemChange(index, 'customer_id', e.target.value)} // Update the customer
                                         style={detailFormStyle()}
                                         disabled // Keep it disabled if it should not be editable
                                       />
@@ -1911,7 +1914,7 @@ const AddPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, select
                                     <td>
                                       <Select
                                         id={`departement-${index}`} // Unique id for each department select
-                                        value={departementOptions.find(option => option.value === item.departement)} // Set the selected value for department
+                                        value={departementOptions.find(option => option.value === item.department_id)} // Set the selected value for department
                                         onChange={(selectedOption) => handleDepartementChange(selectedOption, index)} // Pass the index to the handler
                                         options={departementOptions}
                                         isClearable
@@ -1929,24 +1932,29 @@ const AddPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, select
                                         }}
                                         required
                                       />
+                                      
                                     </td>
 
                                     <td>
                                       <Select
-                                        value={productOptions.find(option => option.value === item.product)}
-                                        onChange={(selectedOption) => handleItemChange(index, 'product', selectedOption)}
+                                        id={`product-${index}`} // Unique id for each department select
+                                        value={productOptions.find(option => option.value === item.product_id)} // Set the selected value for department
+                                        onChange={(selectedOption) => handleProductChange(selectedOption, index)} // Pass the index to the handler
                                         options={productOptions}
                                         isClearable
+                                        placeholder="Select a Product..."
                                         styles={{
                                           control: (provided) => ({
                                             ...provided,
                                             ...detailFormStyle()
-                                          }),placeholder: (provided) => ({
+                                          }),
+                                          placeholder: (provided) => ({
                                             ...provided,
                                             color: 'black', // Sets placeholder text color to black
                                           }),
+
                                         }}
-                                        placeholder="Select product"
+                                        required
                                       />
                                     </td>
                                     <td>
@@ -1957,6 +1965,29 @@ const AddPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, select
                                         style={detailFormStyle()}
                                       />
                                     </td>
+                                    <td>
+                                      <Select
+                                        id={`currency-${index}`} // Unique id for each department select
+                                        value={currencyOptions.find(option => option.value === item.currency_id)} // Set the selected value for department
+                                        onChange={(selectedOption) => handleCurrencyChange(selectedOption, index)} // Pass the index to the handler
+                                        options={currencyOptions}
+                                        isClearable
+                                        placeholder="Select a Currency..."
+                                        styles={{
+                                          control: (provided) => ({
+                                            ...provided,
+                                            ...detailFormStyle()
+                                          }),
+                                          placeholder: (provided) => ({
+                                            ...provided,
+                                            color: 'black', // Sets placeholder text color to black
+                                          }),
+
+                                        }}
+                                        required
+                                      />
+                                    </td>
+                                    
                                     <td>
                                       <Form.Control
                                         type="number"
@@ -1992,7 +2023,7 @@ const AddPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, select
                                         style={{ ...detailFormStyle(), width: '100%', textAlign: 'right' }}
                                       />
                                     </td>
-                                    <td className="text-end">{item.total_price.toLocaleString('en-US', { currency: currency, minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                                    <td className="text-end">{item.total_price.toLocaleString('en-US', { currency: 'IDR', minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                                     <td>
                                       <Button
                                         variant="danger"
