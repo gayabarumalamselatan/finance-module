@@ -8,10 +8,14 @@ import { getBranch, getToken } from "../config/Constant";
 import { GENERATED_NUMBER } from "../config/ConfigUrl";
 import { generateUniqueId } from "../service/GeneratedId";
 import Select from "react-select";
+import DatePicker from "react-datepicker";
+import "react-datepicker/dist/react-datepicker.css";
+// import '../css/DatePicker.css';
+import { FaCalendar } from "react-icons/fa";
 import LookupParamService from "../service/LookupParamService";
 import LookupService from "../service/LookupService";
 import UpdateDataService from "../service/UpdateDataService";
-import DeleteDataService from "../service/DeleteDataService";
+import DeleteDataService from "../service/DeleteDataService";   
 import UpdateStatusService from "../service/UpdateStatusService";
 // import CreatableSelect from "react-select/creatable";
 // import { Color } from "antd/es/color-picker";
@@ -162,15 +166,18 @@ const AddPurchaseExpanseVoucher = ({ setIsAddingNewPurchaseExpanse, setIsEditing
             setVoucherDate(data.voucher_date);
             setPaymentSource(data.payment_source);
             setBankName(data.bank_name);
-            setSelectedBankName(data.bank_name);
+            // setSelectedBankName(data.bank_name);
             setPayTo(data.paid_to);
             setAccountBank(data.account_bank);
-            setSelectedPaidTo(data.paid_to);
+            // setSelectedPaidTo(data.paid_to);
             setNumberCheckGiro(data.number_check_giro);
             setExchangeRate(data.exchange_rate);
             setStatus(data.status);
             setDueDate(data.due_date);
             setTaxInvoiceNumber(data.tax_invoice_number);
+            setCurrency(data.currency);
+            setExchangeRateBank(data.exchange_rate);
+            // setSelectedCurrency(data.currency);
             // setProject(data.project);
             // if (data.payment_term) {
             //   setPaymentTerm(data.payment_term);
@@ -214,7 +221,7 @@ const AddPurchaseExpanseVoucher = ({ setIsAddingNewPurchaseExpanse, setIsEditing
           // Lookup PPN & PPh
           LookupParamService.fetchLookupDataView("MSDT_FORMTAX", authToken, branchId)
             .then((data) => {
-              console.log("Currency lookup data:", data);
+              console.log("tax lookup data:", data);
 
               // Transform keys to uppercase directly in the received data
               const transformedData = data.data.map((item) =>
@@ -253,7 +260,7 @@ const AddPurchaseExpanseVoucher = ({ setIsAddingNewPurchaseExpanse, setIsEditing
               setTaxPpnRoyaltyOption(optionsPpnRoyalty);
             })
             .catch((error) => {
-              console.error("Failed to fetch currency lookup:", error);
+              console.error("Failed to fetch tax lookup:", error);
             });
 
           // Fetch product lookup data
@@ -270,7 +277,6 @@ const AddPurchaseExpanseVoucher = ({ setIsAddingNewPurchaseExpanse, setIsEditing
               );
 
               const productOptions = transformedProductData.map((item) => ({
-                id: item.ID,
                 value: item.NAME,
                 label: item.NAME,
                 expenseAccount: item.EXPENSE_ACCOUNT,
@@ -299,6 +305,7 @@ const AddPurchaseExpanseVoucher = ({ setIsAddingNewPurchaseExpanse, setIsEditing
                   }));
                   setProjectOptions(options);
 
+                  //buat employee
                   LookupParamService.fetchLookupData("MSDT_FORMEMPL", authToken, branchId)
                     .then((employeeData) => {
                       console.log("Employee lookup data:", employeeData);
@@ -318,24 +325,24 @@ const AddPurchaseExpanseVoucher = ({ setIsAddingNewPurchaseExpanse, setIsEditing
                       setEmployeeOptions(employeeOptions); // Set product options to state
 
                       // Fetch currency lookup data
-                      LookupParamService.fetchLookupData("MSDT_FORMCCY", authToken, branchId)
-                        .then((currencyData) => {
-                          console.log("Currency lookup data:", currencyData);
+                      // LookupParamService.fetchLookupData("MSDT_FORMCCY", authToken, branchId)
+                      //   .then((currencyData) => {
+                      //     console.log("Currency lookup data:", currencyData);
 
-                          // Transform and map currency data to options
-                          const transformedCurrencyData = currencyData.data.map((item) =>
-                            Object.keys(item).reduce((acc, key) => {
-                              acc[key.toUpperCase()] = item[key];
-                              return acc;
-                            }, {})
-                          );
+                      //     // Transform and map currency data to options
+                      //     const transformedCurrencyData = currencyData.data.map((item) =>
+                      //       Object.keys(item).reduce((acc, key) => {
+                      //         acc[key.toUpperCase()] = item[key];
+                      //         return acc;
+                      //       }, {})
+                      //     );
 
-                          const currencyOptions = transformedCurrencyData.map((item) => ({
-                            value: item.CODE,
-                            label: item.CODE,
-                          }));
+                      //     const currencyOptions = transformedCurrencyData.map((item) => ({
+                      //       value: item.CODE,
+                      //       label: item.CODE,
+                      //     }));
 
-                          setCurrencyOptions(currencyOptions); // Set currency options to state
+                      //     setCurrencyOptions(currencyOptions); // Set currency options to state
 
                           // Update fetched items with selected options
                           const updatedItems = fetchedItems.map((item) => {
@@ -351,11 +358,11 @@ const AddPurchaseExpanseVoucher = ({ setIsAddingNewPurchaseExpanse, setIsEditing
 
                             console.log("Selected product option:", selectedEmployeeOption);
 
-                            const selectedCurrencyOption = currencyOptions.find((option) => option.value === item.currency);
+                            // const selectedCurrencyOption = currencyOptions.find((option) => option.value === item.currency);
 
-                            console.log("Selected currency option:", selectedCurrencyOption);
+                            // console.log("Selected currency option:", selectedCurrencyOption);
 
-                            setSelectedCurrency(selectedCurrencyOption);
+                            // setSelectedCurrency(selectedCurrencyOption);
                             setSelectedEmployee(selectedEmployeeOption);
                             setSelectedProduct(selectedProductOption);
                             setSelectedProject(selectedProjectOption);
@@ -367,10 +374,10 @@ const AddPurchaseExpanseVoucher = ({ setIsAddingNewPurchaseExpanse, setIsEditing
                         .catch((error) => {
                           console.error("Failed to fetch currency lookup:", error);
                         });
-                    })
-                    .catch((error) => {
-                      console.error("Failed to fetch currency lookup:", error);
-                    });
+                    // })
+                    // .catch((error) => {
+                    //   console.error("Failed to fetch currency lookup:", error);
+                    // });
                 })
                 .catch((error) => {
                   console.error("Failed to fetch product lookup:", error);
@@ -406,6 +413,15 @@ const AddPurchaseExpanseVoucher = ({ setIsAddingNewPurchaseExpanse, setIsEditing
               bank_account: item.BANK_ACCOUNT,
             }));
           setBankOptions(options);
+          if (selectedData?.[0]?.BANK_NAME) {
+            const matchingOption = options.find(
+              (option) => option.value === selectedData[0].BANK_NAME
+            );
+            if (matchingOption) {
+              setSelectedBankName(matchingOption);
+              setBankName(matchingOption.value);
+            }
+          }
         })
         .catch((error) => {
           console.error("Failed to fetch Bank lookup:", error);
@@ -539,6 +555,7 @@ const AddPurchaseExpanseVoucher = ({ setIsAddingNewPurchaseExpanse, setIsEditing
           console.error("Failed to fetch project number lookup:", error);
         });
 
+      //buat project
       LookupParamService.fetchLookupData("MSDT_FORMPRJT", authToken, branchId)
         .then((data) => {
           console.log("Project lookup data:", data);
@@ -581,6 +598,16 @@ const AddPurchaseExpanseVoucher = ({ setIsAddingNewPurchaseExpanse, setIsEditing
             label: item.NAME,
           }));
           setPaidToOptions(options);
+          if (selectedData?.[0]?.PAID_TO) {
+            const matchingOption = options.find(
+              (option) => option.value === selectedData[0].PAID_TO
+            );
+            if (matchingOption) {
+              setSelectedPaidTo(matchingOption);
+              setPayTo(matchingOption.value);
+            }
+          }
+          
         })
         .catch((error) => {
           console.error("Failed to fetch paid to lookup:", error);
@@ -618,6 +645,7 @@ const AddPurchaseExpanseVoucher = ({ setIsAddingNewPurchaseExpanse, setIsEditing
           console.error("Failed to fetch vendor lookup:", error);
         });
 
+      //buat customer
       LookupParamService.fetchLookupData("MSDT_FORMPRJT", authToken, branchId)
         .then((data) => {
           console.log("Customer lookup data:", data);
@@ -668,7 +696,7 @@ const AddPurchaseExpanseVoucher = ({ setIsAddingNewPurchaseExpanse, setIsEditing
       // Lookup PPN & PPh
       LookupParamService.fetchLookupData("MSDT_FORMTAX", authToken, branchId)
         .then((data) => {
-          console.log("Currency lookup data:", data);
+          console.log("Tax lookup data:", data);
 
           // Transform keys to uppercase directly in the received data
           const transformedData = data.data.map((item) =>
@@ -735,6 +763,7 @@ const AddPurchaseExpanseVoucher = ({ setIsAddingNewPurchaseExpanse, setIsEditing
             label: item.CODE,
           }));
           setCurrencyOptions(options);
+         
         })
         .catch((error) => {
           console.error("Failed to fetch Currency lookup:", error);
@@ -764,9 +793,10 @@ const AddPurchaseExpanseVoucher = ({ setIsAddingNewPurchaseExpanse, setIsEditing
           console.error("Failed to fetch Employee lookup:", error);
         });
 
+      //project
       LookupParamService.fetchLookupData("MSDT_FORMPRJT", authToken, branchId)
         .then((data) => {
-          console.log("Currency lookup data:", data);
+          console.log("Project lookup data:", data);
 
           // Transform keys to uppercase directly in the received data
           const transformedData = data.data.map((item) =>
@@ -786,9 +816,10 @@ const AddPurchaseExpanseVoucher = ({ setIsAddingNewPurchaseExpanse, setIsEditing
           setSelectedProject(selectedProjectOption || null);
         })
         .catch((error) => {
-          console.error("Failed to fetch currency lookup:", error);
+          console.error("Failed to fetch project lookup:", error);
         });
 
+      //buat payment term 
       LookupParamService.fetchLookupData("MSDT_FORMPYTM", authToken, branchId)
         .then((data) => {
           console.log("Payment term lookup data:", data);
@@ -814,9 +845,10 @@ const AddPurchaseExpanseVoucher = ({ setIsAddingNewPurchaseExpanse, setIsEditing
           console.error("Failed to fetch payment term lookup:", error);
         });
 
+      //buat product
       LookupParamService.fetchLookupData("MSDT_FORMPRDT", authToken, branchId)
         .then((data) => {
-          console.log("Currency lookup data:", data);
+          console.log("product lookup data:", data);
 
           // Transform keys to uppercase directly in the received data
           const transformedData = data.data.map((item) =>
@@ -837,9 +869,10 @@ const AddPurchaseExpanseVoucher = ({ setIsAddingNewPurchaseExpanse, setIsEditing
           setSelectedProduct(selectedProductOption || null);
         })
         .catch((error) => {
-          console.error("Failed to fetch currency lookup:", error);
+          console.error("Failed to fetch product lookup:", error);
         });
 
+      //buat department 
       LookupParamService.fetchLookupData("MSDT_FORMDPRT", authToken, branchId)
         .then((data) => {
           console.log("Department lookup data:", data);
@@ -863,12 +896,13 @@ const AddPurchaseExpanseVoucher = ({ setIsAddingNewPurchaseExpanse, setIsEditing
           setSelectedDepartment(selectedDepartmentOption || null);
         })
         .catch((error) => {
-          console.error("Failed to fetch currency lookup:", error);
+          console.error("Failed to fetch department lookup:", error);
         });
 
+      //buat customer
       LookupParamService.fetchLookupData("MSDT_FORMCUST", authToken, branchId)
         .then((data) => {
-          console.log("Currency lookup data:", data);
+          console.log("Customer lookup data:", data);
 
           // Transform keys to uppercase directly in the received data
           const transformedData = data.data.map((item) =>
@@ -889,7 +923,7 @@ const AddPurchaseExpanseVoucher = ({ setIsAddingNewPurchaseExpanse, setIsEditing
           setSelectedCustomer(selectedCustomerOption || null);
         })
         .catch((error) => {
-          console.error("Failed to fetch currency lookup:", error);
+          console.error("Failed to fetch customer lookup:", error);
         });
     }
   }, [selectedData]);
@@ -1015,6 +1049,7 @@ const AddPurchaseExpanseVoucher = ({ setIsAddingNewPurchaseExpanse, setIsEditing
             bank_account: item.BANK_ACCOUNT,
           }));
         setBankOptions(options);
+        
       })
       .catch((error) => {
         console.error("Failed to fetch Bank lookup:", error);
@@ -1212,6 +1247,7 @@ const AddPurchaseExpanseVoucher = ({ setIsAddingNewPurchaseExpanse, setIsEditing
         console.error("Failed to fetch project number lookup:", error);
       });
 
+    //buat project contract number
     LookupParamService.fetchLookupData("MSDT_FORMPRJT", authToken, branchId)
       .then((data) => {
         console.log("Project lookup data:", data);
@@ -1675,7 +1711,7 @@ const AddPurchaseExpanseVoucher = ({ setIsAddingNewPurchaseExpanse, setIsEditing
 
     if (selectedOption) {
       // Fetch data for the selected "paid_to"
-      LookupService.fetchLookupData(`PURC_FORMPUINVC&filterBy=VENDOR&filterValue=${selectedOption.value}&operation=EQUAL`, authToken, branchId)
+      LookupService.fetchLookupData(`PURC_FORMPUINVC&filterBy=VENDOR&filterValue=${selectedOption.value}&operation=EQUAL&filterBy=INVOICE_STATUS&filterValue=IN_PROCESS&operation=EQUAL`, authToken, branchId)
         .then((response) => {
           const fetchedItems = response.data || [];
           console.log("Items fetched for Paid To:", fetchedItems);
@@ -1755,8 +1791,50 @@ const AddPurchaseExpanseVoucher = ({ setIsAddingNewPurchaseExpanse, setIsEditing
                   // Map the fetched data to items
                   const updatedItems = fetchedItems.map((item) => {
                     const productFromDescription = descriptionOptions.find((option) => option.value === item.invoice_number)?.product;
-
                     const relatedProduct = productOptions.find((option) => option.value === productFromDescription);
+
+                    const description = descriptionOptions.find((desc) => desc.value === item.invoice_number) || {};
+                    const taxRate = description.tax_ppn_rate / 100;
+                    const pphRate = description.tax_pph_rate / 100;
+  
+                    let taxBase = description.total_price || 0;
+                    let taxPpnAmount = 0;
+                    let taxPphAmount = 0;
+                    let amountPaid = 0;
+  
+                    // Calculate tax amounts and amount_paid
+                    if (description.type_of_vat === "include") {
+                      taxBase = Math.round(taxBase / (1 + taxRate));
+                      taxPpnAmount = Math.floor(taxBase * taxRate);
+                      if (description.type_of_pph === "gross") {
+                        taxPphAmount = Math.floor(taxBase * pphRate);
+                        amountPaid = Math.round(taxBase - taxPphAmount + taxPpnAmount);
+                      } else if (description.type_of_pph === "nett") {
+                        const adjustedTaxBase = taxBase / (1 - pphRate);
+                        taxPphAmount = Math.floor(adjustedTaxBase * pphRate);
+                        amountPaid = Math.round(adjustedTaxBase - taxPphAmount + taxPpnAmount);
+                      }
+                    } else if (description.type_of_vat === "exclude") {
+                      taxPpnAmount = Math.floor(taxBase * taxRate);
+                      if (description.type_of_pph === "gross") {
+                        taxPphAmount = Math.floor(taxBase * pphRate);
+                        amountPaid = Math.round(taxBase - taxPphAmount + taxPpnAmount);
+                      } else if (description.type_of_pph === "nett") {
+                        const adjustedTaxBase = taxBase / (1 - pphRate);
+                        taxPphAmount = Math.floor(adjustedTaxBase * pphRate);
+                        amountPaid = Math.round(adjustedTaxBase - taxPphAmount + taxPpnAmount);
+                      }
+                    } else if (description.type_of_vat === "non_ppn") {
+                      taxPpnAmount = 0;
+                      if (description.type_of_pph === "gross") {
+                        taxPphAmount = Math.floor(taxBase * pphRate);
+                        amountPaid = Math.round(taxBase - taxPphAmount);
+                      } else if (description.type_of_pph === "nett") {
+                        amountPaid = Math.round(taxBase / (1 - pphRate));
+                      }
+                    }
+  
+
                     return {
                       ...item,
                       db_cr: item.db_cr || "Db",
@@ -1779,16 +1857,21 @@ const AddPurchaseExpanseVoucher = ({ setIsAddingNewPurchaseExpanse, setIsEditing
                       total_price: descriptionOptions.find((option) => option.value === item.invoice_number)?.total_price || "",
                       type_of_vat: descriptionOptions.find((option) => option.value === item.invoice_number)?.type_of_vat || "",
                       tax_ppn: descriptionOptions.find((option) => option.value === item.invoice_number)?.tax_ppn || "",
-                      tax_ppn_amount: descriptionOptions.find((option) => option.value === item.invoice_number)?.tax_ppn_amount || 0,
+                      // tax_ppn_amount: descriptionOptions.find((option) => option.value === item.invoice_number)?.tax_ppn_amount || 0,
                       type_of_pph: descriptionOptions.find((option) => option.value === item.invoice_number)?.type_of_pph || "",
                       tax_pph: descriptionOptions.find((option) => option.value === item.invoice_number)?.tax_pph || "",
-                      tax_pph_amount: descriptionOptions.find((option) => option.value === item.invoice_number)?.tax_pph_amount || 0,
-                      tax_base: descriptionOptions.find((option) => option.value === item.invoice_number)?.tax_base || 0,
+                      // tax_pph_amount: descriptionOptions.find((option) => option.value === item.invoice_number)?.tax_pph_amount || 0,
+                      // tax_base: descriptionOptions.find((option) => option.value === item.invoice_number)?.tax_base || 0,
                       // amount: descriptionOptions.find((desc) => desc.value === item.invoice_number)?.totalAmount || 0,
                       // status_detail: descriptionOptions.find((desc) => desc.value === item.invoice_number)?.status_detail || "",
                       // invoice_number_vendor: descriptionOptions.find((desc) => desc.value === item.invoice_number)?.invoice_number_vendor || "",
                       coa: relatedProduct?.expenseAccount || "", // Autofill expense_account
                       product_account: relatedProduct?.product_account || "",
+                      tax_base: taxBase,
+                      tax_ppn_amount: taxPpnAmount,
+                      tax_pph_amount: taxPphAmount,
+                      amount_paid: amountPaid,
+                      amount_paid: amountPaid,
                     };
                   });
 
@@ -1916,6 +1999,7 @@ const AddPurchaseExpanseVoucher = ({ setIsAddingNewPurchaseExpanse, setIsEditing
 
   // bank Name
   const handleBankSelection = (selectedOption) => {
+    
     if (selectedOption) {
       const selectedAccount = accountOptions.find((option) => option.value === selectedOption.bank_account);
       setSelectedAccountBank(selectedAccount ? selectedAccount : null);
@@ -2165,12 +2249,34 @@ const AddPurchaseExpanseVoucher = ({ setIsAddingNewPurchaseExpanse, setIsEditing
   };
 
   useEffect(() => {
-    // Assuming `currencyOptions` is populated with options like { value: "IDR", label: "IDR" }
-    const defaultCurrency = currencyOptions.find((option) => option.value === "IDR");
-    setSelectedCurrency(defaultCurrency);
-    setCurrency(defaultCurrency ? defaultCurrency.value : "IDR");
-  }, [currencyOptions]);
-
+    if (selectedData && selectedData.length > 0) {
+      const currencyFromData = selectedData[0]?.CURRENCY;
+      const matchingCurrencyOption = currencyOptions.find(
+        (option) => option.value === currencyFromData
+      );
+  
+      if (matchingCurrencyOption) {
+        setSelectedCurrency(matchingCurrencyOption);
+      } else {
+        // Set default to IDR if no valid currency is found
+        const defaultCurrencyOption = currencyOptions.find(
+          (option) => option.value === "IDR"
+        );
+        if (defaultCurrencyOption) {
+          setSelectedCurrency(defaultCurrencyOption);
+        }
+      }
+    } else {
+      // Ensure default to IDR when there's no data
+      const defaultCurrencyOption = currencyOptions.find(
+        (option) => option.value === "IDR"
+      );
+      if (defaultCurrencyOption) {
+        setSelectedCurrency(defaultCurrencyOption);
+      }
+    }
+  }, [selectedData, currencyOptions]);
+  
   // const handleCurrencyChange = (selectedOption) => {
   //   // Update the selected currency state
   //   setSelectedCurrency(selectedOption);
@@ -2230,6 +2336,22 @@ const AddPurchaseExpanseVoucher = ({ setIsAddingNewPurchaseExpanse, setIsEditing
     setExchangeRateBank(value); // Update exchange_rate_bank
     setExchangeRate(parsedValue); // Update exchange_rate
   };
+
+  useEffect(() => {
+    if (selectedData) {
+      const { EXCHANGE_RATE_BANK } = selectedData[0];
+      
+      // Preload the exchange rate bank field with the value being edited
+      if (EXCHANGE_RATE_BANK !== undefined) {
+        setExchangeRateBank(EXCHANGE_RATE_BANK);
+        setExchangeRate(parseFloat(EXCHANGE_RATE_BANK)); // Set the parsed value for calculations
+      }
+  
+      // Existing logic to initialize other fields
+      // ...
+    }
+  }, [selectedData]);
+  
 
   // const handleProjectChange = (selectedOption) => {
   //   setSelectedProject(selectedOption);
@@ -2340,7 +2462,7 @@ const AddPurchaseExpanseVoucher = ({ setIsAddingNewPurchaseExpanse, setIsEditing
     if (field === "type_of_pph") {
       newItems[index].tax_pph = ""; // Reset tax_pph
       newItems[index].tax_pph_rate = 0; // Reset tax_pph_rate
-      newItems[index].amount_paid = 0;
+      newItems[index].tax_pph_amount = 0;
     }
 
     // Update total price and total price IDR
@@ -2407,16 +2529,9 @@ const AddPurchaseExpanseVoucher = ({ setIsAddingNewPurchaseExpanse, setIsEditing
       } else if (newItems[index].type_of_vat === "include" && newItems[index].type_of_pph === "nett") {
         newItems[index].amount_paid = Math.round(newItems[index].tax_base / (1 - newItems[index].tax_pph_rate / 100) - newItems[index].tax_pph_amount + newItems[index].tax_ppn_amount);
       } else if (newItems[index].type_of_vat === "exclude" && newItems[index].type_of_pph === "nett") {
-        newItems[index].amount_paid = Math.round(newItems[index].unit_price / (1 - newItems[index].tax_pph_rate / 100) - newItems[index].tax_ppn_amount + newItems[index].tax_pph_amount);
+        newItems[index].amount_paid = Math.round(newItems[index].unit_price / (1 - newItems[index].tax_pph_rate / 100) - newItems[index].tax_pph_amount + newItems[index].tax_ppn_amount);
       }
     }
-
-    //ppn_royalty
-    // if (field === "tax_ppn" || field === "tax_ppn_rate" || field === "currency" ) {
-    //   if (newItems[index].type_of_vat === "ppn_royalty" && currency !== "IDR") {
-    //       newItems[index].amount_paid = Math.round(newItems[index].tax_base + newItems[index].tax_ppn_amount );
-    //   }
-    // }
 
     console.log("dbcr", newItems[index].db_cr);
     setItems(newItems);
@@ -2606,7 +2721,7 @@ const AddPurchaseExpanseVoucher = ({ setIsAddingNewPurchaseExpanse, setIsEditing
 
       if (case4) {
         const taxBase = taxbasePPH;
-        total_amount = taxBase - totalPPNAmount + totalPPHAmount;
+        total_amount = taxBase - totalPPHAmount  + totalPPNAmount;
       }
     }
 
@@ -2617,7 +2732,7 @@ const AddPurchaseExpanseVoucher = ({ setIsAddingNewPurchaseExpanse, setIsEditing
 
     const amount_idr = validTotalAmount * (exchange_rate_bank || 1);
 
-    console.log("kols", subTotal);
+    // console.log("kols", subTotal);
     return {
       subTotal,
       subtotalAfterDiscount,
@@ -2723,7 +2838,7 @@ const AddPurchaseExpanseVoucher = ({ setIsAddingNewPurchaseExpanse, setIsEditing
         //   console.log("endtoendId is not empty");
         // }
 
-        const voucher_number = await generateVoucherNumber("VOUC");
+        const voucher_number = await generateVoucherNumber("VOUCHER");
 
         const checkDataResponse = await LookupService.fetchLookupData(`VOUC_FORMVCBANK&filterBy=voucher_number&filterValue=${voucher_number}&operation=EQUAL`, authToken, branchId);
         const existingData = checkDataResponse.data;
@@ -2816,7 +2931,7 @@ const AddPurchaseExpanseVoucher = ({ setIsAddingNewPurchaseExpanse, setIsEditing
             const updatedItem = {
               ...rest,
               voucher_number,
-              purchase_invoice_number: item.invoice_number,
+              // purchase_invoice_number: item.invoice_number,
 
               // tax_invoice_number: item.invoice_number_vendor,
               // type_of_vat: item.vat,
@@ -2892,6 +3007,12 @@ const AddPurchaseExpanseVoucher = ({ setIsAddingNewPurchaseExpanse, setIsEditing
             delete updatedItem.total_after_discount_idr;
             delete updatedItem.total_before_discount_idr;
             delete updatedItem.total_amount_idr;
+            delete updatedItem.payment_term_id;
+            delete updatedItem.create_by_id;
+            delete updatedItem.approve_by_id;
+            delete updatedItem.currency_id;
+            delete updatedItem.journal_id;
+            delete updatedItem.vendor_id;
 
             try {
               const itemResponse = await InsertDataService.postData(updatedItem, "VCBANKD", authToken, branchId);
@@ -2911,7 +3032,7 @@ const AddPurchaseExpanseVoucher = ({ setIsAddingNewPurchaseExpanse, setIsEditing
             const updatedItem = {
               ...rest,
               voucher_number,
-              purchase_invoice_number: item.invoice_number,
+              // purchase_invoice_number: item.invoice_number,
 
               // tax_invoice_number: item.invoice_number_vendor,
               // type_of_vat: item.vat,
@@ -2987,6 +3108,12 @@ const AddPurchaseExpanseVoucher = ({ setIsAddingNewPurchaseExpanse, setIsEditing
             delete updatedItem.total_after_discount_idr;
             delete updatedItem.total_before_discount_idr;
             delete updatedItem.total_amount_idr;
+            delete updatedItem.payment_term_id;
+            delete updatedItem.create_by_id;
+            delete updatedItem.approve_by_id;
+            delete updatedItem.currency_id;
+            delete updatedItem.journal_id;
+            delete updatedItem.vendor_id;
 
             const itemResponse = await InsertDataService.postData(updatedItem, "VCBANKD", authToken, branchId);
             console.log("Item posted successfully:", itemResponse);
@@ -3226,7 +3353,6 @@ const AddPurchaseExpanseVoucher = ({ setIsAddingNewPurchaseExpanse, setIsEditing
         // }
 
         const voucher_number = await generateVoucherNumber("DRAFT_VOUC");
-
         const checkDataResponse = await LookupService.fetchLookupData(`VOUC_FORMVCBANK&filterBy=voucher_number&filterValue=${voucher_number}&operation=EQUAL`, authToken, branchId);
         const existingData = checkDataResponse.data;
 
@@ -3318,7 +3444,7 @@ const AddPurchaseExpanseVoucher = ({ setIsAddingNewPurchaseExpanse, setIsEditing
             const updatedItem = {
               ...rest,
               voucher_number,
-              purchase_invoice_number: item.invoice_number,
+              // purchase_invoice_number: item.invoice_number,
 
               // tax_invoice_number: item.invoice_number_vendor,
               // type_of_vat: item.vat,
@@ -3394,6 +3520,12 @@ const AddPurchaseExpanseVoucher = ({ setIsAddingNewPurchaseExpanse, setIsEditing
             delete updatedItem.total_after_discount_idr;
             delete updatedItem.total_before_discount_idr;
             delete updatedItem.total_amount_idr;
+            delete updatedItem.payment_term_id;
+            delete updatedItem.create_by_id;
+            delete updatedItem.approve_by_id;
+            delete updatedItem.currency_id;
+            delete updatedItem.journal_id;
+            delete updatedItem.vendor_id;
 
             try {
               const itemResponse = await InsertDataService.postData(updatedItem, "VCBANKD", authToken, branchId);
@@ -3413,7 +3545,7 @@ const AddPurchaseExpanseVoucher = ({ setIsAddingNewPurchaseExpanse, setIsEditing
             const updatedItem = {
               ...rest,
               voucher_number,
-              purchase_invoice_number: item.invoice_number,
+              // purchase_invoice_number: item.invoice_number,
 
               // tax_invoice_number: item.invoice_number_vendor,
               // type_of_vat: item.vat,
@@ -3489,6 +3621,12 @@ const AddPurchaseExpanseVoucher = ({ setIsAddingNewPurchaseExpanse, setIsEditing
             delete updatedItem.total_after_discount_idr;
             delete updatedItem.total_before_discount_idr;
             delete updatedItem.total_amount_idr;
+            delete updatedItem.payment_term_id;
+            delete updatedItem.create_by_id;
+            delete updatedItem.approve_by_id;
+            delete updatedItem.currency_id;
+            delete updatedItem.journal_id;
+            delete updatedItem.vendor_id;
 
             const itemResponse = await InsertDataService.postData(updatedItem, "VCBANKD", authToken, branchId);
             console.log("Item posted successfully:", itemResponse);
@@ -3546,7 +3684,7 @@ const AddPurchaseExpanseVoucher = ({ setIsAddingNewPurchaseExpanse, setIsEditing
       color: "#000",
     };
   };
-
+  
   // const taxExchangeChange = (e) => {
   //   setExchangeRate(e);
   //   console.log("taxe", exchange_rate_bank);
@@ -3666,7 +3804,19 @@ const AddPurchaseExpanseVoucher = ({ setIsAddingNewPurchaseExpanse, setIsEditing
                     <Col md={6}>
                       <Form.Group controlId="formVoucherDate">
                         <Form.Label>Voucher Date</Form.Label>
-                        <Form.Control type="date" value={voucher_date} onChange={(e) => setVoucherDate(e.target.value)} required />
+                        {/* <Form.Control type="date" value={voucher_date} onChange={(e) => setVoucherDate(e.target.value)} required /> */}
+                        <div className="input-group">
+                          {/* Custom DatePicker with integrated icon */}
+                          <DatePicker
+                            selected={voucher_date}
+                            onChange={setVoucherDate}
+                            dateFormat="dd-MM-yyyy" // Display date in dd-MM-yyyy format
+                            className="form-control"
+                            placeholderText="Select a date"
+                            required
+                          />
+                           <FaCalendar style={{ marginLeft: "-30px", zIndex: "2" }} className="my-auto" />
+                        </div>
                       </Form.Group>
                     </Col>
 
@@ -3685,7 +3835,12 @@ const AddPurchaseExpanseVoucher = ({ setIsAddingNewPurchaseExpanse, setIsEditing
                       <Col md={6}>
                         <Form.Group controlId="formBank">
                           <Form.Label>Bank</Form.Label>
-                          <Select value={selectedBankName} onChange={handleBankSelection} options={bankOptions} isClearable placeholder="Select Bank" />
+                          <Select 
+                            value={selectedBankName}  
+                            onChange={handleBankSelection} 
+                            options={bankOptions} 
+                            isClearable 
+                            placeholder="Select Bank" />
                         </Form.Group>
                       </Col>
                     )}
@@ -3694,7 +3849,12 @@ const AddPurchaseExpanseVoucher = ({ setIsAddingNewPurchaseExpanse, setIsEditing
                       <Col md={6}>
                         <Form.Group controlId="formKas">
                           <Form.Label>Cash</Form.Label>
-                          <Select value={selectedBankName} onChange={handleBankSelection} options={bankOptions} isClearable placeholder="Select Cash" />
+                          <Select 
+                            value={selectedBankName} 
+                            onChange={handleBankSelection} 
+                            options={bankOptions} 
+                            isClearable 
+                            placeholder="Select Cash" />
                         </Form.Group>
                       </Col>
                     )}
@@ -4005,9 +4165,19 @@ const AddPurchaseExpanseVoucher = ({ setIsAddingNewPurchaseExpanse, setIsEditing
                                       }}
                                     />
                                   </td>
+
                                   <td>
-                                    <Form.Control type="date" value={item.purchase_invoice_date} onChange={(e) => handleItemChange(index, "purchase_invoice_date", e.target.value)} style={detailFormStyle()} />
-                                  </td>
+                                      <DatePicker
+                                        selected={item.purchase_invoice_date}
+                                        onChange={(date) => handleItemChange(index, "purchase_invoice_date", date)}
+                                        dateFormat="dd-MM-yyyy" // Display date in dd-MM-yyyy format
+                                        className="form-control"
+                                        placeholderText="Select a date"
+                                        required
+                                         customInput={<input type="text" style={{ border: 'none', background: 'transparent', width: '100%' }} />} 
+                                      />
+                                       <FaCalendar style={{ marginLeft: "-30px", zIndex: "2" }} className="my-auto" />
+                                    </td>
 
                                   {/* <td>
                                <Form.Control
@@ -4607,8 +4777,8 @@ const AddPurchaseExpanseVoucher = ({ setIsAddingNewPurchaseExpanse, setIsEditing
 
                                   <td>
                                     <Form.Control
-                                      type="number"
-                                      value={item.amount_paid}
+                                      type="text"
+                                      value={item.amount_paid !== undefined && item.amount_paid !== null ? item.amount_paid.toLocaleString("en-US") : 0}
                                       onChange={(e) => {
                                         // handleItemChange(index, "amount_paid", parseFloat(e.target.value))
                                         const newAmountPaid = parseFloat(e.target.value.replace(/[^\d.-]/g, ""));
