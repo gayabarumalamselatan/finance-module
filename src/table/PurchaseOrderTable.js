@@ -760,7 +760,7 @@ const PurchaseOrderTable = ({
                                         <div className="col-md-4 font-weight-bold">Subtotal:</div>
                                         <div className="col-md-8">
                                             <NumericFormat
-                                                value={selectedRowData.TOTAL_BEFORE_DISCOUNT}
+                                                value={selectedRowData.SUBTOTAL}
                                                 displayType="text"
                                                 thousandSeparator=","
                                                 prefix="Rp "
@@ -768,21 +768,10 @@ const PurchaseOrderTable = ({
                                         </div>
                                     </div>
                                     <div className="row mb-3">
-                                        <div className="col-md-4 font-weight-bold">Discount:</div>
+                                        <div className="col-md-4 font-weight-bold">Total Discount:</div>
                                         <div className="col-md-8">
                                             <NumericFormat
-                                                value={selectedRowData.DISCOUNT}
-                                                displayType="text"
-                                                thousandSeparator=","
-                                                prefix="Rp "
-                                            />
-                                        </div>
-                                    </div>
-                                    <div className="row mb-3">
-                                        <div className="col-md-4 font-weight-bold">Subtotal After Discount:</div>
-                                        <div className="col-md-8">
-                                            <NumericFormat
-                                                value={selectedRowData.TOTAL_AFTER_DISCOUNT}
+                                                value={selectedRowData.TOTAL_DISCOUNT}
                                                 displayType="text"
                                                 thousandSeparator=","
                                                 prefix="Rp "
