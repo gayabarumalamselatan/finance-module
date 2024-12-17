@@ -337,12 +337,12 @@ import { FaCalendar } from 'react-icons/fa';
     // Lookup Pr
     const lookupPR = (selectedCurrency, selectedVendor) => {
       let prUrl = "PURC_FORMPUREQ&filterBy=STATUS&filterValue=APPROVED&operation=EQUAL";
-      if(selectedCurrency) {
-        prUrl += `&filterBy=CURRENCY&operation=EQUAL&filterValue=${selectedCurrency}`
-      }
-      if(selectedVendor){
-        prUrl += `&filterBy=VENDOR&operation=EQUAL&filterValue=${selectedVendor}`
-      }
+      // if(selectedCurrency) {
+      //   prUrl += `&filterBy=CURRENCY&operation=EQUAL&filterValue=${selectedCurrency}`
+      // }
+      // if(selectedVendor){
+      //   prUrl += `&filterBy=VENDOR&operation=EQUAL&filterValue=${selectedVendor}`
+      // }
       console.log(prUrl); 
       LookupService.fetchLookupData(prUrl, authToken, branchId)
       .then(data => {
@@ -522,12 +522,12 @@ import { FaCalendar } from 'react-icons/fa';
 
     
     // New Item List PR Handle
-    const handlePRChange = (index, selectedOption) => {
-      
+    const handlePRChange = (index, selectCurrency, selectedOption) => {
+      console.log('currency', selectCurrency)
       if (selectedOption) {
         console.log('curr', selectedOption);
         // Lookup PR Detail
-        LookupService.fetchLookupData(`PURC_FORMPUREQD&filterBy=PR_NUMBER&filterValue=${selectedOption.value}&operation=EQUAL`, authToken, branchId)
+        LookupParamService.fetchLookupDataView(`PURC_FORMPUREQD&filterBy=PR_NUMBER&filterValue=${selectedOption.value}&operation=EQUAL&filterBy=CURRENCY_ID&filterValue=${selectCurrency}&operation=EQUAL`, authToken, branchId)
         .then(response => {
           const fetchAllPRItem = response.data||[];
           const fetchedItems = Array.isArray(response.data) ? response.data.filter(item => item.status_detail === null) : [];
@@ -555,7 +555,8 @@ import { FaCalendar } from 'react-icons/fa';
 
               const currencyOptions = transformedCurrencyData.map(item => ({
                   value: item.CODE,
-                  label: item.CODE
+                  label: item.CODE,
+                  id: item.ID
               }));
 
               setCurrencyOptions(currencyOptions); // Set currency options to state
@@ -563,7 +564,7 @@ import { FaCalendar } from 'react-icons/fa';
               console.log('issbef', isCurrencyIsSet)
               // Set currency based on the currency from the first selected pr
               if(isCurrencyIsSet === false){
-                const currencyOption = currencyOptions.find((option) => option.value === fetchedDatas[0].currency);
+                const currencyOption = currencyOptions.find((option) => option.id === fetchedDatas[0].currency_id);
                 setSelectedCurrency(currencyOption);
                 setCurrency(currencyOption ? currencyOption.value : '');
                 setIsCurrencyIsSet(true);
@@ -1961,6 +1962,7 @@ import { FaCalendar } from 'react-icons/fa';
                               if(docRef === 'purchaseRequest') {
                                 lookupPR(selectedOption ? selectedOption.value : '', selectedVendor ? selectedVendor.value : '')
                               }
+                              handlePRChange(index,selectedOption ? selectedOption.id : '')
                               handleOptionChange(setSelectedCurrency, setCurrency, selectedOption);
                               setCurrencyId(selectedOption ? selectedOption.id : '');
                             }}
@@ -2080,7 +2082,7 @@ import { FaCalendar } from 'react-icons/fa';
                                             options={optionsWithDisabled}
                                             onChange={(selectedOption) => {
                                               handleItemChange(index, 'doc_reff_no', selectedOption ? selectedOption.value : null);
-                                              handlePRChange(index, selectedOption)
+                                              handlePRChange(index, currency_id, selectedOption)
                                             }} 
                                             isClearable
                                             required

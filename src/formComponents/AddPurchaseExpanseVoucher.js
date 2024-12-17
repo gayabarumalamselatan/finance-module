@@ -270,6 +270,7 @@ const AddPurchaseExpanseVoucher = ({ setIsAddingNewPurchaseExpanse, setIsEditing
               );
 
               const productOptions = transformedProductData.map((item) => ({
+                id: item.ID,
                 value: item.NAME,
                 label: item.NAME,
                 expenseAccount: item.EXPENSE_ACCOUNT,
@@ -2248,6 +2249,7 @@ const AddPurchaseExpanseVoucher = ({ setIsAddingNewPurchaseExpanse, setIsEditing
         unit_price: 0,
         coa: "",
         product: "",
+        product_id: 0,
         description: "",
         // amount: 0,
         db_cr: "Db",
