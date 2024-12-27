@@ -260,6 +260,7 @@ const AddPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, select
           setProjectOptions(options);
           const selectedProjectOption = options.find(option => option.value === selectedData[0].PROJECT);
           setSelectedProject(selectedProjectOption || null);
+
         })
         .catch(error => {
           console.error('Failed to fetch currency lookup:', error);
@@ -625,7 +626,7 @@ const AddPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, select
             value: item.ID,
             label: item.NAME,
             project_contract_number: item.CONTRACT_NUMBER,
-           customer: item.CUSTOMER_ID
+            customer: item.CUSTOMER_ID
           }));
           setProjectOptions(options);
         })
@@ -727,25 +728,67 @@ const AddPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, select
 
 
   const handleProjectChange = (selectedOption, index) => {
-    console.log(selectedOption);
+    console.log('handleProjectChange', selectedOption);
 
     // Copy the items array
     const updatedItems = [...items];
 
-    // Update the specific item at the provided index
+    // Update the specific item at the provided index with initial data
     updatedItems[index] = {
-      ...updatedItems[index], // Copy the existing fields
-      project_id: selectedOption ? selectedOption.value : '', // Set the project
-      project_contract_number: selectedOption ? selectedOption.project_contract_number : '', // Set project contract number
-      customer_id: selectedOption ? selectedOption.customer : '' // Set the customer
+      ...updatedItems[index],
+      project_id: selectedOption ? selectedOption.value : '',
+      project_contract_number: selectedOption ? selectedOption.project_contract_number : '',
+      customer_id: selectedOption ? selectedOption.customer : '',
+      customer_name: '' // Placeholder for customer_name
     };
 
-    // Update the items array in state
-    setItems(updatedItems);
+    // Fetch customer name from MSDT_FORMCUST filtered by customer ID
+    if (selectedOption && selectedOption.customer) {
+      LookupParamService.fetchLookupData(
+        `MSDT_FORMCUST`,
+        authToken,
+        branchId
+      )
+        .then((customerData) => {
+          console.log('Customer lookup data:', customerData);
 
-    // Optionally, update any other states related to selected project if needed
+          // Transform keys to uppercase for consistency
+          const transformedCustomerData = customerData.data.map((item) =>
+            Object.keys(item).reduce((acc, key) => {
+              acc[key.toUpperCase()] = item[key];
+              return acc;
+            }, {})
+          );
+
+          // Filter the customer data to match the selectedOption.customer
+          const matchingCustomer = transformedCustomerData.find(
+            (customer) => customer.ID === selectedOption.customer
+          );
+
+          // Extract the customer name if available
+          const customerName = matchingCustomer?.NAME || 'Unknown';
+
+          // Update the items array with the customer_name
+          updatedItems[index] = {
+            ...updatedItems[index],
+            customer_name: customerName
+          };
+
+          // Update state with the updated items
+          setItems(updatedItems);
+        })
+        .catch((error) => {
+          console.error('Failed to fetch customer data:', error);
+        });
+    } else {
+      // If no customer is selected, update state immediately
+      setItems(updatedItems);
+    }
+
+    // Optionally, update other states related to selected project if needed
     setSelectedProject(selectedOption);
   };
+
 
   const handleVendorChange = (selectedOption, index) => {
     const updatedItems = [...items]; // Copy the items array
@@ -803,7 +846,7 @@ const AddPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, select
 
 
   const handleAddItem = () => {
-    setItems([...items, { doc_reff_no: '',currency_id: '', doc_source: '', vendor_id: '', project_id: '', project_contract_number: '', customer_id: '', department_id: '', product_id: '', product_note: '', quantity: '', unit_price: 0, total_price: 0, id_upload: '' }]);
+    setItems([...items, { doc_reff_no: '', currency_id: '', doc_source: '', vendor_id: '', project_id: '', project_contract_number: '', customer_id: '', department_id: '', product_id: '', product_note: '', quantity: '', unit_price: 0, total_price: 0, id_upload: '' }]);
   };
 
   const handleItemChange = async (index, field, value) => {
@@ -864,13 +907,10 @@ const AddPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, select
       newItems[index].quantity = newItems[index].quantity || 1; // Default quantity to 1 if empty or 0
       newItems[index].total_price = newItems[index].quantity * newItems[index].unit_price;
     }
-    
+
     // Update the items state for all changes
     setItems(newItems);
   };
-
-
-
 
 
   const handleDeleteItem = (index) => {
@@ -900,9 +940,9 @@ const AddPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, select
     setSelectedItems([]);
   };
 
-  const calculateTotalAmount = () => {
-    return items.reduce((total, item) => total + item.total_price, 0);
-  };
+  
+  
+  
 
   const handleOnDragEnd = (result) => {
     if (!result.destination) return;
@@ -1081,7 +1121,7 @@ const AddPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, select
       // Insert updated items with newPrNumber if provided, otherwise use pr_number
       const updatedPrNumber = newPrNumber || pr_number;
       for (const item of items) {
-        const { rwnum, ID, status, id_trx, ...rest } = item;
+        const { rwnum, ID, status, id_trx, customer_name, ...rest } = item;
         const updatedItem = { ...rest, pr_number: updatedPrNumber };
         await InsertDataService.postData(updatedItem, "PUREQD", authToken, branchId);
         console.log('Item inserted successfully:', updatedItem);
@@ -1098,7 +1138,7 @@ const AddPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, select
       let updatedItem;
 
       if (duplicateFlag) {
-        // Hanya menyertakan properti tertentu
+        // Only include specific properties and exclude customer_name
         updatedItem = {
           doc_reff_no: item.doc_reff_no,
           doc_source: item.doc_source,
@@ -1113,12 +1153,18 @@ const AddPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, select
           unit_price: item.unit_price,
           total_price: item.total_price,
           id_upload: item.id_upload,
-          pr_number: pr_number, // Tambahkan pr_number
+          pr_number: pr_number, // Add pr_number
         };
       } else {
-        // Kirim seluruh item jika duplicateFlag false
-        updatedItem = { ...item, pr_number };
+        // Send the entire item, excluding customer_name
+        const { customer_name, ...itemWithoutCustomerName } = item; // Exclude customer_name
+        updatedItem = { ...itemWithoutCustomerName, pr_number };
       }
+
+      // You can now use updatedItem for further processing, e.g., API call
+      console.log(updatedItem);
+      // Example of making an API call:
+      // await someApiCall(updatedItem);
 
       await InsertDataService.postData(updatedItem, "PUREQD", authToken, branchId);
 
@@ -1453,7 +1499,7 @@ const AddPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, select
         if (pr_number.slice(0, 2) !== 'PR') {
           pr_number = await generatePrNumber('PR');
         } else {
-          pr_number 
+          pr_number
         }
 
         const total_amount = calculateTotalAmount();
@@ -1574,6 +1620,19 @@ const AddPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, select
 
     }
   }
+
+  const hasMultipleCurrencies = () => {
+    const uniqueCurrencies = new Set(items.map(item => item.currency_id).filter(Boolean));
+    return uniqueCurrencies.size > 1;
+  };
+
+  const calculateTotalAmount = () => {
+    if (hasMultipleCurrencies()) {
+      console.warn("Total amount not calculated: Multiple currencies detected.");
+      return 0; // Tidak menghitung jika ada lebih dari satu mata uang
+    }
+    return items.reduce((sum, item) => sum + item.total_price, 0);
+  };
 
   return (
     <Fragment>
@@ -1735,7 +1794,7 @@ const AddPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, select
                         </div>
                       </Form.Group>
                     </Col>
-                    
+
                   </Row>
                 </Form>
               </Card.Body>
@@ -1864,7 +1923,7 @@ const AddPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, select
                                           control: (provided) => ({
                                             ...provided,
                                             ...detailFormStyle()
-                                          }),placeholder: (provided) => ({
+                                          }), placeholder: (provided) => ({
                                             ...provided,
                                             color: 'black', // Sets placeholder text color to black
                                           }),
@@ -1884,7 +1943,7 @@ const AddPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, select
                                           control: (provided) => ({
                                             ...provided,
                                             ...detailFormStyle()
-                                          }),placeholder: (provided) => ({
+                                          }), placeholder: (provided) => ({
                                             ...provided,
                                             color: 'black', // Sets placeholder text color to black
                                           }),
@@ -1905,7 +1964,7 @@ const AddPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, select
                                     <td>
                                       <Form.Control
                                         type="text"
-                                        value={item.customer_id} // Bind to the specific item's field
+                                        value={item.customer_name} // Bind to the specific item's field
                                         onChange={(e) => handleItemChange(index, 'customer_id', e.target.value)} // Update the customer
                                         style={detailFormStyle()}
                                         disabled // Keep it disabled if it should not be editable
@@ -1932,7 +1991,7 @@ const AddPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, select
                                         }}
                                         required
                                       />
-                                      
+
                                     </td>
 
                                     <td>
@@ -1987,7 +2046,7 @@ const AddPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, select
                                         required
                                       />
                                     </td>
-                                    
+
                                     <td>
                                       <Form.Control
                                         type="number"
@@ -2002,11 +2061,6 @@ const AddPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, select
                                       />
                                     </td>
                                     <td>
-                                      {/* <Form.Control
-                                      type="number"
-                                      value={item.unit_price}
-                                      onChange={(e) => handleItemChange(index, 'unit_price', parseFloat(e.target.value) || 0)}
-                                    /> */}
                                       <CurrencyInput
                                         id={`currency-input-${index}`}
                                         name="unit_price"
@@ -2042,15 +2096,26 @@ const AddPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, select
 
                           {provided.placeholder}
                         </div>
-                        <table className='table table-bordered' >
-                          <tbody>
-                            <tr>
-                              <td colSpan="16" className="text-right">Total Amount:</td>
-                              <td className="text-end"><strong>{calculateTotalAmount().toLocaleString('en-US', { currency: 'IDR', minimumFractionDigits: 2, maximumFractionDigits: 2 })} </strong></td>
+                        {!hasMultipleCurrencies() && (
+                          <table className="table table-bordered">
+                            <tbody>
+                              <tr>
+                                <td colSpan="16" className="text-right">Total Amount:</td>
+                                <td className="text-end">
+                                  <strong>
+                                    {calculateTotalAmount().toLocaleString('en-US', {
+                                      style: 'currency',
+                                      currency: 'IDR',
+                                      minimumFractionDigits: 2,
+                                      maximumFractionDigits: 2,
+                                    })}
+                                  </strong>
+                                </td>
+                              </tr>
+                            </tbody>
+                          </table>
+                        )}
 
-                            </tr>
-                          </tbody>
-                        </table>
                       </>
                     )}
                   </Droppable>
