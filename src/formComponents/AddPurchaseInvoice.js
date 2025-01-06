@@ -1524,17 +1524,8 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
 
   const handleSummaryItemChange = async (index, field, value) => {
     
-    // setTaxSummaryItems([
-    //   ...taxSummaryItems,
-    //   {
-    //     [field]: value
-    //   }
-    // ])
-    // const exists = taxSummaryItems.some(item => item.tax_code === value);
-    if(field === 'tax_code'){
 
-    }
-
+    // logic lama
     setTaxSummaryItems(prevItems => {
       // Create a copy of the current items
       const updatedItems = [...prevItems];
@@ -1551,24 +1542,21 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
       return updatedItems;
     });
     
+
+    // var markup = "";
     
-    // const newSum = [...taxSummaryItems];
-
-    // newSum[index][field] = value
-
-    // console.log('huhuhu',index, field, value)
-    // setTaxSummaryItems(prevItems => {
-    //   const updatedItems = [...prevItems];
-    //   updatedItems[index] = {
-    //       ...updatedItems[index],
-    //       [field]: value
-    //   };
-    //   console.log('iyay');
-    //   return updatedItems;
-    // });
-    // // handleNewTaxSummary()
-
-    // setTaxSummaryItems(newSum)
+    //     markup =
+    //         "<tr>" +
+    //         "   <td>asd</td>" +
+    //         "   <td class=\"text-right\">asd</td>" +
+    //         "   <td class=\"text-right\">asd</td>" +
+    //         "</tr>";
+    //         // "<tr>" +
+    //         // "   <td>" + purchaseInvoiceTax + "</td>" +
+    //         // "   <td class=\"text-right\">" + numeric(purchaseInvoiceTax.baseAmount) + "</td>" +
+    //         // "   <td class=\"text-right\">" + numeric(purchaseInvoiceTax.taxAmount) + "</td>" +
+    //         // "</tr>";
+    //     setTaxSummaryItems(markup)
     
   }
 
@@ -1754,24 +1742,24 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
     }
 
     if (field === "tax_pph" || field === "tax_pph_rate") {
-      const taxPphMap = {};
+      // const taxPphMap = {};
 
-      // Accumulate tax_ppn_amount for each unique tax_ppn value
-      newItems.forEach(item => {
-          const taxPpnValue = item.tax_pph;
-          if (taxPpnValue) {
-              if (!taxPphMap[taxPpnValue]) {
-                  taxPphMap[taxPpnValue] = 0;
-              }
-              taxPphMap[taxPpnValue] += item.tax_pph_amount || 0;
-          }
-      });
-      const totalTaxPphAmount = Object.values(taxPphMap).reduce((total, amount) => total + amount, 0);
+      // // Accumulate tax_ppn_amount for each unique tax_ppn value
+      // newItems.forEach(item => {
+      //     const taxPpnValue = item.tax_pph;
+      //     if (taxPpnValue) {
+      //         if (!taxPphMap[taxPpnValue]) {
+      //             taxPphMap[taxPpnValue] = 0;
+      //         }
+      //         taxPphMap[taxPpnValue] += item.tax_pph_amount || 0;
+      //     }
+      // });
+      // const totalTaxPphAmount = Object.values(taxPphMap).reduce((total, amount) => total + amount, 0);
 
-      handleSummaryItemChange(taxSummaryItems.length, 'tax_amount', totalTaxPphAmount)
+      // handleSummaryItemChange(taxSummaryItems.length, 'tax_amount', totalTaxPphAmount)
       
 
-      console.log('total', item.tax_pph_amount)
+      // console.log('total', item.tax_pph_amount)
     }
 
     
@@ -1806,6 +1794,7 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
 
     setItems(newItems);
   };
+
 
   const handleDeleteItem = (index) => {
     const newItems = items.filter((item, i) => i !== index);
@@ -4144,7 +4133,7 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
                           type="text"
                           value={calculateTotalAmount().totalPPHAmount.toLocaleString("en-US") || 0}
                           onChange={(e) => {
-                            // dynamicFormWidth(e.target.value, index);
+                            
                             const newItems = [...items];
                             const totalPPHAmount = parseFloat(e.target.value.replace(/[^\d.-]/g, "")) || 0;
                             newItems.forEach((item) => {
@@ -4240,7 +4229,7 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
                   <Droppable droppableId="items">
                     {(provided) => (
                       <div className="table-responsive" {...provided.droppableProps} ref={provided.innerRef}>
-                        <table className="table table-bordered">
+                        <table className="table table-bordered" id="tblSummaryList">
                           <thead>
                             <tr>
                               <th>
@@ -4309,6 +4298,15 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
                                   </td>
                                 </tr>
                               ))
+
+                                  // <tr>
+                                  //     <td><input class="form-control" disabled id="txtCode" name="txtCode" type="text"/>
+                                  //     </td>
+                                  //     <td><input class="form-control" disabled id="txtBase" name="txtBase" type="text"/>
+                                  //     </td>
+                                  //     <td><input class="form-control" disabled id="txtPajak" name="txtPajak" type="text"/>
+                                  //     </td>
+                                  // </tr>
                             )}
                           </tbody>
                         </table>
