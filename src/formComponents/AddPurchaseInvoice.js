@@ -59,6 +59,7 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
   const [tax_invoice_number, setTaxInvoiceNumber] = useState("");
   const [selectedVendor, setSelectedVendor] = useState(null);
   const [selectedCodCorSkb, setSelectedCodCorSkb] = useState(null);
+  const [selectedCoa, setSelectedCoa] = useState(null);
   const [vendorOptions, setVendorOptions] = useState([]);
   const [paymentTermOptions, setPaymentTermOptions] = useState([]);
   const [selectedPaymentTerm, setSelectedPaymentTerm] = useState(null);
@@ -91,7 +92,7 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
   const [idPr, setIdPr] = useState("");
   const [idPo, setIdPo] = useState("");
   const [cod_cor_skb, SetCodCorSkb] = useState("");
-  const [tax_exchange_rate, setTaxExchangeRate] = useState("1");
+  const [tax_exchange_rate, setTaxExchangeRate] = useState(1);
   const [customer_contract, setCustomerContract] = useState("");
   const [file, setFile] = useState("");
   const [vatType, setVatType] = useState(null);
@@ -102,8 +103,7 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
   const [customer, setCustomer] = useState("");
   const [departement, setDepartement] = useState("");
   const [doc_reff_no, setDocReffNo] = useState("");
-  const [contractNumberOption, setContractNumberOptions] = useState([]);
-  const [selectedtaxppntype, setSelectedTaxPpnType] = useState(null);
+  const [contractNumberOptions, setContractNumberOptions] = useState([]);
   const [isAddFile, setIsAddFile] = useState(false);
   const [tax_ppn_royalty_option, setTaxPpnRoyaltyOption] = useState([]);
   const [selectedPrNumbers, setSelectedPrNumbers] = useState([]);
@@ -117,13 +117,16 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
   const [total_amount_ppn_idr, setTotalAmountPpnIdr] = useState("");
   const [total_amount_pph_idr, setTotalAmountPphIdr] = useState("");
   const [storedPoHeader, setStoredPoHeader] = useState([]);
+  const [isCurrencyIsSet, setIsCurrencyIsSet] = useState(false);
+  const [fetchedPRDetail, setFetchedPRDetail] = useState([]);
+  const [taxItems, setTaxItems] = useState([]);
   const [taxSummaryItems, setTaxSummaryItems] = useState([]);
 
   // id
-  const [payment_term_id, setPaymentTermId] = useState('');
+  const [payment_term_id, setPaymentTermId] = useState("");
   const create_by_id = parseInt(idUser);
-  const [vendor_id, setVendorId] = useState('');
-  const [currency_id, setCurrencyId] = useState('');
+  const [vendor_id, setVendorId] = useState("");
+  const [currency_id, setCurrencyId] = useState("");
 
   const authToken = headers;
 
@@ -162,7 +165,6 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
             setDocReffNo(data.doc_reff_no);
             setDocRef(data.doc_reff);
             setTitle(data.title);
-            // setSelectedVendor(data.vendor);
             setVendor(data.vendor);
             setDueDate(data.due_date);
             setTermOfPayment(data.term_of_payment);
@@ -195,7 +197,7 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
           console.error("Failed to load purchase invoice data:", error);
         });
 
-      // Fetch items based on PR_NUMBER and set them to state
+      // Fetch items based on INVOICE_NUMBER and set them to state
       LookupService.fetchLookupData(`PURC_FORMPUINVCD&filterBy=invoice_number&filterValue=${INVOICE_NUMBER}&operation=EQUAL`, authToken, branchId)
         .then((response) => {
           const fetchedItems = response.data || [];
@@ -203,6 +205,39 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
 
           // Set fetched items to state
           setItems(fetchedItems);
+
+          LookupService.fetchLookupData(`PURC_FORMINVCTAX&filterBy=INVOICE_ID&filterValue=${ID}&operation=EQUAL`, authToken, branchId)
+            .then((response) => {
+              const fetchedItems = response.data || [];
+              console.log("Tax Items Fetched", fetchedItems);
+              // setItems(fetchedItems);
+            })
+            .catch((error) => {
+              console.error("Failed to load purchase invoice tax data:", error);
+            });
+
+          // Fetch COA data
+          LookupParamService.fetchLookupDataView("MSDT_FORMCOAA", authToken, branchId)
+            .then((data) => {
+              console.log("COA lookup data:", data);
+
+              // Transform keys to uppercase directly in the received data
+              const transformedData = data.data.map((item) =>
+                Object.keys(item).reduce((acc, key) => {
+                  acc[key.toUpperCase()] = item[key];
+                  return acc;
+                }, {})
+              );
+
+              const options = transformedData.map((item) => ({
+                value: item.CODE,
+                label: item.CODE,
+              }));
+              setCoaOptions(options);
+            })
+            .catch((error) => {
+              console.error("Failed to fetch COA lookup:", error);
+            });
 
           // Lookup PPN & PPh
           LookupParamService.fetchLookupDataView("MSDT_FORMTAX", authToken, branchId)
@@ -224,7 +259,7 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
                   value: item.NAME,
                   label: item.NAME,
                   RATE: item.RATE,
-                  tax_account: item.tax_account,
+                  tax_account: item.TAX_ACCOUNT,
                   coa_id: item.coa_id,
                 }));
               setTax_Pph_Type_Option(options);
@@ -235,7 +270,7 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
                   value: item.NAME,
                   label: item.NAME,
                   RATE: item.RATE,
-                  tax_account: item.tax_account,
+                  tax_account: item.TAX_ACCOUNT,
                   coa_id: item.coa_id,
                 }));
               setTaxPpnTypeOption(optionsPpn);
@@ -246,7 +281,7 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
                   value: item.NAME,
                   label: item.NAME,
                   RATE: item.RATE,
-                  tax_account: item.tax_account,
+                  tax_account: item.TAX_ACCOUNT,
                   coa_id: item.coa_id,
                 }));
               setTaxPpnRoyaltyOption(optionsPpnRoyalty);
@@ -379,6 +414,7 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
             value: item.COUNT,
             label: item.NAME,
             dateType: item.DATE_TYPE,
+            id: item.ID,
           }));
 
           setPaymentTermOptions(options);
@@ -386,17 +422,6 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
           const selectPaymentTermOption = options.find((option) => option.value === selectedData[0].PAYMENT_TERM) || "";
           setSelectedPaymentTerm(selectPaymentTermOption);
           console.log("Selected payment option:", selectedPaymentTerm);
-
-          // // Get the payment term value from the selected data
-          // const paymentTermValue = selectedData[0].PAYMENT_TERM;
-
-          // // Find the corresponding payment term option
-          // const selectedPaymentTermOption = options.find((option) => option.value === paymentTermValue);
-
-          // // Update the payment term state
-          // setSelectedPaymentTerm(selectedPaymentTermOption);
-          // setPaymentTerm(paymentTermValue);
-          // console.log("selectedPayment", paymentTermValue);
         })
         .catch((error) => {
           console.error("Failed to fetch payment term lookup:", error);
@@ -447,7 +472,7 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
             label: item.CODE,
           }));
           setCurrencyOptions(options);
-          const selectedCurrencyOption = options.find((option) => option.value === currency);
+          const selectedCurrencyOption = options.find((option) => option.value === currency) || null;
           setSelectedCurrency(selectedCurrencyOption || null);
         })
         .catch((error) => {
@@ -470,24 +495,16 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
             value: item.COUNT,
             label: item.NAME,
             dateType: item.DATE_TYPE,
+            id: item.ID,
           }));
 
           setPaymentTermOptions(options);
 
-          const selectPaymentTermOption = options.find((option) => option.value === selectedData[0].PAYMENT_TERM) || "";
-          setSelectedPaymentTerm(selectPaymentTermOption);
-          console.log("Selected payment option:", selectedPaymentTerm);
-
-          // // Get the payment term value from the selected data
-          // const paymentTermValue = selectedData[0].PAYMENT_TERM;
-
-          // // Find the corresponding payment term option
-          // const selectedPaymentTermOption = options.find((option) => option.value === paymentTermValue);
-
-          // // Update the payment term state
-          // setSelectedPaymentTerm(selectedPaymentTermOption);
-          // setPaymentTerm(paymentTermValue);
-          // console.log("selectedPayment", paymentTermValue);
+          if (selectedData) {
+            const selectPaymentTermOption = options.find((option) => option.value === selectedData[0].PAYMENT_TERM) || null;
+            setSelectedPaymentTerm(selectPaymentTermOption || null);
+            console.log("Selected payment option:", selectedPaymentTerm);
+          }
         })
         .catch((error) => {
           console.error("Failed to fetch payment term lookup:", error);
@@ -513,11 +530,13 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
           }));
           setProductOptions(options);
           console.log("Product :", options);
-          const selectedProductOption = options.find((option) => option.value === selectedData[0].PRODUCT);
-          setSelectedProduct(selectedProductOption || null);
+          if (selectedData) {
+            const selectedProductOption = options.find((option) => option.value === selectedData[0].PRODUCT) || "";
+            setSelectedProduct(selectedProductOption || null);
+          }
         })
         .catch((error) => {
-          console.error("Failed to fetch currency lookup:", error);
+          console.error("Failed to fetch product lookup:", error);
         });
 
       LookupParamService.fetchLookupDataView("MSDT_FORMCUST", authToken, branchId)
@@ -536,19 +555,20 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
           const options = transformedData.map((item) => ({
             value: item.NAME,
             label: item.NAME,
+            id: item.ID,
           }));
           setCustomerOptions(options);
           console.log("Customer :", customer);
-          const selectedCustomerOption = options.find((option) => option.value === selectedData[0].CUSTOMER);
-          setSelectedCustomer(selectedCustomerOption || null);
+          if (selectedData) {
+            const selectedCustomerOption = options.find((option) => option.value === selectedData[0].CUSTOMER) || null;
+            setSelectedCustomer(selectedCustomerOption || null);
+          }
         })
         .catch((error) => {
           console.error("Failed to fetch currency lookup:", error);
         });
     }
   }, [selectedData, duplicateFlag]);
-
-
 
   useEffect(() => {
     // Ambil data lookup untuk currency
@@ -576,38 +596,6 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
       .catch((error) => {
         console.error("Failed to fetch currency lookup:", error);
       });
-
-    //  buat project
-    // LookupParamService.fetchLookupData("MSDT_PRJT", authToken, branchId)
-    //   .then((data) => {
-    //     console.log("Project lookup data:", data);
-
-    //     // Transform keys to uppercase directly in the received data
-    //     const transformedData = data.data.map((item) =>
-    //       Object.keys(item).reduce((acc, key) => {
-    //         acc[key.toUpperCase()] = item[key];
-    //         return acc;
-    //       }, {})
-    //     );
-    //     //console.log('Transformed data:', transformedData);
-
-    //     const options = transformedData.map((item) => ({
-    //       value: item.NAME,
-    //       label: item.NAME,
-    //     }));
-    //     setProjectOptions(options);
-    //   })
-    //   .catch((error) => {
-    //     console.error("Failed to fetch project lookup:", error);
-    //   });
-
-    // const options = transformedData
-    //     .filter((item) => item.ENTITY_TYPE === "BOTH")
-    //     .map((item) => ({
-    //       value: item.NAME,
-    //       label: item.NAME,
-    //     }));
-    //   setVendorOptions(options);
 
     // buat cod/cor
     LookupParamService.fetchLookupDataView("BooleanTrueFalse", authToken, branchId)
@@ -683,7 +671,7 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
           .map((item) => ({
             value: item.NAME,
             label: item.NAME,
-            id: item.ID
+            id: item.ID,
           }));
         setVendorOptions(bothOptions);
       })
@@ -882,19 +870,18 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
         const options = transformedData.map((item) => ({
           value: item.CODE,
           label: item.CODE,
-          id: item.ID
+          id: item.ID,
         }));
         setCurrencyOptions(options);
-        const defCurr = options.find(item => item.value === 'IDR')
-        setCurrencyId(defCurr.id)
-        console.log('currid', defCurr)
+        const defCurr = options.find((item) => item.value === "IDR");
+        setCurrencyId(defCurr.id);
+        console.log("currid", defCurr);
       })
       .catch((error) => {
         console.error("Failed to fetch currency lookup:", error);
       });
-      
 
-    // buar project dll
+    // buat project dll
     LookupParamService.fetchLookupDataView("MSDT_FORMPRJT", authToken, branchId)
       .then((data) => {
         console.log("Currency lookup data:", data);
@@ -913,7 +900,7 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
           label: item.NAME,
           customer: item.CUSTOMER,
           contract_number: item.CONTRACT_NUMBER,
-          id: item.ID
+          id: item.ID,
         }));
 
         const optionsCustomer = transformedData.map((item) => ({
@@ -928,6 +915,7 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
         setProjectOptions(options);
         setCustomerOptions(optionsCustomer);
         setContractNumberOptions(contractNumOptions);
+        console.log("custop", optionsCustomer);
       })
       .catch((error) => {
         console.error("Failed to fetch currency lookup:", error);
@@ -953,7 +941,7 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
             value: item.NAME,
             label: item.NAME,
             RATE: item.RATE,
-            tax_account: item.tax_account,
+            tax_account: item.TAX_ACCOUNT,
             coa_id: item.coa_id,
           }));
         setTax_Pph_Type_Option(options);
@@ -965,7 +953,7 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
             value: item.NAME,
             label: item.NAME,
             RATE: item.RATE,
-            tax_account: item.tax_account,
+            tax_account: item.TAX_ACCOUNT,
             coa_id: item.coa_id,
           }));
         setTaxPpnTypeOption(optionsPpn);
@@ -992,8 +980,6 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
     setSelectedPaymentTerm(selectedOption);
     setPaymentTerm(selectedOption ? selectedOption.value : "");
     setPaymentTermId(selectedOption ? selectedOption.id : 0);
-
-    
 
     const formatDate = moment(invoice_date).format("YYYY-MM-DD"); // format tanggal jadi "yyyy-MM-dd"; // format tanggal jadi "yyyy-MM-dd"
     const payload = {
@@ -1029,7 +1015,7 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
           console.log("Items fetched:", fetchedItems);
 
           // Filter fetched items where status_detail is null
-          const filteredItems = fetchedItems.filter((item) => item.status_detail === null);
+          const filteredItems = fetchedItems.filter((item) => item.status_detail === null && item.currency_id === selectedCurrency);
           console.log("Filtered items:", filteredItems);
 
           // Fetch product lookup data
@@ -1199,7 +1185,7 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
               console.log("Items fetched:", fetchedItems);
 
               // Filter fetched items where status_detail is null
-              const filteredItems = fetchedItems.filter((item) => item.status_detail === null);
+              const filteredItems = fetchedItems.filter((item) => item.status_detail === null && item.currency === selectedCurrency);
               console.log("Filtered items:", filteredItems);
 
               // Fetch product lookup data
@@ -1262,7 +1248,7 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
                               value: item.NAME,
                               label: item.NAME,
                               RATE: item.RATE,
-                              tax_account: item.tax_account,
+                              tax_account: item.TAX_ACCOUNT,
                               coa_id: item.coa_id,
                             }));
                           setTax_Pph_Type_Option(options);
@@ -1273,7 +1259,7 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
                               value: item.NAME,
                               label: item.NAME,
                               RATE: item.RATE,
-                              tax_account: item.tax_account,
+                              tax_account: item.TAX_ACCOUNT,
                               coa_id: item.coa_id,
                             }));
                           setTaxPpnTypeOption(optionsPpn);
@@ -1284,7 +1270,7 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
                               value: item.NAME,
                               label: item.NAME,
                               RATE: item.RATE,
-                              tax_account: item.tax_account,
+                              tax_account: item.TAX_ACCOUNT,
                               coa_id: item.coa_id,
                             }));
                           setTaxPpnRoyaltyOption(optionsPpnRoyalty);
@@ -1386,22 +1372,22 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
   const handleCurrencyChange = (selectedOption) => {
     setSelectedCurrency(selectedOption);
     setCurrency(selectedOption ? selectedOption.value : "", selectedOption ? selectedOption.id : "");
-    setCurrencyId(selectedOption ? selectedOption.id : '')
+    setCurrencyId(selectedOption ? selectedOption.id : "");
   };
 
   const handleVendorChange = (selectedOption) => {
     setSelectedVendor(selectedOption);
     setVendor(selectedOption ? selectedOption.value : "", selectedOption ? selectedOption.id : "");
-    setVendorId(selectedOption ? selectedOption.id : '')
+    setVendorId(selectedOption ? selectedOption.id : "");
   };
 
   const handleBothVendorChange = (selectedOption) => {
     setSelectedBothVendor(selectedOption);
     setVendor(selectedOption ? selectedOption.value : "", selectedOption ? selectedOption.id : "");
-    setVendorId(selectedOption ? selectedOption.id : '')
+    setVendorId(selectedOption ? selectedOption.id : "");
   };
 
-  // console.log('vendorid', vendor_id)
+  console.log("vendorid", vendor_id);
 
   const handleProjectChange = (index, selectedOption) => {
     const newItems = [...items]; // Create a copy of the current items array
@@ -1494,73 +1480,99 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
         tax_pph_amount_idr: 0,
         total_amount_ppn_idr: 0,
         total_amount_pph_idr: 0,
-        tax_ppn_id:'',
-        tax_pph_id: '',
-        project_id: '',
-        customer_id: '',
-        department_id: '',
+        tax_ppn_id: "",
+        tax_pph_id: "",
+        project_id: "",
+        customer_id: "",
+        department_id: "",
         vendor_id: vendor_id,
         currency_id: currency_id,
+        tax_account_ppn: '',
+        tax_account_pph: '',
       },
     ]);
   };
 
-  const handleNewTaxSummary = () => {
-   setTaxSummaryItems([
-    ...taxSummaryItems,
-    {
-      tax_code: ''
-    }
-   ])
-  }
-  // useEffect(()=>{
-  //   handleNewTaxSummary()
-  // },[])
-  
-  function handleDeleteSummary(index) {
-    const newItems = taxSummaryItems.filter((item, i) => i !== index);
-    setTaxSummaryItems(newItems);
-  }
+  const handleTaxItemChange = (index, field, value) => {
+    const updatedTaxItems = [...taxItems];
+    updatedTaxItems[index][field] = value;
+    setTaxItems(updatedTaxItems);
+  };
 
-  const handleSummaryItemChange = async (index, field, value) => {
-    
+  const handleDeleteTaxItem = (index) => {
+    const updatedTaxItems = taxItems.filter((_, i) => i !== index);
+    setTaxItems(updatedTaxItems);
+  };
 
-    // logic lama
-    setTaxSummaryItems(prevItems => {
-      // Create a copy of the current items
-      const updatedItems = [...prevItems];
+  const handleAddTaxItem = () => {
+    setTaxItems([
+      ...taxItems,
+      {
+        tax_account: "",
+        tax_code: "",
+        tax_amount: 0,
+        tax_amount_idr: 0,
+        base_amount: 0,
+        base_amount_idr: 0,
+      },
+    ]);
+  };
+
+    useEffect(()=> {
+      summarizeItems(items)
+    },[items])
+
+  const summarizeItems = () => {
+    const summary = []
+
+    items.forEach(item => {
+
+      // PPN
+      if(item.tax_ppn && item.tax_ppn_amount) {
+        const existingTaxPPN = summary.find(s => s.tax_code === item.tax_ppn);
   
-      // If the item at the index doesn't exist, create it
-      if (!updatedItems[index]) {
-        updatedItems[index] = {};
+        if (existingTaxPPN) {
+          existingTaxPPN.tax_amount += item.tax_ppn_amount;
+          existingTaxPPN.base_amount += item.tax_base;
+          existingTaxPPN.base_amount_idr += item.tax_base_idr;
+          existingTaxPPN.tax_amount_idr += item.tax_ppn_amount_idr
+        } else {
+          summary.push({
+            tax_code: item.tax_ppn,
+            tax_amount: item.tax_ppn_amount,
+            base_amount: item.tax_base,
+            tax_account: item.tax_account_ppn,
+            base_amount_idr: item.tax_base_idr,
+            tax_amount_idr: item.tax_ppn_amount_idr
+          });
+        }
       }
-  
-      // Update the specific field
-      
-        updatedItems[index][field] = value;
 
-      return updatedItems;
+      // PPh
+      if(item.tax_pph && item.tax_pph_amount) {
+        const existingPPh = summary.find(s => s.tax_code === item.tax_pph)
+        if(existingPPh){
+          existingPPh.tax_amount += item.tax_pph_amount;
+          existingPPh.base_amount += item.tax_base;
+          existingPPh.base_amount_idr += item.tax_base_idr;
+          existingPPh.tax_amount_idr += item.tax_pph_amount_idr
+        }else{
+          summary.push({
+            tax_code: item.tax_pph,
+            tax_amount: item.tax_pph_amount,
+            base_amount: item.tax_base,
+            tax_account: item.tax_account_pph,
+            base_amount_idr: item.tax_base_idr,
+            tax_amount_idr: item.tax_pph_amount_idr
+          })
+        }
+      }
     });
-    
+    setTaxSummaryItems(summary)
+  };
 
-    // var markup = "";
-    
-    //     markup =
-    //         "<tr>" +
-    //         "   <td>asd</td>" +
-    //         "   <td class=\"text-right\">asd</td>" +
-    //         "   <td class=\"text-right\">asd</td>" +
-    //         "</tr>";
-    //         // "<tr>" +
-    //         // "   <td>" + purchaseInvoiceTax + "</td>" +
-    //         // "   <td class=\"text-right\">" + numeric(purchaseInvoiceTax.baseAmount) + "</td>" +
-    //         // "   <td class=\"text-right\">" + numeric(purchaseInvoiceTax.taxAmount) + "</td>" +
-    //         // "</tr>";
-    //     setTaxSummaryItems(markup)
-    
-  }
-
-  console.log('adsh', taxSummaryItems);
+  console.log('asd',taxSummaryItems);
+  console.log('asd',items);
 
   const handleItemChange = async (index, field, value) => {
     const newItems = [...items];
@@ -1681,7 +1693,6 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
 
     // Calculate PPN and PPH
     if (field === "tax_ppn" || field === "tax_ppn_rate") {
-      
       if (newItems[index].type_of_vat === "include") {
         newItems[index].new_unit_price = newItems[index].unit_price + newItems[index].unit_price * pengkali;
         newItems[index].tax_base = Math.round(newItems[index].total_price / (1 + newItems[index].tax_ppn_rate / 100));
@@ -1719,51 +1730,6 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
       }
     }
 
-    if (field === "tax_ppn" || field === "tax_ppn_rate") {
-      const taxPpnMap = {};
-
-      // Accumulate tax_ppn_amount for each unique tax_ppn value
-      newItems.forEach(item => {
-          const taxPpnValue = item.tax_ppn;
-          if (taxPpnValue) {
-              if (!taxPpnMap[taxPpnValue]) {
-                  taxPpnMap[taxPpnValue] = 0;
-              }
-              taxPpnMap[taxPpnValue] += item.tax_ppn_amount || 0;
-          }
-      });
-      const totalTaxPpnAmount = Object.values(taxPpnMap).reduce((total, amount) => total + amount, 0);
-
-      handleSummaryItemChange(taxSummaryItems.length, 'tax_amount', taxPpnMap)
-      
-
-      console.log('total', taxPpnMap)
-
-    }
-
-    if (field === "tax_pph" || field === "tax_pph_rate") {
-      // const taxPphMap = {};
-
-      // // Accumulate tax_ppn_amount for each unique tax_ppn value
-      // newItems.forEach(item => {
-      //     const taxPpnValue = item.tax_pph;
-      //     if (taxPpnValue) {
-      //         if (!taxPphMap[taxPpnValue]) {
-      //             taxPphMap[taxPpnValue] = 0;
-      //         }
-      //         taxPphMap[taxPpnValue] += item.tax_pph_amount || 0;
-      //     }
-      // });
-      // const totalTaxPphAmount = Object.values(taxPphMap).reduce((total, amount) => total + amount, 0);
-
-      // handleSummaryItemChange(taxSummaryItems.length, 'tax_amount', totalTaxPphAmount)
-      
-
-      // console.log('total', item.tax_pph_amount)
-    }
-
-    
-    
     // Update VAT type logic
     if (field === "type_of_vat") {
       // Reset VAT-related fields
@@ -1786,7 +1752,7 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
       newItems[index].tax_pph = "";
     }
 
-    console.log("ppnamidr", newItems[index].tax_pph);
+    console.log("ppnamidr", newItems[index].tax_ppn_id);
 
     // Calculate the total_before_discount_idr after updating the items
     const total_before_discount_idr = newItems.reduce((total, item) => total + (item.tax_base_idr || 0), 0);
@@ -1795,11 +1761,30 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
     setItems(newItems);
   };
 
-
   const handleDeleteItem = (index) => {
+    const itemToRemove = items[index];
     const newItems = items.filter((item, i) => i !== index);
     setItems(newItems);
     setSelectedItems(selectedItems.filter((i) => i !== index));
+
+    console.log("items", itemToRemove);
+
+    // Reset curency
+    if (newItems.length === 0) {
+      console.log("lengt", selectedItems.length);
+      setIsCurrencyIsSet(false);
+      // setFetchedPRDetail([]);
+      return;
+    }
+  };
+
+  const handleDeleteLast = () => {
+    const newItems = items.slice(0, items.length - 1); // Create a new array excluding the last item
+    setItems(newItems);
+    setSelectedItems([]);
+    if (newItems.length === 0) {
+      setIsCurrencyIsSet(false);
+    }
   };
 
   const handleSelectItem = (index) => {
@@ -1822,6 +1807,9 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
     const newItems = items.filter((_, index) => !selectedItems.includes(index));
     setItems(newItems);
     setSelectedItems([]);
+    if (newItems.length === 0) {
+      setIsCurrencyIsSet(false);
+    }
   };
 
   useEffect(() => {
@@ -1895,9 +1883,9 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
       total_amount = subtotalAfterDiscount - totalPPHAmount;
     } else {
       // Calculate total amount based on the cases
-      const case1 = items.some((item) => item.type_of_vat === "include" && item.type_of_pph === "gross");
+      const case1 = items.some((item) => (item.type_of_vat === "include" && item.type_of_pph === "gross") || item.type_of_pph === "");
       const case2 = items.some((item) => item.type_of_vat === "include" && item.type_of_pph === "nett");
-      const case3 = items.some((item) => item.type_of_vat === "exclude" && item.type_of_pph === "gross");
+      const case3 = items.some((item) => (item.type_of_vat === "exclude" && item.type_of_pph === "gross") || item.type_of_pph === "");
       const case4 = items.some((item) => item.type_of_vat === "exclude" && item.type_of_pph === "nett");
 
       if (case1 || case3) {
@@ -1917,7 +1905,7 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
 
     // Calculate total_amount_idr
     const total_amount_idr = total_before_discount_idr + totalPPNAmountIDR - totalPPHAmountIDR; // Ensure it's not negative
-    // console.log("total amount idr", total_amount_idr);
+    console.log("total amount idr", total_amount_idr);
 
     // Ensure valid total amount
     const validTotalAmount = isNaN(total_amount) ? 0 : total_amount;
@@ -2289,6 +2277,7 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
             delete updatedItem.tax_amount_idr;
             delete updatedItem.base_amount;
             delete updatedItem.base_amount_idr;
+            delete updatedItem.request_id;
 
             const itemResponse = await InsertDataService.postData(updatedItem, "PUINVCD", authToken, branchId);
             console.log("Item posted successfully:", itemResponse);
@@ -2493,6 +2482,15 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
 
         console.log("Data posted successfully:", response);
 
+        const getIDforINVID = await LookupService.fetchLookupData(`PURC_FORMPUINVC&filterBy=INVOICE_NUMBER&filterValue=${invoice_number.replace("DRAFT_", "")}&operation=EQUAL`, authToken, branchId);
+        const idforIVCID = getIDforINVID.data[0]; // Ambil data pertama
+
+        // if (!idforIVCID) {
+        //   throw new Error("Invoice ID not found."); // Atau tangani kesalahan sesuai kebutuhan
+        // }
+
+        console.log("the id", idforIVCID.ID);
+
         // Update Status for PR or PO
         if (idPr) {
           await axios.post(`${FORM_SERVICE_UPDATE_DATA}?f=PUREQ&column=id&value=${idPr}&branchId=${branchId}`, { status_request: "INVOICE" }, { headers: { Authorization: `Bearer ${authToken}` } });
@@ -2563,7 +2561,12 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
             delete updatedItem.tax_amount_idr;
             delete updatedItem.base_amount;
             delete updatedItem.base_amount_idr;
-
+            delete updatedItem.payment_term_id;
+            delete updatedItem.create_by_id;
+            delete updatedItem.vendor_id;
+            delete updatedItem.currency_id;
+            delete updatedItem.departement_id;
+            delete updatedItem.request_id;
             try {
               const itemResponse = await InsertDataService.postData(updatedItem, "PUINVCD", authToken, branchId);
               console.log("Item inserted successfully:", itemResponse);
@@ -2627,6 +2630,12 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
             delete updatedItem.tax_amount_idr;
             delete updatedItem.base_amount;
             delete updatedItem.base_amount_idr;
+            delete updatedItem.payment_term_id;
+            delete updatedItem.create_by_id;
+            delete updatedItem.vendor_id;
+            delete updatedItem.currency_id;
+            delete updatedItem.departement_id;
+            delete updatedItem.request_id;
 
             const itemResponse = await InsertDataService.postData(updatedItem, "PUINVCD", authToken, branchId);
             console.log("Item posted successfully:", itemResponse);
@@ -2868,75 +2877,6 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
                 }
               }
 
-              const getIDforINVID = await LookupService.fetchLookupData(`PURC_FORMPUINVC&filterBy=invoice_number&filterValue=${invoice_number}&operation=EQUAL`, authToken, branchId);
-              const idforIVCID = getIDforINVID.data[0];
-
-              console.log("the id", idforIVCID.ID);
-              console.log("Data posted successfully:", response);
-
-              // Handle INVCTAX data (insert, update, delete)
-              if (response.message === "Update Data Successfully") {
-                // Fetch existing INVCTAX data
-                const taxLookupResponse = await LookupService.fetchLookupData(`PURC_FORMINVCTAX&filterBy=invoice_id&filterValue=${idforIVCID.ID}&operation=EQUAL`, authToken, branchId);
-                const taxIds = taxLookupResponse.data.map((tax) => tax.ID);
-
-                // Delete existing INVCTAX records
-                for (const taxId of taxIds) {
-                  try {
-                    await DeleteDataService.postData(`column=id&value=${taxId}`, "INVCTAX", authToken, branchId);
-                    console.log("Tax data deleted successfully:", taxId);
-                  } catch (error) {
-                    console.error("Error deleting tax data:", taxId, error);
-                  }
-                }
-
-                // Insert updated INVCTAX records
-                for (const item of items) {
-                  const taxInv = {
-                    tax_account: item.tax_account,
-                    tax_code: item.tax_code,
-                    tax_amount: item.tax_amount,
-                    tax_amount_idr: item.tax_amount_idr,
-                    invoice_id: idforIVCID.ID,
-                    base_amount: item.base_amount,
-                    base_amount_idr: item.base_amount_idr,
-                  };
-                  delete taxInv.ID;
-                  delete taxInv.id;
-
-                  console.log("taxinv data:", taxInv); // Log data before sending
-
-                  try {
-                    const taxResponse = await InsertDataService.postData(taxInv, "INVCTAX", authToken, branchId);
-                    console.log("Tax data inserted successfully:", taxResponse);
-                  } catch (error) {
-                    console.error("Error inserting tax data:", taxInv, error);
-                  }
-                }
-              } else if (response.message === "insert Data Successfully") {
-                // Insert new INVCTAX records
-                for (const item of items) {
-                  const taxInv = {
-                    tax_account: item.tax_account,
-                    tax_code: item.tax_code,
-                    tax_amount: item.tax_amount,
-                    tax_amount_idr: item.tax_amount_idr,
-                    invoice_id: idforIVCID.ID,
-                    base_amount: item.base_amount,
-                    base_amount_idr: item.base_amount_idr,
-                  };
-                  delete taxInv.ID;
-                  delete taxInv.id;
-
-                  try {
-                    const taxResponse = await InsertDataService.postData(taxInv, "INVCTAX", authToken, branchId);
-                    console.log("Tax data posted successfully:", taxResponse);
-                  } catch (error) {
-                    console.error("Error inserting tax data:", taxInv, error);
-                  }
-                }
-              }
-
               const getDocRefList = await LookupService.fetchLookupData(getHeader, authToken, branchId);
               const prID = getDocRefList.data[0].ID;
               console.log("PRid", prID);
@@ -2963,6 +2903,70 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
                 },
               });
               await updatePRStatus;
+            }
+          }
+
+          // Handle INVCTAX data (insert, update, delete)
+          if (response.message === "Update Data Successfully") {
+            // Fetch existing INVCTAX data
+            const taxLookupResponse = await LookupService.fetchLookupData(`PURC_FORMINVCTAX&filterBy=invoice_id&filterValue=${idforIVCID.ID}&operation=EQUAL`, authToken, branchId);
+            console.log("tax response", taxLookupResponse);
+            const taxIds = taxLookupResponse.data.map((tax) => tax.ID);
+
+            // Delete existing INVCTAX records
+            for (const taxId of taxIds) {
+              try {
+                await DeleteDataService.postData(`column=id&value=${taxId}`, "INVCTAX", authToken, branchId);
+                console.log("Tax data deleted successfully:", taxId);
+              } catch (error) {
+                console.error("Error deleting tax data:", taxId, error);
+              }
+            }
+
+            // Insert updated INVCTAX records
+            for (const item of items) {
+              const taxInv = {
+                tax_account: item.tax_account,
+                tax_code: item.tax_code,
+                tax_amount: item.tax_amount,
+                tax_amount_idr: item.tax_amount_idr,
+                invoice_id: idforIVCID.ID,
+                base_amount: item.base_amount,
+                base_amount_idr: item.base_amount_idr,
+              };
+              delete taxInv.ID;
+              delete taxInv.id;
+
+              console.log("taxinv data:", taxInv); // Log data before sending
+
+              try {
+                const taxResponse = await InsertDataService.postData(taxInv, "INVCTAX", authToken, branchId);
+                console.log("Tax data inserted successfully:", taxResponse);
+              } catch (error) {
+                console.error("Error inserting tax data:", taxInv, error);
+              }
+            }
+          } else if (response.message === "insert Data Successfully") {
+            // Insert new INVCTAX records
+            for (const item of items) {
+              const taxInv = {
+                tax_account: item.tax_account,
+                tax_code: item.tax_code,
+                tax_amount: item.tax_amount,
+                tax_amount_idr: item.tax_amount_idr,
+                invoice_id: idforIVCID.ID,
+                base_amount: item.base_amount,
+                base_amount_idr: item.base_amount_idr,
+              };
+              delete taxInv.ID;
+              delete taxInv.id;
+
+              try {
+                const taxResponse = await InsertDataService.postData(taxInv, "INVCTAX", authToken, branchId);
+                console.log("Tax data posted successfully:", taxResponse);
+              } catch (error) {
+                console.error("Error inserting tax data:", taxInv, error);
+              }
             }
           }
 
@@ -3181,7 +3185,18 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
                       <Form.Group controlId="formInvoiceDate">
                         <Form.Label>Invoice Date</Form.Label>
                         <div className="input-group">
-                          <DatePicker selected={invoice_date} onChange={(date) => setInvoiceDate(date)} dateFormat={"dd-MM-yyyy"} className="form-control" placeholder="Select Invoice Date" required />
+                          <DatePicker
+                            selected={invoice_date}
+                            onChange={(date) => {
+                              setInvoiceDate(date);
+                              setSelectedPaymentTerm(null); // balikin agar ganti invoice date maka untuk payment term di reset
+                              setDueDate(null);
+                            }}
+                            dateFormat={"dd-MM-yyyy"}
+                            className="form-control"
+                            placeholder="Select Invoice Date"
+                            required
+                          />
                           <FaCalendar style={{ marginLeft: "-30px", zIndex: "2" }} className="my-auto" />
                         </div>
                       </Form.Group>
@@ -3203,12 +3218,7 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
                     <Col md={6}>
                       <Form.Group controlId="formPaymentTerm">
                         <Form.Label>Payment Term</Form.Label>
-                        <Select 
-                          value={selectedPaymentTerm} 
-                          onChange={handlePaymentTermChange} 
-                          options={paymentTermOptions} 
-                          isClearable 
-                          placeholder="Select Payment Term..." />
+                        <Select value={selectedPaymentTerm} onChange={handlePaymentTermChange} options={paymentTermOptions} isClearable placeholder="Select Payment Term..." />
                       </Form.Group>
                     </Col>
 
@@ -3233,7 +3243,7 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
                       <Form.Group controlId="formTaxRate">
                         <Form.Label>Tax Exchange Rate (Amount)</Form.Label>
                         <Form.Control
-                          type="text"
+                          type="number"
                           placeholder="Enter Tax Exchange Rate"
                           min="0"
                           value={tax_exchange_rate.toLocaleString("en-US")}
@@ -3284,7 +3294,7 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
                       </Form.Group>
                     </Col>
 
-                    <Col md={6}>
+                    <Col md={6} hidden>
                       <Form.Group controlId="formTotalAmountPpnIdr">
                         <Form.Label>Total Amount PPN IDR</Form.Label>
                         <Form.Control
@@ -3301,7 +3311,7 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
                       </Form.Group>
                     </Col>
 
-                    <Col md={6}>
+                    <Col md={6} hidden>
                       <Form.Group controlId="formTotalAmountPphIdr">
                         <Form.Label>Total Amount PPH IDR</Form.Label>
                         <Form.Control
@@ -3318,7 +3328,7 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
                       </Form.Group>
                     </Col>
 
-                    <Col md={6}>
+                    <Col md={6} hidden>
                       <Form.Group controlId="formTotalBeforeDiscount">
                         <Form.Label>Total Before Discount IDR</Form.Label>
                         <Form.Control
@@ -3335,7 +3345,7 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
                       </Form.Group>
                     </Col>
 
-                    <Col md={6}>
+                    <Col md={6} hidden>
                       <Form.Group controlId="formTotalAfterDiscount">
                         <Form.Label>Total After Discount IDR</Form.Label>
                         <Form.Control
@@ -3352,7 +3362,7 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
                       </Form.Group>
                     </Col>
 
-                    <Col md={6}>
+                    <Col md={6} hidden>
                       <Form.Group controlId="formBiMiddleRate">
                         <Form.Label>Total Amount IDR</Form.Label>
                         <Form.Control
@@ -3385,7 +3395,7 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
                     <Button variant="success" size="sm" onClick={handleAddItem}>
                       <i className="fas fa-plus"></i> New Item
                     </Button>
-                    <Button variant="danger" size="sm" className="ml-2" onClick={handleDeleteSelected} disabled={selectedItems.length === 0}>
+                    <Button variant="danger" size="sm" className="ml-2 rounded-3" onClick={handleDeleteSelected} disabled={selectedItems.length === 0}>
                       <i className="fas fa-trash"></i> Delete Selected
                     </Button>
                   </div>
@@ -3422,8 +3432,8 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
                               <th>Tax Base</th>
                               <th>Tax Base IDR</th>
                               <th>Tax Invoice Number Vendor</th>
-                              <th>Document Referance Number</th>
-                              <th>Document Referance Source</th>
+                              <th>Document Reference Number</th>
+                              <th>Document Reference Source</th>
                               {/* <th>Tax Invoice Number Vendor</th> */}
                               {/* <th>Vendor</th> */}
                               <th>Project</th>
@@ -3583,36 +3593,24 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
                                       value={
                                         items[index].type_of_vat === "PPNRoyalty" ? tax_ppn_royalty_option.find((option) => option.value === item.tax_ppn) : taxPpnTypeOption.find((option) => option.value === items[index].tax_ppn) || null
                                       }
-                                      onChange={
-                                        
-                                        (selectedOption) => {
-                                        
-                                        
+                                      onChange={(selectedOption) => {
                                         // Update the tax_ppn for the specific item
                                         handleItemChange(index, "tax_ppn", selectedOption ? selectedOption.value : "");
-                                        handleItemChange(index, "tax_ppn_id", selectedOption ? selectedOption.id : "");
-
+                                        handleItemChange(index, "tax_ppn_id", selectedOption ? selectedOption.id : "");                                       
+                                        handleItemChange(index, 'tax_account_ppn', selectedOption ? selectedOption.tax_account : '')
 
                                         // Update the PpnRate for the specific item
                                         if (selectedOption) {
                                           handleItemChange(index, "tax_ppn_rate", selectedOption.RATE);
                                           setPpnRate(selectedOption.RATE); // Memperbarui nilai RATE jika ada selectedOption
-                                          const newTaxCode = `PPN: ${selectedOption ? selectedOption.label : "None"}`;
-                                          handleSummaryItemChange(taxSummaryItems.length, 'tax_code', newTaxCode)
-                                          console.log('totalppn', total_amount_ppn)
-                                          // handleSummaryItemChange(taxSummaryItems.length, 'tax_amount', total_amount_ppn)
-                                          // handleSummaryItemChange(taxSummaryItems.length, 'tax_amount_idr', newTaxCode)
-                                          // handleSummaryItemChange(index, 'tax_code', newTaxCode)
                                         } else {
                                           handleItemChange(index, "tax_ppn_rate", 0);
                                           setPpnRate(null); // Menghapus RATE jika tidak ada selectedOption
                                         }
                                         // Update the tax_code based on ppn dan pph summary
-                                        const currentTaxCode = items[index].tax_code;
                                         const pphSelectedOption = tax_pph_type_option.find((option) => option.value === items[index].tax_pph);
-                                        
-                                        // handleItemChange(index, "tax_code", newTaxCode);
-
+                                        const newTaxCode = `PPN: ${selectedOption ? selectedOption.label : "None"}, PPH: ${pphSelectedOption ? pphSelectedOption.label : "None"}`;
+                                        handleItemChange(index, "tax_code", newTaxCode);
                                       }}
                                       options={items[index].type_of_vat === "PPNRoyalty" ? tax_ppn_royalty_option : taxPpnTypeOption}
                                       // options={taxPpnTypeOption}
@@ -3629,7 +3627,7 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
                                   </td>
 
                                   <td>
-                                    <Form.Control type="number" value={item.tax_ppn_rate} onChange={(e) => {handleItemChange(index, "tax_ppn_rate", parseFloat(e.target.value))}} readOnly style={detailFormStyle()} />
+                                    <Form.Control type="number" value={item.tax_ppn_rate} onChange={(e) => handleItemChange(index, "tax_ppn_rate", parseFloat(e.target.value))} readOnly style={detailFormStyle()} />
                                   </td>
 
                                   <td>
@@ -3653,6 +3651,7 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
                                         // Update the tax_pph_type for the specific item
                                         handleItemChange(index, "tax_pph", selectedOption ? selectedOption.value : "");
                                         handleItemChange(index, "tax_pph_id", selectedOption ? selectedOption.id : "");
+                                        handleItemChange(index, 'tax_account_pph', selectedOption ? selectedOption.tax_account : '')
 
                                         // Update the PphRate for the specific item
                                         if (selectedOption) {
@@ -3664,12 +3663,8 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
                                         }
                                         // Update the tax_code based on ppn dan pph summary
                                         const ppnSelectedOption = taxPpnTypeOption.find((option) => option.value === items[index].tax_ppn);
-                                        const newTaxCode = ` PPH: ${selectedOption ? selectedOption.label : "None"}`;
-
-                                        handleSummaryItemChange(taxSummaryItems.length, 'tax_code', newTaxCode)
-                                        // handleSummaryItemChange(taxSummaryItems.length, 'tax_amount', newTaxCode)  
-                                        //   handleSummaryItemChange(taxSummaryItems.length, 'tax_amount_idr', newTaxCode)
-                                        // handleItemChange(index, "tax_code", newTaxCode);
+                                        const newTaxCode = `PPN: ${ppnSelectedOption ? ppnSelectedOption.label : "None"}, PPH: ${selectedOption ? selectedOption.label : "None"}`;
+                                        handleItemChange(index, "tax_code", newTaxCode);
                                       }}
                                       options={tax_pph_type_option}
                                       isClearable
@@ -3854,7 +3849,7 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
                                               // Assuming selectedOption contains customer information
                                               const customer = selectedOption.customer || ""; // Adjust this based on your data structure
                                               handleItemChange(index, "customer", customer);
-                                              handleItemChange(index, "customer_id", selectedOption ? selectedOption.id : '')
+                                              handleItemChange(index, "customer_id", selectedOption ? selectedOption.id : "");
                                             } else {
                                               handleItemChange(index, "customer", ""); // Clear if null
                                               handleItemChange(index, "project_contract_number", ""); // Clear if null
@@ -3894,7 +3889,7 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
                                               // Assuming selectedOption contains customer information
                                               const customer = selectedOption.customer || ""; // Adjust this based on your data structure
                                               handleItemChange(index, "customer", customer);
-                                              handleItemChange(index, "customer_id", selectedOption ? selectedOption.id : '');
+                                              handleItemChange(index, "customer_id", selectedOption ? selectedOption.id : "");
                                             } else {
                                               handleItemChange(index, "customer", ""); // Clear if null
                                               handleItemChange(index, "project_contract_number", ""); // Clear if null
@@ -3922,8 +3917,8 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
                                   <td>
                                     <Select
                                       id="projectContractNumber"
-                                      value={contractNumberOption.find((option) => option.value === item.project_contract_number)}
-                                      options={contractNumberOption}
+                                      value={contractNumberOptions.find((option) => option.value === item.project_contract_number)}
+                                      options={contractNumberOptions}
                                       onChange={(selectedOption) => {
                                         handleItemChange(index, "project_contract_number", selectedOption ? selectedOption.value : null);
                                       }}
@@ -3985,22 +3980,6 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
                                     />
                                   </td>
 
-                                  {/* <td>
-                                    <Select
-                                      value={codCorSkbOptions.find((option) => option.value === items[index].cod_cor_skb)} // Find the corresponding COD/COR, SKB option
-                                      onChange={(selectedOption) => {
-                                        handleItemChange(index, "cod_cor_skb", selectedOption ? selectedOption.value : null); // Call handleItemChange to update the codCorSkb for the specific item
-                                      }}
-                                      options={codCorSkbOptions} // List of COD/COR, SKB options
-                                      isClearable // Allow clearing the selection
-                                      placeholder="Select COD/COR, SKB..." // Placeholder text
-                                    />
-                                  </td> */}
-
-                                  {/* <td>
-                                      <Form.Control type="number" value={item.unit_price} onChange={(e) => handleItemChange(index, "unit_price", parseFloat(e.target.value) || 0)} />
-                                    </td> */}
-                                  {/* <td>{item.total_price.toLocaleString("en-US", { style: "currency", currency: item.currency })}</td> */}
                                   <td>
                                     <Button variant="danger" size="sm" onClick={() => handleDeleteItem(index)}>
                                       <i className="fas fa-trash"></i>
@@ -4014,6 +3993,9 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
                         <div className="pb-4">
                           <Button className="rounded-3" variant="success" size="sm" onClick={handleAddItem}>
                             <i className="fas fa-plus"></i> New Item
+                          </Button>
+                          <Button variant="danger" size="sm" className="ml-2 rounded-3" onClick={handleDeleteLast} disabled={items.length === 0}>
+                            <i className="fas fa-trash"></i> Delete
                           </Button>
                         </div>
                         {provided.placeholder}
@@ -4133,7 +4115,7 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
                           type="text"
                           value={calculateTotalAmount().totalPPHAmount.toLocaleString("en-US") || 0}
                           onChange={(e) => {
-                            
+                            // dynamicFormWidth(e.target.value, index);
                             const newItems = [...items];
                             const totalPPHAmount = parseFloat(e.target.value.replace(/[^\d.-]/g, "")) || 0;
                             newItems.forEach((item) => {
@@ -4229,7 +4211,7 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
                   <Droppable droppableId="items">
                     {(provided) => (
                       <div className="table-responsive" {...provided.droppableProps} ref={provided.innerRef}>
-                        <table className="table table-bordered" id="tblSummaryList">
+                        <table className="table table-bordered">
                           <thead>
                             <tr>
                               <th>
@@ -4257,7 +4239,7 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
                                   <td>
                                     <input type="checkbox" checked={selectedItems.includes(index)} onChange={() => handleSelectItem(index)} />
                                   </td>
-                                  <td>
+                                  {/* <td>
                                     <Select
                                       id="tax_account"
                                       value={coaOptions.find((option) => option.value === item.tax_account)}
@@ -4275,12 +4257,15 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
                                       }}
                                       required
                                     />
+                                  </td> */}
+                                  <td>
+                                    <Form.Control type="text" value={item.tax_account} onChange={(e) => handleItemChange(index, "tax_account", e.target.value)} style={detailFormStyle()} />
                                   </td>
                                   <td>
                                     <Form.Control type="text" value={item.tax_code} onChange={(e) => handleItemChange(index, "tax_code", e.target.value)} style={detailFormStyle()} />
                                   </td>
                                   <td>
-                                    <Form.Control type="text" value={item.tax_amount} onChange={(e) => handleItemChange(index, "tax_amount", parseFloat(e.target.value))} style={detailFormStyle()} />
+                                    <Form.Control type="number" value={item.tax_amount} onChange={(e) => handleItemChange(index, "tax_amount", parseFloat(e.target.value))} style={detailFormStyle()} />
                                   </td>
                                   <td>
                                     <Form.Control type="number" value={item.tax_amount_idr} onChange={(e) => handleItemChange(index, "tax_amount_idr", parseFloat(e.target.value))} style={detailFormStyle()} />
@@ -4292,29 +4277,15 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
                                     <Form.Control type="text" value={item.base_amount_idr} onChange={(e) => handleItemChange(index, "base_amount_idr", parseFloat(e.target.value))} style={detailFormStyle()} />
                                   </td>
                                   <td>
-                                    <Button variant="danger" size="sm" onClick={() => handleDeleteSummary(index)}>
+                                    <Button variant="danger" size="sm" onClick={() => handleDeleteItem(index)}>
                                       <i className="fas fa-trash"></i>
                                     </Button>
                                   </td>
                                 </tr>
                               ))
-
-                                  // <tr>
-                                  //     <td><input class="form-control" disabled id="txtCode" name="txtCode" type="text"/>
-                                  //     </td>
-                                  //     <td><input class="form-control" disabled id="txtBase" name="txtBase" type="text"/>
-                                  //     </td>
-                                  //     <td><input class="form-control" disabled id="txtPajak" name="txtPajak" type="text"/>
-                                  //     </td>
-                                  // </tr>
                             )}
                           </tbody>
                         </table>
-                        {/* <div className="pb-4">
-                          <Button className="rounded-3" variant="success" size="sm" onClick={handleAddItem}>
-                            <i className="fas fa-plus"></i> New Item
-                          </Button>
-                        </div> */}
                         {provided.placeholder}
                       </div>
                     )}

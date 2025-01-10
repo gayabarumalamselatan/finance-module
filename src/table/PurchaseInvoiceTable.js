@@ -236,6 +236,7 @@ const PurchaseInvoiceTable = ({
 
       const puinvcId = dataSelected[0].ID;
       const invoice_number = dataSelected[0].INVOICE_NUMBER;
+      const invoiceId = dataSelected[0].INVOICE_ID;
 
       Swal.fire({
         title: "Are you sure?",
@@ -274,6 +275,26 @@ const PurchaseInvoiceTable = ({
                   }
                 } else {
                   console.log("No ID found for this item, skipping delete:", item);
+                }
+              }
+            }
+
+            // New section to delete from PURC_INVCTAX
+            const taxResponseDetail = await LookupService.fetchLookupData(`PURC_FORMINVCTAX&filterBy=INVOICE_ID&filterValue=${puinvcId}&operation=EQUAL`, authToken, branchId);
+            const fetchedTaxItems = taxResponseDetail.data || [];
+
+            if (fetchedTaxItems.length > 0) {
+              for (const taxItem of fetchedTaxItems) {
+                if (taxItem.ID) {
+                  try {
+                    const taxItemResponseDelete = await DeleteDataService.postData(`column=id&value=${taxItem.ID}`, "INVCTAX", authToken, branchId);
+                    console.log("Tax item deleted successfully:", taxItemResponseDelete);
+                  } catch (error) {
+                    console.error("Error deleting tax item:", taxItem, error);
+                    throw new Error("Failed to delete one or more tax items");
+                  }
+                } else {
+                  console.log("No ID found for this tax item, skipping delete:", taxItem);
                 }
               }
             }
@@ -485,7 +506,7 @@ const PurchaseInvoiceTable = ({
                       <option value="INVOICE_STATUS">Invoice Status</option>
                       <option value="DESCRIPTION">Description</option>
                       <option value="DUE_DATE">Due Date</option>
-                      <option value="CREATE_BY">Create By</option>
+                      <option value="CREATED_BY">Created By</option>
                       <option value="TOTAL_AMOUNT">Total Amount</option>
                       <option value="STATUS_WORKFLOW">Status Workflow</option>
                     </select>

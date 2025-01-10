@@ -17,6 +17,7 @@ import DeleteDataService from '../service/DeleteDataService';
 import DatePicker from 'react-datepicker';
 import moment from 'moment';
 import { FaCalendar } from 'react-icons/fa';
+import { tr } from 'date-fns/locale';
 
 const AddPurchaseOrder = ({ 
   setIsAddingNewPurchaseOrder, 
@@ -58,6 +59,8 @@ const AddPurchaseOrder = ({
   const [endToEnd,setEndToEnd] = useState('');
   const [discount, setDiscount] = useState(0);
   const [PPNRoyaltyOptions, setPPNRoyaltyOptions] = useState([]);
+  const [taxTypeIncludeOptions, setTaxTypeIncludeOptions] = useState([]);
+  const [taxTypeExcludeOptions, setTaxTypExcludeeOptions] = useState([]);
   const [isCurrencyIsSet, setIsCurrencyIsSet] = useState(false);
 
   // PO Lookup
@@ -65,8 +68,6 @@ const AddPurchaseOrder = ({
   const [departementOptions, setDepartementOptions] = useState([]);
   const [vendorOptions, setVendorOptions] = useState([]);
   const [customerOptions, setCustomerOptions] = useState([]);
-  const [taxTypeOptions, setTaxTypeOptions] = useState([]);
-  const [selectedTaxType, setSelectedTaxType] = useState(null);
   const [productOptions, setProductOptions] = useState([]);
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [PROptions, setPROptions] = useState([]);
@@ -134,15 +135,30 @@ const AddPurchaseOrder = ({
         }, {})
       );
 
-      const options = transformedData.filter(item => item.TAX_TYPE === 'PPN').map(item => ({
+      const Alloptions = transformedData.filter(item => item.TAX_TYPE === 'PPN').map(item => ({
         value: item.NAME,
         label: item.NAME,
         RATE: item.RATE,
         id: item.ID,
       }));
-      setTaxTypeOptions(options);
 
-      const RoyaltyOption = transformedData.filter(item => item.TAX_TYPE === 'PPN Royalty').map(item => ({
+      const IncludeOptions = transformedData.filter(item => item.TAX_TYPE === 'PPN' && item.BASE_TAX_FLAG === true && (item.TAX_TYPE_USE === 'Purchase' || item.TAX_TYPE_USE === 'ALL') && item.ACTIVE === true).map(item => ({
+        value: item.NAME,
+        label: item.NAME,
+        RATE: item.RATE,
+        id: item.ID,
+      }));
+      setTaxTypeIncludeOptions(IncludeOptions);
+
+      const ExcludeOptions = transformedData.filter(item => item.TAX_TYPE === 'PPN' && item.BASE_TAX_FLAG === false && (item.TAX_TYPE_USE === 'Purchase' || item.TAX_TYPE_USE === 'ALL') && item.ACTIVE === true).map(item => ({
+        value: item.NAME,
+        label: item.NAME,
+        RATE: item.RATE,
+        id: item.ID,
+      }));
+      setTaxTypExcludeeOptions(ExcludeOptions);
+
+      const RoyaltyOption = transformedData.filter(item => item.ROYALTY === true).map(item => ({
         id: item.ID,
         value: item.NAME,
         label: item.NAME,
@@ -150,9 +166,9 @@ const AddPurchaseOrder = ({
       }));
       setPPNRoyaltyOptions(RoyaltyOption);
 
+
       if(selectedData){
-        const selectedTaxTypeOption = options.find(option => option.value === selectedData[0].TAX_PPN);
-        setSelectedTaxType(selectedTaxTypeOption || null);
+        Alloptions.find(option => option.value === selectedData[0].TAX_PPN);
       }
     })
     .catch(error => {
@@ -403,7 +419,7 @@ const AddPurchaseOrder = ({
     });
   }
 
-  // Lookup
+  // Lookup caller
   useEffect(() => {
     console.log('duplicated', duplicateFlag)
     if(selectedData) {
@@ -1979,7 +1995,7 @@ const AddPurchaseOrder = ({
                     {(provided) => (
                       <>
                         <div
-                          className="table-responsive"
+                          className="table-responsive pb-5"
                           {...provided.droppableProps}
                           ref={provided.innerRef}
                         >
@@ -2274,26 +2290,26 @@ const AddPurchaseOrder = ({
                                       <Select
                                         value={
                                           items[index].type_of_vat === 'PPNRoyalty' ?
-                                            PPNRoyaltyOptions.find(option => option.value === item.tax_ppn)
+                                            PPNRoyaltyOptions.find(option => option.value === item.tax_ppn) || null
                                           :
-                                            taxTypeOptions.find(option => option.value === item.tax_ppn) || null
+                                            items[index].type_of_vat === 'include' ? 
+                                              taxTypeIncludeOptions.find(option => option.value === item.tax_ppn) || null
+                                              :
+                                              taxTypeExcludeOptions.find(option => option.value === item.tax_ppn) || null
                                         }
-                                        options={items[index].type_of_vat === 'PPNRoyalty' ? PPNRoyaltyOptions : taxTypeOptions}
+                                        options={items[index].type_of_vat === 'PPNRoyalty' ? PPNRoyaltyOptions : items[index].type_of_vat === 'include' ? taxTypeIncludeOptions : taxTypeExcludeOptions}
                                         placeholder="Select Tax Type"
                                         isClearable
                                         onChange={(selectedOption) => {
-                                          setSelectedTaxType(selectedOption);
                                           if (selectedOption) {
-                                            // setPPNRate(selectedOption.RATE); 
                                             handleItemChange(index, 'tax_ppn_rate', parseFloat(selectedOption.RATE));
                                           } else {
-                                            // setPPNRate(''); 
                                             handleItemChange(index, 'tax_ppn_rate', 0);
                                           }
-                                          handleItemChange(index, 'tax_ppn', selectedOption ? selectedOption.value : ''  );
+                                          handleItemChange(index, 'tax_ppn', selectedOption  ? selectedOption.value : ''  );
                                           handleItemChange(index, 'tax_ppn_id', selectedOption ? selectedOption.id : ''  );
                                         }}
-                                        isDisabled={items[index].type_of_vat === 'nonPPN'}
+                                        isDisabled={items[index].type_of_vat === 'nonPPN' || items[index].type_of_vat === ''}
                                         styles={{
                                           control: (provided) => ({
                                               ...provided,
@@ -2413,7 +2429,6 @@ const AddPurchaseOrder = ({
                                           }
                                         }}
                                         placeholder='Project Contract Number...'
-                                        isDisabled
                                         required
                                         styles={{
                                           control: (provided) => ({
@@ -2441,7 +2456,6 @@ const AddPurchaseOrder = ({
                                         placeholder='Customer...'
                                         isClearable
                                         required
-                                        isDisabled
                                         styles={{
                                           control: (provided) => ({
                                               ...provided,
