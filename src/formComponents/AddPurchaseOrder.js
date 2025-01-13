@@ -17,6 +17,7 @@ import DeleteDataService from '../service/DeleteDataService';
 import DatePicker from 'react-datepicker';
 import moment from 'moment';
 import { FaCalendar } from 'react-icons/fa';
+import { tr } from 'date-fns/locale';
 
 const AddPurchaseOrder = ({ 
   setIsAddingNewPurchaseOrder, 
@@ -58,6 +59,8 @@ const AddPurchaseOrder = ({
   const [endToEnd,setEndToEnd] = useState('');
   const [discount, setDiscount] = useState(0);
   const [PPNRoyaltyOptions, setPPNRoyaltyOptions] = useState([]);
+  const [taxTypeIncludeOptions, setTaxTypeIncludeOptions] = useState([]);
+  const [taxTypeExcludeOptions, setTaxTypExcludeeOptions] = useState([]);
   const [isCurrencyIsSet, setIsCurrencyIsSet] = useState(false);
 
   // PO Lookup
@@ -65,8 +68,6 @@ const AddPurchaseOrder = ({
   const [departementOptions, setDepartementOptions] = useState([]);
   const [vendorOptions, setVendorOptions] = useState([]);
   const [customerOptions, setCustomerOptions] = useState([]);
-  const [taxTypeOptions, setTaxTypeOptions] = useState([]);
-  const [selectedTaxType, setSelectedTaxType] = useState(null);
   const [productOptions, setProductOptions] = useState([]);
   const [selectedProduct, setSelectedProduct] = useState(null);
   const [PROptions, setPROptions] = useState([]);
@@ -134,15 +135,30 @@ const AddPurchaseOrder = ({
         }, {})
       );
 
-      const options = transformedData.filter(item => item.TAX_TYPE === 'PPN').map(item => ({
+      const Alloptions = transformedData.filter(item => item.TAX_TYPE === 'PPN').map(item => ({
         value: item.NAME,
         label: item.NAME,
         RATE: item.RATE,
         id: item.ID,
       }));
-      setTaxTypeOptions(options);
 
-      const RoyaltyOption = transformedData.filter(item => item.TAX_TYPE === 'PPN Royalty').map(item => ({
+      const IncludeOptions = transformedData.filter(item => item.TAX_TYPE === 'PPN' && item.BASE_TAX_FLAG === true && (item.TAX_TYPE_USE === 'Purchase' || item.TAX_TYPE_USE === 'ALL') && item.ACTIVE === true).map(item => ({
+        value: item.NAME,
+        label: item.NAME,
+        RATE: item.RATE,
+        id: item.ID,
+      }));
+      setTaxTypeIncludeOptions(IncludeOptions);
+
+      const ExcludeOptions = transformedData.filter(item => item.TAX_TYPE === 'PPN' && item.BASE_TAX_FLAG === false && (item.TAX_TYPE_USE === 'Purchase' || item.TAX_TYPE_USE === 'ALL') && item.ACTIVE === true).map(item => ({
+        value: item.NAME,
+        label: item.NAME,
+        RATE: item.RATE,
+        id: item.ID,
+      }));
+      setTaxTypExcludeeOptions(ExcludeOptions);
+
+      const RoyaltyOption = transformedData.filter(item => item.ROYALTY === true).map(item => ({
         id: item.ID,
         value: item.NAME,
         label: item.NAME,
@@ -150,9 +166,9 @@ const AddPurchaseOrder = ({
       }));
       setPPNRoyaltyOptions(RoyaltyOption);
 
+
       if(selectedData){
-        const selectedTaxTypeOption = options.find(option => option.value === selectedData[0].TAX_PPN);
-        setSelectedTaxType(selectedTaxTypeOption || null);
+        Alloptions.find(option => option.value === selectedData[0].TAX_PPN);
       }
     })
     .catch(error => {
@@ -292,44 +308,41 @@ const AddPurchaseOrder = ({
 
   // Lookup Currency
   const lookupCurrency = (selectedData) => {
-      // Lookup Currency
-      LookupParamService.fetchLookupDataView("MSDT_FORMCCY", authToken, branchId)
-      .then(data => {
+    LookupParamService.fetchLookupDataView("MSDT_FORMCCY", authToken, branchId)
+    .then(data => {
 
-        // Transform keys to uppercase directly in the received data
-        const transformedData = data.data.map(item =>
-          Object.keys(item).reduce((acc, key) => {
-            acc[key.toUpperCase()] = item[key];
-            return acc;
-          }, {})
-        );
+      const transformedData = data.data.map(item =>
+        Object.keys(item).reduce((acc, key) => {
+          acc[key.toUpperCase()] = item[key];
+          return acc;
+        }, {})
+      );
 
-        const options = transformedData.map(item => ({
-          id: item.ID,
-          value: item.CODE,
-          label: item.CODE
-        }));
-        setCurrencyOptions(options);
+      const options = transformedData.map(item => ({
+        id: item.ID,
+        value: item.CODE,
+        label: item.CODE
+      }));
+      setCurrencyOptions(options);
 
-        // Default Currency
-        
-        if(selectedData) {
-        const selectCurrency = options.find(option => option.value === selectedData[0].CURRENCY)
-        setSelectedCurrency(selectCurrency || null)
-        setCurrency(selectCurrency.value);
-        setCurrencyId(selectCurrency.id);
-        }else if(!selectedData){
-        const defaultCurrency = options.find(option => option.value === 'IDR');
-        if(defaultCurrency){
-          setSelectedCurrency(defaultCurrency);
-          setCurrency(defaultCurrency.value);
-          setCurrencyId(defaultCurrency.id);
-        }
-        }
-        console.log('isselceted', selectedData)
-      }).catch(error => {
-        console.error('Failed to fetch currency lookup:', error);
-      }); 
+      // Default Currency
+      if(selectedData) {
+      const selectCurrency = options.find(option => option.value === selectedData[0].CURRENCY)
+      setSelectedCurrency(selectCurrency || null)
+      setCurrency(selectCurrency.value);
+      setCurrencyId(selectCurrency.id);
+      }else if(!selectedData){
+      const defaultCurrency = options.find(option => option.value === 'IDR');
+      if(defaultCurrency){
+        setSelectedCurrency(defaultCurrency);
+        setCurrency(defaultCurrency.value);
+        setCurrencyId(defaultCurrency.id);
+      }
+      }
+      console.log('isselceted', selectedData)
+    }).catch(error => {
+      console.error('Failed to fetch currency lookup:', error);
+    }); 
   }
 
   // Lookup Pr
@@ -406,7 +419,7 @@ const AddPurchaseOrder = ({
     });
   }
 
-  // Lookup
+  // Lookup caller
   useEffect(() => {
     console.log('duplicated', duplicateFlag)
     if(selectedData) {
@@ -585,10 +598,11 @@ const AddPurchaseOrder = ({
     if (selectedOption) {
       console.log('curr', selectedOption);
       // Lookup PR Detail
-      LookupParamService.fetchLookupDataView(`PURC_FORMPUREQD&filterBy=PR_NUMBER&filterValue=${selectedOption.value}&operation=EQUAL&filterBy=CURRENCY_ID&filterValue=${selectCurrency}&operation=EQUAL`, authToken, branchId)
+      LookupParamService.fetchLookupDataView(`PURC_FORMPUREQD&filterBy=PR_NUMBER&filterValue=${selectedOption.value}&operation=EQUAL`, authToken, branchId)
       .then(response => {
-        const fetchAllPRItem = response.data||[];
-        const fetchedItems = Array.isArray(response.data) ? response.data.filter(item => item.status_detail === null) : [];
+
+        const allItems = Array.isArray(response.data) ? response.data : []
+        const fetchedItems = Array.isArray(response.data) ? response.data.filter(item => item.status_detail === null && item.currency_id === selectCurrency) : [];
         console.log('Itemd fetched:', response.data);
         // dynamicFormWidth(response.data[0].unit_price.toString()+5, index);
 
@@ -597,16 +611,15 @@ const AddPurchaseOrder = ({
         .then(response => {
           const fetchedDatas = response.data || [];
           console.log('Items fetched:', fetchedDatas);
-          
+
           const newItems = [...items];
           const newStored = [...items];
 
-          const storedPRItems = fetchAllPRItem.map((item => {
+          const storedPRItems = allItems.map((item => {
             return {
               ...item,
             }
           }));
-
           storedPRItems.forEach((fetchedItem, i) => {
             newStored[index + i] = {
               ...newStored[index + i],
@@ -616,7 +629,7 @@ const AddPurchaseOrder = ({
           
           console.log('storedPRItems', newStored);
           setFetchedPRDetail(newStored);
-          console.log('pr stored', fetchedPRDetail);
+
 
           // Update fetched items with selected options
           const updatedFetchedItems = fetchedItems.map(item => {
@@ -674,7 +687,7 @@ const AddPurchaseOrder = ({
       setItems(newItems); 
     }
   };
-
+  console.log('pr stored', fetchedPRDetail);
   const handleOptionChange = (setter, stateSetter, selectedOption) => {
     setter(selectedOption);
     stateSetter(selectedOption ? selectedOption.value : '');
@@ -929,11 +942,11 @@ const AddPurchaseOrder = ({
   const generatePrNumber = async (code) => {
     try {
       const uniquePrNumber = await generateUniqueId(`${GENERATED_NUMBER}?code=${code}`, authToken);
-      setEndToEnd(uniquePrNumber); // Updates state, if needed elsewhere in your component
-      return uniquePrNumber; // Return the generated PR number for further use
+      setEndToEnd(uniquePrNumber); 
+      return uniquePrNumber; 
     } catch (error) {
       console.error('Failed to generate PR Number:', error);
-      throw error; // Rethrow the error for proper handling in the calling function
+      throw error;
     }
   };
 
@@ -1982,7 +1995,7 @@ const AddPurchaseOrder = ({
                     {(provided) => (
                       <>
                         <div
-                          className="table-responsive"
+                          className="table-responsive pb-5"
                           {...provided.droppableProps}
                           ref={provided.innerRef}
                         >
@@ -2277,26 +2290,26 @@ const AddPurchaseOrder = ({
                                       <Select
                                         value={
                                           items[index].type_of_vat === 'PPNRoyalty' ?
-                                            PPNRoyaltyOptions.find(option => option.value === item.tax_ppn)
+                                            PPNRoyaltyOptions.find(option => option.value === item.tax_ppn) || null
                                           :
-                                            taxTypeOptions.find(option => option.value === item.tax_ppn) || null
+                                            items[index].type_of_vat === 'include' ? 
+                                              taxTypeIncludeOptions.find(option => option.value === item.tax_ppn) || null
+                                              :
+                                              taxTypeExcludeOptions.find(option => option.value === item.tax_ppn) || null
                                         }
-                                        options={items[index].type_of_vat === 'PPNRoyalty' ? PPNRoyaltyOptions : taxTypeOptions}
+                                        options={items[index].type_of_vat === 'PPNRoyalty' ? PPNRoyaltyOptions : items[index].type_of_vat === 'include' ? taxTypeIncludeOptions : taxTypeExcludeOptions}
                                         placeholder="Select Tax Type"
                                         isClearable
                                         onChange={(selectedOption) => {
-                                          setSelectedTaxType(selectedOption);
                                           if (selectedOption) {
-                                            // setPPNRate(selectedOption.RATE); 
                                             handleItemChange(index, 'tax_ppn_rate', parseFloat(selectedOption.RATE));
                                           } else {
-                                            // setPPNRate(''); 
                                             handleItemChange(index, 'tax_ppn_rate', 0);
                                           }
-                                          handleItemChange(index, 'tax_ppn', selectedOption ? selectedOption.value : ''  );
+                                          handleItemChange(index, 'tax_ppn', selectedOption  ? selectedOption.value : ''  );
                                           handleItemChange(index, 'tax_ppn_id', selectedOption ? selectedOption.id : ''  );
                                         }}
-                                        isDisabled={items[index].type_of_vat === 'nonPPN'}
+                                        isDisabled={items[index].type_of_vat === 'nonPPN' || items[index].type_of_vat === ''}
                                         styles={{
                                           control: (provided) => ({
                                               ...provided,
@@ -2416,7 +2429,6 @@ const AddPurchaseOrder = ({
                                           }
                                         }}
                                         placeholder='Project Contract Number...'
-                                        isDisabled
                                         required
                                         styles={{
                                           control: (provided) => ({
@@ -2444,7 +2456,6 @@ const AddPurchaseOrder = ({
                                         placeholder='Customer...'
                                         isClearable
                                         required
-                                        isDisabled
                                         styles={{
                                           control: (provided) => ({
                                               ...provided,

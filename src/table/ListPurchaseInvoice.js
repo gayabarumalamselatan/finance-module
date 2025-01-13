@@ -304,18 +304,25 @@ const ListPurchaseInvoice = ({ selectedRow, onClose }) => {
                       <div className="col-md-8">{selectedRowData[0].INVOICE_STATUS}</div>
                     </div>
 
-                    {/* <div className="row mb-3">
-                      <div className="col-md-4 font-weight-bold">Tax Rate:</div>
-                      <div className="col-md-8">{selectedRowData[0].TAX_RATE}</div>
-                    </div>
                     <div className="row mb-3">
-                      <div className="col-md-4 font-weight-bold">Tax Invoice Number:</div>
-                      <div className="col-md-8">{selectedRowData[0].TAX_INVOICE_NUMBER}</div>
+                      <div className="col-md-4 font-weight-bold">Created By:</div>
+                      <div className="col-md-8">{selectedRowData[0].CREATED_BY}</div>
                     </div>
+
                     <div className="row mb-3">
-                      <div className="col-md-4 font-weight-bold">BI Middle Rate:</div>
-                      <div className="col-md-8">{selectedRowData[0].BI_MIDDLE_RATE}</div>
-                    </div> */}
+                      <div className="col-md-4 font-weight-bold">Vendor:</div>
+                      <div className="col-md-8">{selectedRowData[0].VENDOR}</div>
+                    </div>
+
+                    <div className="row mb-3">
+                      <div className="col-md-4 font-weight-bold">Cod, Cor, And SKB:</div>
+                      <div className="col-md-8">{selectedRowData[0].COD_COR_SKB}</div>
+                    </div>
+
+                    <div className="row mb-3">
+                      <div className="col-md-4 font-weight-bold">Currency:</div>
+                      <div className="col-md-8">{selectedRowData[0].CURRENCY}</div>
+                    </div>
 
                     <div className="row mb-3">
                       <div className="col-md-4 font-weight-bold">Discount:</div>
@@ -331,10 +338,6 @@ const ListPurchaseInvoice = ({ selectedRow, onClose }) => {
                       <div className="col-md-4 font-weight-bold">Description:</div>
                       <div className="col-md-8">{selectedRowData[0].DESCRIPTION}</div>
                     </div>
-                    <div className="row mb-3">
-                      <div className="col-md-4 font-weight-bold">Bi Middle Rate:</div>
-                      <div className="col-md-8">{selectedRowData[0].BI_MIDDLE_RATE}</div>
-                    </div>
                   </div>
                   {/* Add more fields as needed */}
                   <div className="table-responsive" style={{ overflowX: "auto" }}>
@@ -345,8 +348,6 @@ const ListPurchaseInvoice = ({ selectedRow, onClose }) => {
                           <th>Document Referance Number</th>
                           <th>Document Referance Source</th>
                           <th>Invoice Number Vendor</th>
-                          {/* <th>Tax Invoice Number Vendor</th> */}
-                          <th>Vendor</th>
                           <th>Project</th>
                           <th>Project Contract Number</th>
                           <th>Customer</th>
@@ -359,7 +360,6 @@ const ListPurchaseInvoice = ({ selectedRow, onClose }) => {
                           <th>Unit Price</th>
                           <th>Total Price</th>
                           <th>Total Price IDR</th>
-                          <th>Cod, Cor, Skb</th>
                           <th>Type Of VAT</th>
                           {/* <th>Tax PPN</th> */}
                           <th>Tax PPN</th>
@@ -387,7 +387,6 @@ const ListPurchaseInvoice = ({ selectedRow, onClose }) => {
                                 <td>{detail.DOC_SOURCE}</td>
                                 <td>{detail.INVOICE_NUMBER_VENDOR}</td>
                                 {/* <td>{detail.TAX_INVOICE_NUMBER_VENDOR}</td> */}
-                                <td>{detail.VENDOR}</td>
                                 <td>{detail.PROJECT}</td>
                                 <td>{detail.PROJECT_CONTRACT_NUMBER}</td>
                                 <td>{detail.CUSTOMER}</td>
@@ -400,20 +399,15 @@ const ListPurchaseInvoice = ({ selectedRow, onClose }) => {
                                 <td style={{ textAlign: "right" }}>{DisplayFormat(detail.UNIT_PRICE)}</td>
                                 <td style={{ textAlign: "right" }}>{DisplayFormat(detail.TOTAL_PRICE)}</td>
                                 <td style={{ textAlign: "right" }}>{DisplayFormat(detail.TOTAL_PRICE_IDR)}</td>
-                                <td>{detail.COD_COR_SKB}</td>
                                 <td>{detail.TYPE_OF_VAT}</td>
-                                {/* <td>{detail.TAX_PPN}</td> */}
                                 <td>{detail.TAX_PPN}</td>
                                 <td>{detail.TAX_PPN_RATE}</td>
-                                {/* <td style={{ textAlign: "right" }}>{DisplayFormat(detail.TAX_PPN_AMOUNT)}</td> */}
                                 <td>{detail.TYPE_OF_PPH}</td>
                                 <td>{detail.TAX_PPH}</td>
                                 <td>{detail.TAX_PPH_RATE}</td>
-                                {/* <td style={{ textAlign: "right" }}>{DisplayFormat(detail.TAX_PPH_AMOUNT)}</td> */}
                                 <td style={{ textAlign: "right" }}>{DisplayFormat(detail.TAX_BASE)}</td>
                                 <td style={{ textAlign: "right" }}>{DisplayFormat(detail.TAX_PPN_AMOUNT)}</td>
                                 <td style={{ textAlign: "right" }}>{DisplayFormat(detail.TAX_PPH_AMOUNT)}</td>
-                                {/* <td style={{ textAlign: "right" }}>{DisplayFormat(detail.TOTAL_AMOUNT)}</td> */}
                               </tr>
                             ))
                         ) : (
@@ -444,63 +438,42 @@ const ListPurchaseInvoice = ({ selectedRow, onClose }) => {
             <div className="card-body">
               {selectedRowData.length > 0 ? (
                 <div>
-                  {/* <div className="container">
+                  <div className="container">
                     <div className="row mb-3">
-                      <div className="col-md-4 font-weight-bold">Invoice Number:</div>
+                      <div className="col-md-4 font-weight-bold">Journal Number:</div>
                       <div className="col-md-8">{selectedRowData[0].INVOICE_NUMBER}</div>
                     </div>
 
                     <div className="row mb-3">
-                      <div className="col-md-4 font-weight-bold">Invoice Date:</div>
+                      <div className="col-md-4 font-weight-bold">Posting Date:</div>
                       <div className="col-md-8">{selectedRowData[0].INVOICE_DATE}</div>
                     </div>
 
                     <div className="row mb-3">
-                      <div className="col-md-4 font-weight-bold">Doc Reference:</div>
-                      <div className="col-md-8">{selectedRowData[0].DOC_REFF}</div>
+                      <div className="col-md-4 font-weight-bold">Type:</div>
+                      <div className="col-md-8">{selectedRowData[0].TYPE}</div>
                     </div>
 
                     <div className="row mb-3">
-                      <div className="col-md-4 font-weight-bold">Payment Term:</div>
-                      <div className="col-md-8">{selectedRowData[0].PAYMENT_TERM}</div>
+                      <div className="col-md-4 font-weight-bold">Period</div>
+                      <div className="col-md-8">{selectedRowData[0].PERIOD}</div>
                     </div>
 
                     <div className="row mb-3">
-                      <div className="col-md-4 font-weight-bold">Due Date:</div>
-                      <div className="col-md-8">{selectedRowData[0].DUE_DATE}</div>
+                      <div className="col-md-4 font-weight-bold">Currency:</div>
+                      <div className="col-md-8">{selectedRowData[0].CURRENCY}</div>
                     </div>
 
                     <div className="row mb-3">
-                      <div className="col-md-4 font-weight-bold">Term Of Payment:</div>
-                      <div className="col-md-8">{selectedRowData[0].TERM_OF_PAYMENT}</div>
-                    </div>
-
-                    <div className="row mb-3">
-                      <div className="col-md-4 font-weight-bold">Tax Exchange Rate:</div>
+                      <div className="col-md-4 font-weight-bold">Exchange Rate:</div>
                       <div className="col-md-8">{selectedRowData[0].TAX_EXCHANGE_RATE}</div>
                     </div>
 
                     <div className="row mb-3">
-                      <div className="col-md-4 font-weight-bold">Invoice Status:</div>
-                      <div className="col-md-8">{selectedRowData[0].INVOICE_STATUS}</div>
+                      <div className="col-md-4 font-weight-bold">Vendor:</div>
+                      <div className="col-md-8">{selectedRowData[0].VENDOR}</div>
                     </div>
-
-
-                    <div className="row mb-3">
-                      <div className="col-md-4 font-weight-bold">Discount:</div>
-                      <div className="col-md-8">{selectedRowData[0].DISCOUNT}</div>
-                    </div>
-
-                    <div className="row mb-3">
-                      <div className="col-md-4 font-weight-bold">Total Amount:</div>
-                      <div className="col-md-8">{selectedRowData[0].TOTAL_AMOUNT}</div>
-                    </div>
-
-                    <div className="row mb-3">
-                      <div className="col-md-4 font-weight-bold">Description:</div>
-                      <div className="col-md-8">{selectedRowData[0].DESCRIPTION}</div>
-                    </div>
-                  </div> */}
+                  </div>
                   {/* Add more fields as needed */}
                   <div className="table-responsive" style={{ overflowX: "auto" }}>
                     <Table striped bordered hover>
