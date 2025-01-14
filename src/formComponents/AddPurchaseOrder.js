@@ -263,12 +263,13 @@ const AddPurchaseOrder = ({
       }));
 
       const optionsCustomer = transformedData.map(item => ({
+        id: item.CUSTOMER_ID,
         value: item.CUSTOMER,
         label: item.CUSTOMER,
       }))
 
       const contractNumOptions = transformedData.map(item=> ({
-        id: item.id,
+        id: item.ID,
         value: item.CONTRACT_NUMBER,
         label: item.CONTRACT_NUMBER,
         customer: item.CUSTOMER,
@@ -981,7 +982,15 @@ const AddPurchaseOrder = ({
     'vat_included',
     'new_unit_price',
     'requestor',
-    'requestor_id'
+    'requestor_id',
+    'product',
+    'po_number',
+    'currency',
+    'customer',
+    'company',
+    'departement',
+    'project',
+    'vendor'
   ];
 
   const handleItemsInsert = async (po_number, duplicateFlag) => {
@@ -1370,7 +1379,7 @@ const AddPurchaseOrder = ({
                     if (usedDataEntry) {
                         // If the status_detail is "USED", use the po_number from the used data
                         if (usedDataEntry.status_detail === "USED") {
-                            ponumb = usedDataEntry.po_number; // Set ponumb from checkIsUsedData
+                            ponumb = usedDataEntry.order_id; // Set ponumb from checkIsUsedData
                         }
                     }
                     
@@ -1380,7 +1389,7 @@ const AddPurchaseOrder = ({
                       };
                       if (storedItem.ID === item.ID) {
                         statusDetail = "USED";
-                        ponumb = po_number;
+                        ponumb = IDforOrderID;
                         break; // Exit the loop early if we find a match
                       }
                     }
@@ -1388,7 +1397,7 @@ const AddPurchaseOrder = ({
                     const updatedStoredItem = {
                       ...stored,
                       status_detail: statusDetail,
-                      po_number: ponumb,
+                      order_id: ponumb,
                     };
                     console.log('updatedstatus', updatedStoredItem.status_detail);
               
@@ -1506,7 +1515,7 @@ const AddPurchaseOrder = ({
                     if (usedDataEntry) {
                         // If the status_detail is "USED", use the po_number from the used data
                         if (usedDataEntry.status_detail === "USED") {
-                            ponumb = usedDataEntry.po_number; // Set ponumb from checkIsUsedData
+                            ponumb = usedDataEntry.order_id; // Set ponumb from checkIsUsedData
                         }
                     }
 
@@ -1516,7 +1525,7 @@ const AddPurchaseOrder = ({
                       };
                       if (storedItem.ID === item.ID) {
                         statusDetail = "USED";
-                        ponumb = po_number;
+                        ponumb = IDforOrderID;
                         break; 
                       }
                     }
@@ -1526,7 +1535,7 @@ const AddPurchaseOrder = ({
                     const updatedStoredItem = {
                       ...stored,
                       status_detail: statusDetail,
-                      po_number: ponumb,
+                      order_id: ponumb,
                     };
                     console.log('updatedstatus', updatedStoredItem.status_detail);
               
@@ -2139,8 +2148,8 @@ const AddPurchaseOrder = ({
                                     <td>
                                       <Select
                                           value={
-                                            items[index].product ? 
-                                              productOptions.find(option => option.value === items[index].product) 
+                                            items[index].product_id ? 
+                                              productOptions.find(option => option.id === items[index].product_id) 
                                             : 
                                               null
                                           }
@@ -2379,8 +2388,8 @@ const AddPurchaseOrder = ({
                                       <Select
                                         id="project"
                                         value={
-                                          items[index].project ?
-                                            projectOptions.find(option => option.value === item.project)
+                                          items[index].project_id ?
+                                            projectOptions.find(option => option.id === item.project_id)
                                           :
                                             null
                                         }
@@ -2443,8 +2452,8 @@ const AddPurchaseOrder = ({
                                       <Select
                                         id='customer'
                                         value={
-                                          items[index].customer ?
-                                            customerOptions.find(option => option.value === item.customer)
+                                          items[index].customer_id ?
+                                            customerOptions.find(option => option.id === item.customer_id)
                                           : 
                                             null
                                         }
@@ -2469,8 +2478,8 @@ const AddPurchaseOrder = ({
                                       <Select
                                         id='department'
                                         value={
-                                          items[index].departement ?
-                                            departementOptions.find(option => option.value === items[index].departement)
+                                          items[index].department_id ?
+                                            departementOptions.find(option => option.id === items[index].department_id)
                                           :
                                             null
                                         }

@@ -2278,6 +2278,8 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
             delete updatedItem.base_amount;
             delete updatedItem.base_amount_idr;
             delete updatedItem.request_id;
+            delete updatedItem.tax_account_ppn;
+            delete updatedItem.tax_account_pph;
 
             const itemResponse = await InsertDataService.postData(updatedItem, "PUINVCD", authToken, branchId);
             console.log("Item posted successfully:", itemResponse);
@@ -2323,14 +2325,14 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
           }
 
           // Insert updated INVCTAX records
-          for (const item of items) {
+          for (const item of taxSummaryItems) {
             const taxInv = {
               tax_account: item.tax_account,
               tax_code: item.tax_code,
               tax_amount: item.tax_amount,
               tax_amount_idr: item.tax_amount_idr,
               invoice_id: idforIVCID.ID,
-              base_amount: item.base_amount,
+              base_amount: item.base_amount, 
               base_amount_idr: item.base_amount_idr,
             };
             delete taxInv.ID;
@@ -2345,7 +2347,7 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
           }
         } else if (response.message === "insert Data Successfully") {
           // Insert new INVCTAX records
-          for (const item of items) {
+          for (const item of taxSummaryItems) {
             const taxInv = {
               tax_account: item.tax_account,
               tax_code: item.tax_code,
