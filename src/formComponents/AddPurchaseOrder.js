@@ -17,7 +17,6 @@ import DeleteDataService from '../service/DeleteDataService';
 import DatePicker from 'react-datepicker';
 import moment from 'moment';
 import { FaCalendar } from 'react-icons/fa';
-import { tr } from 'date-fns/locale';
 
 const AddPurchaseOrder = ({ 
   setIsAddingNewPurchaseOrder, 
@@ -46,22 +45,19 @@ const AddPurchaseOrder = ({
   // PO Fields
   const [po_number, setPoNumber] = useState('');
   const [docRef,setDocRef] = useState(''); 
-  const [request_date, setRequestDate] = useState(new Date().toISOString().slice(0, 10));
 
   const [order_date, setOrderDate] = useState(new Date().toISOString('en-GB').slice(0, 10));
   const [createdBy, setCreatedBy] = useState(userId);
-  const [approveBy, setApproveBy] = useState('');
   const [shipTo, setShipTo] = useState('PT. Abhimata Persada');
   const [shipToAddress, setShipToAddress] = useState('Menara Batavia, 5th Floor, DKI Jakarta, 10220, ID');
   const [billTo, setBillTo] = useState('PT. Abhihmata Persada');
   const [billToAddress, setBillToAddress] = useState('Menara Batavia, 5th Floor, DKI Jakarta, 10220, ID');
   const [termConditions, setTermConditions] = useState('');
   const [endToEnd,setEndToEnd] = useState('');
-  const [discount, setDiscount] = useState(0);
   const [PPNRoyaltyOptions, setPPNRoyaltyOptions] = useState([]);
   const [taxTypeIncludeOptions, setTaxTypeIncludeOptions] = useState([]);
   const [taxTypeExcludeOptions, setTaxTypExcludeeOptions] = useState([]);
-  const [isCurrencyIsSet, setIsCurrencyIsSet] = useState(false);
+
 
   // PO Lookup
   const [projectOptions, setProjectOptions] = useState([]);
@@ -69,14 +65,11 @@ const AddPurchaseOrder = ({
   const [vendorOptions, setVendorOptions] = useState([]);
   const [customerOptions, setCustomerOptions] = useState([]);
   const [productOptions, setProductOptions] = useState([]);
-  const [selectedProduct, setSelectedProduct] = useState(null);
   const [PROptions, setPROptions] = useState([]);
-  const [docRefNumber, setDocRefNumber] = useState('');
   const [currency_id, setCurrencyId] = useState(61);
   const [to, setTo] = useState('');
   const [form_to_id, setFormToId] = useState('');
   const [vendor_id, setVendorId] = useState('');
-  const [toOptions, setToOptions] = useState([]);
   const [selectedTo, setSelectedTo] = useState(null);
   const [toAddress, setToAddress] = useState('');
   const [toAddressOptions, setToAddressOptions] = useState([]);
@@ -88,9 +81,6 @@ const AddPurchaseOrder = ({
   const [selectedCurrency, setSelectedCurrency] = useState(null);
   const [currency, setCurrency] = useState('');
   const [isSubmited, setIsSubmited] = useState(false);
-
-  // Dynamic Form Field Width
-  // const [inputWidth, setInputWidth] = useState(Array(items.length).fill(0));
 
   const authToken = headers;
 
@@ -199,15 +189,6 @@ const AddPurchaseOrder = ({
       }));
       setVendorOptions(options);
 
-      const optionForTo = transformedData.map(item => ({
-        id: item.ID,
-        value: item.NAME,
-        label: item.NAME,
-        vendAddress: item.ADDRESS
-      }));
-      setToOptions(optionForTo);
-      console.log('toopt', optionForTo)
-
       const uniqueAddress = [...new Set(transformedData.map(item => item.ADDRESS))];
       const optionsForToAddress = uniqueAddress.map(address => ({
         value: address,
@@ -223,7 +204,7 @@ const AddPurchaseOrder = ({
         setVendorId(selectVendor.id)
 
         // To
-        const selectTo = optionForTo.find(option => option.value === selectedData[0].FORM_TO) || "";
+        const selectTo = options.find(option => option.value === selectedData[0].FORM_TO) || "";
         setSelectedTo(selectTo || null);
         setTo(selectTo.value);
         setFormToId(selectTo.id)
@@ -446,7 +427,6 @@ const AddPurchaseOrder = ({
         setShipToAddress(data.ship_to_address);
         setBillTo(data.bill_to);
         setBillToAddress(data.bill_to_address);
-        setDiscount(data.discount);
         setTermConditions(data.term_conditions);
         setDescription(data.description);
         // setCurrency(data.currency);
@@ -826,7 +806,6 @@ const AddPurchaseOrder = ({
     // Reset curency
     if(newItems.length === 0){
       console.log('lengt',selectedItems.length)
-      setIsCurrencyIsSet(false);
       setFetchedPRDetail([]);
       return;
     }
@@ -853,18 +832,12 @@ const AddPurchaseOrder = ({
     const newItems = items.slice(0, items.length - 1); // Create a new array excluding the last item
     setItems(newItems);
     setSelectedItems([]);
-    if (newItems.length === 0) {
-        setIsCurrencyIsSet(false);
-    }
   };
 
   const handleDeleteSelected = () => {
     const newItems = items.filter((_, index) => !selectedItems.includes(index));
     setItems(newItems);
     setSelectedItems([]);
-    if(newItems.length === 0){
-      setIsCurrencyIsSet(false);
-    }
   };
 
   const calculateTotalAmount = (currency = 'IDR') => {
@@ -912,7 +885,6 @@ const AddPurchaseOrder = ({
   const resetForm = () => {
     setPoNumber('');
     setDocRef('');
-    setDocRefNumber('');
     setOrderDate(order_date);
     setCreatedBy(createdBy);
     setDescription('');
@@ -1033,11 +1005,9 @@ const AddPurchaseOrder = ({
       doc_reff: docRef,
       status_po: statuspo,
       order_date: moment().format('YYYY-MM-DD'),
-      request_date,
       created_by: createdBy,
       description,
       total_amount: calculateTotalAmount().totalAmount,
-      approved_by: approveBy,
       form_to: to,
       to_address: toAddress,
       ship_to: shipTo,
@@ -1053,7 +1023,8 @@ const AddPurchaseOrder = ({
       currency,
       form_to_id,
       vendor_id,
-      currency_id
+      currency_id,
+      create_by_id: parseInt(idUser)
     };
   };
 
@@ -1377,10 +1348,9 @@ const AddPurchaseOrder = ({
                     const usedDataEntry = checkIsUsedData.find(entry => entry.ID === del);
                     console.log('usedDataEn', usedDataEntry)
                     if (usedDataEntry) {
-                        // If the status_detail is "USED", use the po_number from the used data
-                        if (usedDataEntry.status_detail === "USED") {
-                            ponumb = usedDataEntry.order_id; // Set ponumb from checkIsUsedData
-                        }
+                      if (usedDataEntry.status_detail === "USED") {
+                          ponumb = usedDataEntry.order_id; 
+                      }
                     }
                     
                     for (const item of fetchedPRDetail) { 
@@ -1390,7 +1360,7 @@ const AddPurchaseOrder = ({
                       if (storedItem.ID === item.ID) {
                         statusDetail = "USED";
                         ponumb = IDforOrderID;
-                        break; // Exit the loop early if we find a match
+                        break;
                       }
                     }
               
@@ -1417,18 +1387,18 @@ const AddPurchaseOrder = ({
                 }
               }
 
-              // Update Status PR Detail 
-              const getPRList = await LookupService.fetchLookupData(`PURC_FORMPUREQ&filterBy=pr_number&filterValue=${item.doc_reff_no}&operation=EQUAL`, authToken, branchId);
-              const prID = getPRList.data[0].ID;
-              console.log('PRid', prID);
+              if(docRef === 'purchaseRequest') {
+                // Update Status PR Detail 
+                const getPRList = await LookupService.fetchLookupData(`PURC_FORMPUREQ&filterBy=pr_number&filterValue=${item.doc_reff_no}&operation=EQUAL`, authToken, branchId);
+                const prID = getPRList.data[0].ID;
 
-              const checkNullStatus = await LookupService.fetchLookupData(`PURC_FORMPUREQD&filterBy=pr_number&filterValue=${item.pr_number}&operation=EQUAL`, authToken, branchId);
-              const nullStatusExists = checkNullStatus.data.some(entry => entry.status_detail === null);
+                const checkNullStatus = await LookupService.fetchLookupData(`PURC_FORMPUREQD&filterBy=pr_number&filterValue=${item.pr_number}&operation=EQUAL`, authToken, branchId);
+                const nullStatusExists = checkNullStatus.data.some(entry => entry.status_detail === null);
 
-              // Update Status
-              const updatePrStatusData = {
-                status_request: nullStatusExists ? "PARTIAL_REQUESTED" : "REQUESTED",
-              }
+                // Update Status
+                const updatePrStatusData = {
+                  status_request: nullStatusExists ? "PARTIAL_REQUESTED" : "REQUESTED",
+                }
 
                 const updatePRStatus = await axios.post(`${FORM_SERVICE_UPDATE_DATA}?f=PUREQ&column=id&value=${prID}&branchId=${branchId}`, updatePrStatusData, {
                   headers: {
@@ -1436,6 +1406,7 @@ const AddPurchaseOrder = ({
                   }
                 });
                 await updatePRStatus;
+              }
             }
           }
 
@@ -1618,9 +1589,15 @@ const AddPurchaseOrder = ({
 
   // Get File Document
   const getFileDocument = async (endtoendid) => {
+    let requestCode;
+    if(docRef === 'purchaseRequest'){
+      requestCode = 'PUREQD';
+    }else{
+      requestCode = 'PUORD';
+    }
     const request = {
       idTrx: endtoendid,
-      code: 'PUREQD',
+      code: requestCode,
     };
     
     const formData = new FormData();
@@ -1795,6 +1772,8 @@ const AddPurchaseOrder = ({
                           value={docRef}
                           onChange={(e) => {
                             setDocRef(e.target.value);
+                            setItems([])
+                            setFetchedPRDetail([])
                           }}
                         >
                           <option value="">Select Document Reference</option>
@@ -2171,6 +2150,7 @@ const AddPurchaseOrder = ({
                                     
                                     <td>
                                       <Form.Control
+                                        id='panjangdinamis'
                                         type="text"
                                         value={item.product_note}
                                         onChange={(e) => handleItemChange(index, 'product_note', e.target.value)}
@@ -2198,6 +2178,7 @@ const AddPurchaseOrder = ({
                                     <td>
                                       {currency === 'IDR' ?
                                         <Form.Control
+                                          id='panjangdinamis'
                                           className='text-right'
                                           type="text"
                                           value={item.unit_price !== undefined && item.unit_price !== null ? item.unit_price.toLocaleString('en-US') : 0}
@@ -2209,6 +2190,7 @@ const AddPurchaseOrder = ({
                                         />
                                       : 
                                         <Form.Control
+                                          id='panjangdinamis'
                                           className="text-right"
                                           type="text"
                                           value={
@@ -2233,6 +2215,7 @@ const AddPurchaseOrder = ({
                                     <td>
                                       {currency === 'IDR' ? 
                                         <FormControl
+                                          id='panjangdinamis'
                                           className='text-right'  
                                           type="text"
                                           value={item.discount !== undefined && item.discount !== null ? item.discount.toLocaleString('en-US') : 0}
@@ -2245,6 +2228,7 @@ const AddPurchaseOrder = ({
                                       
                                       :
                                         <Form.Control
+                                          id='panjangdinamis'
                                           className="text-right"
                                           type="text"
                                           value={
@@ -2274,6 +2258,7 @@ const AddPurchaseOrder = ({
                                   
                                     <td>
                                       <Form.Select
+                                        id='panjangdinamis'
                                         value={
                                           items[index].type_of_vat || ''
                                         }
@@ -2373,7 +2358,7 @@ const AddPurchaseOrder = ({
 
                                     <td>
                                       <Form.Control
-                                        id='requestor'
+                                        id='panjangdinamis'
                                         placeholder='Requestor...'
                                         value={item.requestor}
                                         onChange={(e) => {
