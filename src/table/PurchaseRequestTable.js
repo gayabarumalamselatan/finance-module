@@ -71,7 +71,7 @@ const PurchaseRequestTable = ({
         const PR_NUMBER = rowData.PR_NUMBER;
         console.log('Fetching data for PR_NUMBER:', PR_NUMBER);
 
-        LookupService.fetchLookupData(`PURC_FORMPUREQD&filterBy=PR_NUMBER&filterValue=${PR_NUMBER}&operation=EQUAL`, authToken, branchId)
+        LookupService.fetchLookupData(`VW_PUREQD&filterBy=PR_NUMBER&filterValue=${PR_NUMBER}&operation=EQUAL&viewOnly=true`, authToken, branchId)
             .then(response => {
                 const fetchedItems = response.data || [];
                 console.log('Items fetched from API:', fetchedItems);
@@ -707,13 +707,14 @@ const PurchaseRequestTable = ({
                                             <tr>
                                                 <th>Document Reff. No.</th>
                                                 <th>Document Reff. Source</th>
-                                                <th>Vendof</th>
+                                                <th>vendor</th>
                                                 <th>Project</th>
                                                 <th>Project Contact No.</th>
                                                 <th>Customer</th>
                                                 <th>Departement</th>
                                                 <th>Product</th>
                                                 <th>Product Description</th>
+                                                <th>Currency</th>
                                                 <th>Quantity</th>
                                                 <th>Unit Price</th>
                                                 <th>Total Price</th>
@@ -727,13 +728,14 @@ const PurchaseRequestTable = ({
                                                     <tr key={detail.ID}>
                                                         <td>{detail.doc_reff_no}</td>
                                                         <td>{detail.doc_source}</td>
-                                                        <td>{detail.vendor}</td>
+                                                        <td>{detail.vendor_name}</td>
                                                         <td>{detail.project}</td>
                                                         <td>{detail.project_contact_number}</td>
                                                         <td>{detail.customer}</td>
                                                         <td>{detail.department}</td>
                                                         <td>{detail.product}</td>
                                                         <td>{detail.product_note}</td>
+                                                        <td>{detail.currency}</td>
                                                         <td>{detail.quantity}</td>
                                                         <td style={{ textAlign: "right" }}>{DisplayFormat(detail.unit_price)}</td>
                                                         <td style={{ textAlign: "right" }}>{DisplayFormat(detail.total_price)}</td>
