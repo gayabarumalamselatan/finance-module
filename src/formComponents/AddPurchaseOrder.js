@@ -5,7 +5,7 @@ import Swal from 'sweetalert2';
 import { messageAlertSwal } from "../config/Swal";
 import InsertDataService from '../service/InsertDataService';
 import { getBranch, getToken, idUser, userLoggin } from '../config/Constant';
-import { DOWNLOAD_FILES, FORM_SERVICE_UPDATE_DATA, GENERATED_NUMBER, UPLOAD_FILES } from '../config/ConfigUrl';
+import { AUTH_SERVICE_LIST_USER, AUTH_SERVICE_LIST_USER_DETAIL, DOWNLOAD_FILES, FORM_SERVICE_UPDATE_DATA, GENERATED_NUMBER, UPLOAD_FILES, USER_SERVICE_USER_DETAIL } from '../config/ConfigUrl';
 import { generateUniqueId } from '../service/GeneratedId';
 import Select from 'react-select';
 import LookupParamService from '../service/LookupParamService';
@@ -17,6 +17,7 @@ import DeleteDataService from '../service/DeleteDataService';
 import DatePicker from 'react-datepicker';
 import moment from 'moment';
 import { FaCalendar } from 'react-icons/fa';
+import UserService from '../service/UserService';
 
 const AddPurchaseOrder = ({ 
   setIsAddingNewPurchaseOrder, 
@@ -33,7 +34,7 @@ const AddPurchaseOrder = ({
 }) => {
   const headers = getToken();
   const branchId = getBranch();
-  const userId = userLoggin();
+  const userId = sessionStorage.getItem('id');
 
   const [items, setItems] = useState([]);
   const [description, setDescription] = useState('');
@@ -47,7 +48,7 @@ const AddPurchaseOrder = ({
   const [docRef,setDocRef] = useState(''); 
 
   const [order_date, setOrderDate] = useState(new Date().toISOString('en-GB').slice(0, 10));
-  const [createdBy, setCreatedBy] = useState(userId);
+  const [createdBy, setCreatedBy] = useState({id: null, userName:''});
   const [shipTo, setShipTo] = useState('PT. Abhimata Persada');
   const [shipToAddress, setShipToAddress] = useState('Menara Batavia, 5th Floor, DKI Jakarta, 10220, ID');
   const [billTo, setBillTo] = useState('PT. Abhihmata Persada');
@@ -84,31 +85,34 @@ const AddPurchaseOrder = ({
 
   const authToken = headers;
 
+    const isDark = localStorage.getItem('darkmode')
+    // console.log('isdarke', isDark)
+
 
   // Lookup Department
   const lookupDepartment = () => {
-      LookupParamService.fetchLookupDataView("MSDT_FORMDPRT", authToken, branchId)
-      .then(data => {
+    LookupParamService.fetchLookupDataView("MSDT_FORMDPRT", authToken, branchId)
+    .then(data => {
 
-        // Transform keys to uppercase directly in the received data
-        const transformedData = data.data.map(item =>
-          Object.keys(item).reduce((acc, key) => {
-            acc[key.toUpperCase()] = item[key];
-            return acc;
-          }, {})
-        );
+      // Transform keys to uppercase directly in the received data
+      const transformedData = data.data.map(item =>
+        Object.keys(item).reduce((acc, key) => {
+          acc[key.toUpperCase()] = item[key];
+          return acc;
+        }, {})
+      );
 
-        const options = transformedData.map(item => ({
-          id: item.ID,
-          value: item.NAME,
-          label: item.NAME
-        }));
+      const options = transformedData.map(item => ({
+        id: item.ID,
+        value: item.NAME,
+        label: item.NAME
+      }));
 
-        setDepartementOptions(options);
+      setDepartementOptions(options);
 
-      }).catch(error => {
-        console.error('Failed to fetch Department lookup:', error);
-      });
+    }).catch(error => {
+      console.error('Failed to fetch Department lookup:', error);
+    });
   }
 
 
@@ -198,13 +202,13 @@ const AddPurchaseOrder = ({
 
       if(selectedData){
         // Vendor
-        const selectVendor = options.find(option => option.value === selectedData[0].VENDOR) || "";
+        const selectVendor = options.find(option => option.id === selectedData[0].VENDOR_ID) || "";
         setSelectedVendor(selectVendor || null);
         setVendor(selectVendor.value);
         setVendorId(selectVendor.id)
-
+        console.log('idven', selectedData)
         // To
-        const selectTo = options.find(option => option.value === selectedData[0].FORM_TO) || "";
+        const selectTo = options.find(option => option.id === selectedData[0].VENDOR_ID) || "";
         setSelectedTo(selectTo || null);
         setTo(selectTo.value);
         setFormToId(selectTo.id)
@@ -223,7 +227,6 @@ const AddPurchaseOrder = ({
 
   // Lookup Project
   const lookupProject = () => {
-    
     LookupParamService.fetchLookupDataView("MSDT_FORMPRJT", authToken, branchId)
     .then(data => {
 
@@ -309,17 +312,13 @@ const AddPurchaseOrder = ({
 
       // Default Currency
       if(selectedData) {
-      const selectCurrency = options.find(option => option.value === selectedData[0].CURRENCY)
-      setSelectedCurrency(selectCurrency || null)
-      setCurrency(selectCurrency.value);
-      setCurrencyId(selectCurrency.id);
-      }else if(!selectedData){
-      const defaultCurrency = options.find(option => option.value === 'IDR');
-      if(defaultCurrency){
-        setSelectedCurrency(defaultCurrency);
-        setCurrency(defaultCurrency.value);
-        setCurrencyId(defaultCurrency.id);
-      }
+        const selectCurrency = options.find(option => option.id === selectedData[0].CURRENCY_ID || "")
+        setSelectedCurrency(selectCurrency || null)
+        setCurrencyId(selectCurrency.id);
+      } else if(!selectedData){
+        const defaultCurrency = options.find(option => option.id === 61)
+        setSelectedCurrency(defaultCurrency)
+        setCurrencyId(defaultCurrency.id)
       }
       console.log('isselceted', selectedData)
     }).catch(error => {
@@ -330,12 +329,6 @@ const AddPurchaseOrder = ({
   // Lookup Pr
   const lookupPR = (selectedCurrency, selectedVendor) => {
     let prUrl = "PURC_FORMPUREQ&filterBy=STATUS&filterValue=APPROVED&operation=EQUAL";
-    // if(selectedCurrency) {
-    //   prUrl += `&filterBy=CURRENCY&operation=EQUAL&filterValue=${selectedCurrency}`
-    // }
-    // if(selectedVendor){
-    //   prUrl += `&filterBy=VENDOR&operation=EQUAL&filterValue=${selectedVendor}`
-    // }
     console.log(prUrl); 
     LookupService.fetchLookupData(prUrl, authToken, branchId)
     .then(data => {
@@ -372,16 +365,16 @@ const AddPurchaseOrder = ({
         };
       }).filter(option => option !== null);
 
+
       const pureqdPromises = options.map(option => {
         return LookupParamService.fetchLookupDataView(
           `PURC_FORMPUREQD&filterBy=PR_NUMBER&filterValue=${option.value}&operation=EQUAL&filterBy=CURRENCY_ID&filterValue=${selectedCurrency || 61}&operation=EQUAL`, 
           authToken, 
           branchId
         ).then(pureqdData => {
-          // Process pureqdData if needed
           return {
             ...option,
-            pureqdData: pureqdData.data // Assuming pureqdData has a data property
+            pureqdData: pureqdData.data.filter(item => item.status_detail === null)
           };
         });
       });
@@ -389,20 +382,20 @@ const AddPurchaseOrder = ({
       return Promise.all(pureqdPromises);
     })
     .then(allPureqdData => {
-      // Set the options with pureqd data
       const validOptions = allPureqdData.filter(item => 
         item.pureqdData && Array.isArray(item.pureqdData) && item.pureqdData.length > 0
       );
 
       setPROptions(validOptions);
-      console.log('promises', validOptions)
     }).catch(error => {
       console.error('Failed to fetch currency lookup:', error);
     });
   }
 
+
   // Lookup caller
   useEffect(() => {
+
     console.log('duplicated', duplicateFlag)
     if(selectedData) {
       const { ID, PO_NUMBER } = selectedData[0];
@@ -412,8 +405,9 @@ const AddPurchaseOrder = ({
       if(duplicateFlag === false){
         setPoNumber(PO_NUMBER);
       }
-
+      
       // console.log('deda', selectedData[0]);
+      // const headers = { Authorization: `Bearer ${authToken}` };
 
       // Panggil API untuk mendapatkan data berdasarkan ID
       LookupService.fetchLookupData(`PURC_FORMPUOR&filterBy=PO_NUMBER&filterValue=${PO_NUMBER}&operation=EQUAL`, authToken, branchId)
@@ -421,7 +415,6 @@ const AddPurchaseOrder = ({
         const data = response.data[0];
         console.log('Data:', data);
         setOrderDate(data.order_date);
-        setCreatedBy(data.created_by);
         setDocRef(data.doc_reff);
         setShipTo(data.ship_to);
         setShipToAddress(data.ship_to_address);
@@ -429,7 +422,14 @@ const AddPurchaseOrder = ({
         setBillToAddress(data.bill_to_address);
         setTermConditions(data.term_conditions);
         setDescription(data.description);
-        // setCurrency(data.currency);
+
+        // const userCreated = axios.get(`${AUTH_SERVICE_LIST_USER_DETAIL}?id=${data.create_by_id}`, { headers });
+        UserService.fetchUserData(data.create_by_id, authToken).then(response => {
+          console.log('userf', response.userName)
+          setCreatedBy({id: response.id, userName: response.userName})
+        })
+        
+        // console.log('userf', userCreated)
       }).catch(error => {
         console.error('Failed to load purchase request data:', error);
       });
@@ -448,17 +448,16 @@ const AddPurchaseOrder = ({
           const prDetailPromises = fetchedItems.map(item => {
           
             return LookupService.fetchLookupData(`PURC_FORMPUREQD&filterBy=PR_NUMBER&filterValue=${item.doc_reff_no}&operation=EQUAL`, authToken, branchId)
-                .then(prResponse => {
-                    return prResponse.data || [];
-                })
-                .catch(error => {
-                    console.error(`Failed to load PR details for ${item.doc_reff_no}:`, error);
-                    return []; 
-                });
+            .then(prResponse => {
+              return prResponse.data || [];
+            })
+            .catch(error => {
+              console.error(`Failed to load PR details for ${item.doc_reff_no}:`, error);
+              return []; 
+            });
           });
           console.log('prdetailpromise', prDetailPromises)
 
-          
           Promise.all(prDetailPromises)
           .then(allFetchedPRDetails => {
             const flattenedPRDetails = allFetchedPRDetails.flat();
@@ -477,11 +476,15 @@ const AddPurchaseOrder = ({
 
       lookupVendor(selectedData);
       lookupCurrency(selectedData);
+    } else {
+      UserService.fetchUserData(sessionStorage.getItem('id'), authToken).then(response => {
+        setCreatedBy({id: response.id, userName: response.userName})
+      })
     }
-    
+
     lookupPR();
 
-    lookupCurrency();
+    lookupCurrency(selectedData);
     
     lookupDepartment();
 
@@ -492,7 +495,7 @@ const AddPurchaseOrder = ({
     lookupProject();
       
     lookupProduct();
-      
+    
   }, []);
 
 
@@ -538,16 +541,13 @@ const AddPurchaseOrder = ({
   }     
 
   const defaultItems = {
-    product: '', 
     product_id: '',
     product_note: '', 
     quantity: 1, 
-    currency: 'IDR', 
     unit_price: 0, 
     original_unit_price: 0, 
     total_price: 0, 
     type_of_vat: '',
-    tax_ppn: '', 
     tax_ppn_rate: 0, 
     tax_ppn_amount: 0 , 
     tax_base: 0, 
@@ -556,13 +556,8 @@ const AddPurchaseOrder = ({
     vat_included: false,
     new_unit_price: 0,
     doc_reff_no: '',
-    vendor: '',
-    project: '',
-    customer: '',
-    departement: '',
     project_contract_number: '',
     company:'PT. Abhimata Persada',
-    requestor: userId,
     requestor_id: parseInt(idUser),
     doc_source: '',
     order_id: '',
@@ -790,8 +785,6 @@ const AddPurchaseOrder = ({
       }
       newItems[index].total_price = Math.max((newItems[index].unit_price - newItems[index].discount), 0) * newItems[index].quantity;
     }
-    console.log('taxPPN', newItems[index].tax_ppn_amount);
-    console.log('newitems', newItems);
     setItems(newItems);
   };
 
@@ -859,9 +852,6 @@ const AddPurchaseOrder = ({
       const taxPPNAmount = isNaN(item.tax_ppn_amount) ? 0 : parseFloat(item.tax_ppn_amount);
       return total + taxPPNAmount;
     }, 0);
-
-    const hasRoyalty = items.some(item => item.type_of_vat === 'PPNRoyalty');
-
     
     const totalAmount  = Math.round(subTotal + totalPPNAmount);
     const validTotalAmount = isNaN(totalAmount) ? 0 : parseFloat(totalAmount);
@@ -886,7 +876,7 @@ const AddPurchaseOrder = ({
     setPoNumber('');
     setDocRef('');
     setOrderDate(order_date);
-    setCreatedBy(createdBy);
+    setCreatedBy(createdBy.userName);
     setDescription('');
     setShipTo('PT. Abhimata Persada');
     setShipToAddress('Menara Batavia, 5th Floor, DKI Jakarta, 10220, ID');
@@ -934,7 +924,15 @@ const AddPurchaseOrder = ({
     'vat_included',
     'subTotal',
     'request_id',
-    'company_id'
+    'company_id',
+    'currency',
+    'requestor',
+    'tax_ppn',
+    'departement',
+    'project',
+    'customer',
+    'vendor',
+    'product'
   ];
 
   const storedToDelete = [
@@ -1005,10 +1003,8 @@ const AddPurchaseOrder = ({
       doc_reff: docRef,
       status_po: statuspo,
       order_date: moment().format('YYYY-MM-DD'),
-      created_by: createdBy,
       description,
       total_amount: calculateTotalAmount().totalAmount,
-      form_to: to,
       to_address: toAddress,
       ship_to: shipTo,
       ship_to_address: shipToAddress,
@@ -1019,12 +1015,10 @@ const AddPurchaseOrder = ({
       term_conditions: termConditions,
       endtoendid: endToEndId,
       total_discount: calculateTotalAmount().totalDiscount,
-      vendor,
-      currency,
       form_to_id,
       vendor_id,
       currency_id,
-      create_by_id: parseInt(idUser)
+      create_by_id: createdBy.id || parseInt(idUser)
     };
   };
 
@@ -1564,7 +1558,7 @@ const AddPurchaseOrder = ({
               })
               .catch(error => {
                 console.error('Failed to update data:', error);
-              });
+              }); 
 
           })
           .catch(error => {
@@ -1792,8 +1786,8 @@ const AddPurchaseOrder = ({
                         <Form.Control
                           type="text"
                           placeholder='Insert Created By'
-                          value={createdBy}
-                          onChange={(e) => setCreatedBy(e.target.value)}
+                          value={createdBy.userName}
+                          onChange={(e) => setCreatedBy(e.target.id)}
                           disabled
                         />
                       </Form.Group>
@@ -2133,7 +2127,6 @@ const AddPurchaseOrder = ({
                                               null
                                           }
                                           onChange={(selectedOption) => {
-                                            handleItemChange(index, 'product', selectedOption ? selectedOption.value : null);
                                             handleItemChange(index, 'product_id', selectedOption ? selectedOption.id : null);
                                           }}
                                           options={productOptions}
@@ -2284,12 +2277,12 @@ const AddPurchaseOrder = ({
                                       <Select
                                         value={
                                           items[index].type_of_vat === 'PPNRoyalty' ?
-                                            PPNRoyaltyOptions.find(option => option.value === item.tax_ppn) || null
+                                            PPNRoyaltyOptions.find(option => option.id === item.tax_ppn_id) || null
                                           :
                                             items[index].type_of_vat === 'include' ? 
-                                              taxTypeIncludeOptions.find(option => option.value === item.tax_ppn) || null
+                                              taxTypeIncludeOptions.find(option => option.id === item.tax_ppn_id) || null
                                               :
-                                              taxTypeExcludeOptions.find(option => option.value === item.tax_ppn) || null
+                                              taxTypeExcludeOptions.find(option => option.id === item.tax_ppn_id) || null
                                         }
                                         options={items[index].type_of_vat === 'PPNRoyalty' ? PPNRoyaltyOptions : items[index].type_of_vat === 'include' ? taxTypeIncludeOptions : taxTypeExcludeOptions}
                                         placeholder="Select Tax Type"
@@ -2300,7 +2293,6 @@ const AddPurchaseOrder = ({
                                           } else {
                                             handleItemChange(index, 'tax_ppn_rate', 0);
                                           }
-                                          handleItemChange(index, 'tax_ppn', selectedOption  ? selectedOption.value : ''  );
                                           handleItemChange(index, 'tax_ppn_id', selectedOption ? selectedOption.id : ''  );
                                         }}
                                         isDisabled={items[index].type_of_vat === 'nonPPN' || items[index].type_of_vat === ''}
@@ -2360,9 +2352,11 @@ const AddPurchaseOrder = ({
                                       <Form.Control
                                         id='panjangdinamis'
                                         placeholder='Requestor...'
-                                        value={item.requestor}
+                                        value={
+                                          createdBy.userName
+                                        }
                                         onChange={(e) => {
-                                          handleItemChange(index, 'requestor', e.target.value)
+                                          handleItemChange(index, 'requestor_id', e.target.id)
                                         }}
                                         style={detailFormStyle()}
                                         readOnly
@@ -2380,14 +2374,11 @@ const AddPurchaseOrder = ({
                                         }
                                         options={projectOptions}
                                         onChange={(selectedOption) => {
-                                          handleItemChange(index, 'project', selectedOption ? selectedOption.value : null);
                                           handleItemChange(index, 'project_id', selectedOption ? selectedOption.id : null);
                                           if(selectedOption){
                                             handleItemChange(index, 'project_contract_number', selectedOption.project_contract_number);
-                                            handleItemChange(index, 'customer', selectedOption.customer);
                                             handleItemChange(index, 'customer_id', selectedOption.id);
                                           }else{
-                                            handleItemChange(index, "customer", ""); 
                                             handleItemChange(index, "project_contract_number", "");
                                             handleItemChange(index, "customer_id", ""); 
                                           }
@@ -2443,7 +2434,6 @@ const AddPurchaseOrder = ({
                                             null
                                         }
                                         onChange={(selectedOption) => {
-                                          handleItemChange(index, 'customer', selectedOption ? selectedOption.value : null)
                                           handleItemChange(index, 'customer_id', selectedOption ? selectedOption.id : null)
                                         }}
                                         options={customerOptions}
@@ -2469,7 +2459,6 @@ const AddPurchaseOrder = ({
                                             null
                                         }
                                         onChange={(selectedOption)  => {
-                                          handleItemChange(index, 'departement', selectedOption ? selectedOption.value : null)
                                           handleItemChange(index, 'department_id', selectedOption ? selectedOption.id : null)
                                         }}
                                         options={departementOptions}

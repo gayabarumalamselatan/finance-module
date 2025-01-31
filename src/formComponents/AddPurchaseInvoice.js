@@ -129,7 +129,7 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
   // id
   const [payment_term_id, setPaymentTermId] = useState("");
   const create_by_id = parseInt(idUser);
-  const [vendor_id, setVendorId] = useState("");
+  const [vendor_id, setVendorId] = useState(0);
   const [currency_id, setCurrencyId] = useState("");
 
   const authToken = headers;
@@ -320,7 +320,7 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
               setTaxTypExcludeePphOptions(ExcludepphOptions);
 
               const optionsPpnRoyalty = transformedData
-                .filter((item) => item.TAX_TYPE === "PPN Royalty")
+                .filter(item => item.ROYALTY === true)
                 .map((item) => ({
                   value: item.NAME,
                   label: item.NAME,
@@ -986,7 +986,7 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
             label: item.NAME,
             RATE: item.RATE,
             tax_account: item.TAX_ACCOUNT,
-            coa_id: item.coa_id,
+            coa_id: item.COA_ID,
           }));
         setTax_Pph_Type_Option(options);
 
@@ -998,60 +998,70 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
             label: item.NAME,
             RATE: item.RATE,
             tax_account: item.TAX_ACCOUNT,
-            coa_id: item.coa_id,
+            coa_id: item.COA_ID,
           }));
         setTaxPpnTypeOption(optionsPpn);
 
         const IncludeOptions = transformedData
-          .filter((item) => item.TAX_TYPE === "PPN" && item.BASE_TAX_FLAG === true && (item.TAX_TYPE_USE === "Purchase" || item.TAX_TYPE_USE === "ALL") && item.ACTIVE === true)
+          .filter((item) => item.TAX_TYPE === "PPN" && item.BASE_TAX_FLAG === true && (item.TAX_TYPE_USE === "Purchase" || item.TAX_TYPE_USE === "All") && item.ACTIVE === true)
           .map((item) => ({
             value: item.NAME,
             label: item.NAME,
             RATE: item.RATE,
             id: item.ID,
+            tax_account: item.TAX_ACCOUNT,
+            coa_id: item.COA_ID
           }));
         setTaxTypeIncludeOptions(IncludeOptions);
 
         const ExcludeOptions = transformedData
-          .filter((item) => item.TAX_TYPE === "PPN" && item.BASE_TAX_FLAG === false && (item.TAX_TYPE_USE === "Purchase" || item.TAX_TYPE_USE === "ALL") && item.ACTIVE === true)
+          .filter((item) => item.TAX_TYPE === "PPN" && item.BASE_TAX_FLAG === false && (item.TAX_TYPE_USE === "Purchase" || item.TAX_TYPE_USE === "All") && item.ACTIVE === true)
           .map((item) => ({
             value: item.NAME,
             label: item.NAME,
             RATE: item.RATE,
             id: item.ID,
+            tax_account: item.TAX_ACCOUNT,
+            coa_id: item.COA_ID
           }));
         setTaxTypExcludeeOptions(ExcludeOptions);
 
         const IncludepphOptions = transformedData
-          .filter((item) => item.TAX_TYPE === "PPh" && item.BASE_TAX_FLAG === true && (item.TAX_TYPE_USE === "Purchase" || item.TAX_TYPE_USE === "ALL") && item.ACTIVE === true)
+          .filter((item) => item.TAX_TYPE === "PPh" && item.BASE_TAX_FLAG === true && item.ACTIVE === true && (item.TAX_TYPE_USE === 'Purchase' || item.TAX_TYPE_USE === 'All'))
           .map((item) => ({
             value: item.NAME,
             label: item.NAME,
             RATE: item.RATE,
             id: item.ID,
+            tax_account: item.TAX_ACCOUNT,
+            coa_id: item.COA_ID
           }));
         setTaxTypeIncludePphOptions(IncludepphOptions);
+        console.log('pphuse', IncludepphOptions)
 
         const ExcludepphOptions = transformedData
-          .filter((item) => item.TAX_TYPE === "PPh" && item.BASE_TAX_FLAG === false && (item.TAX_TYPE_USE === "Purchase" || item.TAX_TYPE_USE === "ALL") && item.ACTIVE === true)
+          .filter((item) => item.TAX_TYPE === "PPh" && item.BASE_TAX_FLAG === false && (item.TAX_TYPE_USE === "Purchase" || item.TAX_TYPE_USE === "All") && item.ACTIVE === true)
           .map((item) => ({
             value: item.NAME,
             label: item.NAME,
             RATE: item.RATE,
             id: item.ID,
+            tax_account: item.TAX_ACCOUNT,
+            coa_id: item.COA_ID
           }));
         setTaxTypExcludeePphOptions(ExcludepphOptions);
 
         const optionsPpnRoyalty = transformedData
-          .filter((item) => item.TAX_TYPE === "PPN Royalty")
+          .filter((item) => item.ROYALTY === true)
           .map((item) => ({
             value: item.NAME,
             label: item.NAME,
             RATE: item.RATE,
-            tax_account: item.tax_account,
-            coa_id: item.coa_id,
+            tax_account: item.TAX_ACCOUNT,
+            coa_id: item.COA_ID,
           }));
         setTaxPpnRoyaltyOption(optionsPpnRoyalty);
+        console.log('ppro', optionsPpnRoyalty)
       })
       .catch((error) => {
         console.error("Failed to fetch currency lookup:", error);
@@ -1606,13 +1616,15 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
         total_amount_pph_idr: 0,
         tax_ppn_id: "",
         tax_pph_id: "",
-        project_id: "",
+        project_id: 0,
         customer_id: "",
         department_id: "",
         vendor_id: vendor_id,
         currency_id: currency_id,
         tax_account_ppn: "",
         tax_account_pph: "",
+        coa_id_ppn: 0,
+        coa_id_pph: 0,
       },
     ]);
   };
@@ -1659,6 +1671,8 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
           existingTaxPPN.base_amount += item.tax_base;
           existingTaxPPN.base_amount_idr += item.tax_base_idr;
           existingTaxPPN.tax_amount_idr += item.tax_ppn_amount_idr;
+          existingTaxPPN.tax_ppn_id += item.tax_ppn_id;
+          existingTaxPPN.coa_id += item.coa_id;
         } else {
           summary.push({
             tax_code: item.tax_ppn,
@@ -1667,6 +1681,8 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
             tax_account: item.tax_account_ppn,
             base_amount_idr: item.tax_base_idr,
             tax_amount_idr: item.tax_ppn_amount_idr,
+            tax_id: item.tax_ppn_id,
+            account_id: item.coa_id
           });
         }
       }
@@ -1679,6 +1695,7 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
           existingPPh.base_amount += item.tax_base;
           existingPPh.base_amount_idr += item.tax_base_idr;
           existingPPh.tax_amount_idr += item.tax_pph_amount_idr;
+          existingPPh.tax_pph_id += item.tax_pph_id;
         } else {
           summary.push({
             tax_code: item.tax_pph,
@@ -1687,12 +1704,15 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
             tax_account: item.tax_account_pph,
             base_amount_idr: item.tax_base_idr,
             tax_amount_idr: item.tax_pph_amount_idr,
+            tax_id: item.tax_pph_id
           });
         }
       }
     });
     setTaxSummaryItems(summary);
+    console.log('sumtax', summary)
   };
+  console.log('summ', taxSummaryItems)
 
   console.log("asd", taxSummaryItems);
   console.log("asd", items);
@@ -2473,18 +2493,24 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
           }
         } else if (response.message === "insert Data Successfully") {
           // Insert new INVCTAX records
-          for (const item of items) {
+          for (const item of taxSummaryItems) {
+            // const taxInv = {
+            //   tax_account: item.tax_account,
+            //   tax_code: item.tax_code,
+            //   tax_amount: item.tax_amount,
+            //   tax_amount_idr: item.tax_amount_idr,
+            //   invoice_id: idforIVCID.ID,
+            //   base_amount: item.base_amount,
+            //   base_amount_idr: item.base_amount_idr,
+            // };
+            // delete taxInv.ID;
+            // delete taxInv.id;
+
+            const { rwnum, ID, status, id_trx, selectedProduct, selectedCurrency, selectedProject, ...rest } = item;
             const taxInv = {
-              tax_account: item.tax_account,
-              tax_code: item.tax_code,
-              tax_amount: item.tax_amount,
-              tax_amount_idr: item.tax_amount_idr,
+              ...rest,
               invoice_id: idforIVCID.ID,
-              base_amount: item.base_amount,
-              base_amount_idr: item.base_amount_idr,
-            };
-            delete taxInv.ID;
-            delete taxInv.id;
+            }
 
             try {
               const taxResponse = await InsertDataService.postData(taxInv, "INVCTAX", authToken, branchId);
@@ -3745,6 +3771,7 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
                                         handleItemChange(index, "tax_ppn", selectedOption ? selectedOption.value : "");
                                         handleItemChange(index, "tax_ppn_id", selectedOption ? selectedOption.id : "");
                                         handleItemChange(index, "tax_account_ppn", selectedOption ? selectedOption.tax_account : "");
+                                        handleItemChange(index, "coa_id_ppn", selectedOption ? selectedOption.coa_id : "");
 
                                         // Update the PpnRate for the specific item
                                         if (selectedOption) {
@@ -3828,7 +3855,13 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
                                         const newTaxCode = `PPN: ${ppnSelectedOption ? ppnSelectedOption.label : "None"}, PPH: ${selectedOption ? selectedOption.label : "None"}`;
                                         handleItemChange(index, "tax_code", newTaxCode);
                                       }}
-                                      options={tax_pph_type_option}
+                                      options={
+                                         items[index].type_of_vat === "include"
+                                          ? taxTypeIncludepphOptions
+                                          : items[index].type_of_vat === "exclude"
+                                          ? taxTypeExcludepphOptions
+                                          : taxPpnTypeOption
+                                      }
                                       isClearable
                                       placeholder="Select Tax PPH Type..."
                                       isDisabled={item.type_of_vat === "PPNRoyalty"} // Disable if PPN Royalty is selected
@@ -4140,8 +4173,8 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
                                     <Select
                                       id="department"
                                       value={
-                                        items[index].departement_id ?
-                                          departementOptions.find(option => option.id === item.departement_id)
+                                        items[index].department_id ?
+                                          departementOptions.find(option => option.id === items[index].department_id)
                                         :
                                           null
                                       }

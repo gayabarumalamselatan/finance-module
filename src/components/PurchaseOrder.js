@@ -1,5 +1,5 @@
 import React, { Fragment, useEffect, useState } from "react";
-import { getBranch, getToken, userLoggin } from "../config/Constant";
+import { getBranch, getToken, idUser, userLoggin } from "../config/Constant";
 import LookupParamService from "../service/LookupParamService";
 import axios from "axios";
 import { FORM_SERVICE_INSERT_DATA, FORM_SERVICE_LOAD_FIELD, FORM_SERVICE_REPORT_DATA_EXCEL, MM_SERVICE_LIST_FILE_TRADE, MM_SERVICE_LIST_JOURNAL } from "../config/ConfigUrl";
@@ -7,11 +7,12 @@ import { HandleToUppercase } from "../utils/HandleToUpercase";
 import FormService from "../service/FormService";
 import PurchaseOrderTable from "../table/PurchaseOrderTable"
 import AddPurchaseOrder from "../formComponents/AddPurchaseOrder";
+import UserService from "../service/UserService";
 
 const PurchaseOrder = () => {
     const headers = getToken();
     const branchId = getBranch();
-    const userId = userLoggin();
+    const userId = idUser;
     const [formCode, setFormCode] = useState([]);
     const [formData, setFormData] = useState([]);
     const [isLoading, setIsLoading] = useState(false);
@@ -75,6 +76,63 @@ const PurchaseOrder = () => {
     const tokenAccess = { Authorization: `Bearer ${headers}` };
     const idForm = sessionStorage.getItem('idForm');
 
+    const ChangLookup = async (fata) => {
+        try {
+            // Fetch users and vendor lookup data concurrently
+            const [userResponse, vendorResponse, currencyResponse] = await Promise.all([
+                UserService.fetchAllUser (authToken),
+                LookupParamService.fetchLookupData("MSDT_FORMCUST", authToken, branchId),
+                LookupParamService.fetchLookupData('MSDT_FORMCCY', authToken, branchId)
+            ]);
+    
+            const transformedDataVendor = vendorResponse.data.map(item =>
+                Object.keys(item).reduce((acc, key) => {
+                    acc[key.toUpperCase()] = item[key];
+                    return acc;
+                }, {})
+            );
+
+            const fetchedVendor = transformedDataVendor.filter(item => item.ENTITY_TYPE === 'BOTH' || item.ENTITY_TYPE === 'Vendor').map(item => ({
+                id: item.ID,
+                value: item.NAME,
+                label: item.NAME,
+            }));
+
+            const transformedDataCurrency = currencyResponse.data.map(item =>
+                Object.keys(item).reduce((acc, key) => {
+                    acc[key.toUpperCase()] = item[key];
+                    return acc;
+                }, {})
+            );
+            const fetchedCurrency = transformedDataCurrency.map( item => ({
+                id: item.ID,
+                value: item.CODE,
+            }))
+
+    
+            // Wait for the state updates to complete
+            // Note: State updates are asynchronous, so we need to use the latest values
+            const updatedTable = fata.map(item => {
+                const user = userResponse.users.find(user => user.id === item.CREATE_BY_ID);
+                const vendor = fetchedVendor.find(vendor => vendor.id === item.VENDOR_ID);
+                const currency = fetchedCurrency.find(currency => currency.id === item.CURRENCY_ID)
+                console.log('vendorr', currency)
+                return {
+                    ...item,
+                    CREATE_BY_NAME: user ? user.userName : '', // Set userName or empty string if not found
+                    VENDOR_NAME: vendor ? vendor.value : '', 
+                    FORM_TO_NAME: vendor? vendor.value : '',
+                    CURRENCY_NAME: currency ? currency.value : ''
+                };
+            });
+    
+            setDataTable(updatedTable); // Update the original dataTable with the new field
+            console.log('Updated dataTable:', updatedTable);
+        } catch (error) {
+            console.error('Error in ChangLookup:', error);
+        }
+    };
+
     const fetchFormCode = async () => {
         if (idForm) {
             try {
@@ -130,11 +188,11 @@ const PurchaseOrder = () => {
             if (!checker && userId) {
                 // Mengecek apakah filter requestor sudah ada
                 const isRequestorFilterExists = dynamicFilters.some(
-                    (filter) => filter.column === "CREATED_BY" && filter.value === userId
+                    (filter) => filter.column === "CREATE_BY_ID" && filter.value === userId
                 );
                 if (!isRequestorFilterExists) {
                     dynamicFilters.push({
-                        column: "CREATED_BY",
+                        column: "CREATE_BY_ID",
                         operation: "EQUAL",
                         value: userId,
                     });
@@ -167,68 +225,16 @@ const PurchaseOrder = () => {
             fetchFormMmtData.then(() => {
                 console.log('MMT DATA', formMmtData);
                 setDataTable(formMmtData);
+                ChangLookup(formMmtData)
                 setIsLoadingTable(false);
             });
+
+
+        
         }
     }, [formCode, pageSize, currentPage, refreshTable, isFilterSet, filters]);
 
-    // useEffect(() => {
-    //     if (formCode.length > 0) {
-    //         let     formMmtData = [];
-
-    //         let filterColumnParam = filterColumn;
-    //         let filterOperationParam = filterOperation;
-    //         let filterValueParam = filterValue;
-
-    //         // Check if URL parameter `status` is set
-    //         const statusParam = new URLSearchParams(window.location.search).get('status');
-    //         if (statusParam) {
-    //             filterColumnParam = 'STATUS';
-    //             filterOperationParam = 'EQUAL';
-    //             filterValueParam = statusParam;
-    //         }
-
-    //         console.log("permissions", permissions.Purchase?.["List Purchase Order"].verify);
-    //         const checker = permissions.Purchase?.["List Purchase Order"].verify;
-    //         if (checker) {
-    //             // Do not apply any filter if checker is true
-    //             console.log("Checker is true, no filter will be applied.");
-    //         } else if (userId) {
-    //             // Apply filter if checker is false and userId is present
-    //             filterColumnParam = 'CREATED_BY';
-    //             filterOperationParam = 'EQUAL';
-    //             filterValueParam = userId;
-    //         }
-
-    //         const fetchFormMmtData = FormService.fetchData(
-    //             "",
-    //             filterColumnParam,
-    //             filterOperationParam,
-    //             filterValueParam,
-    //             currentPage,
-    //             pageSize,
-    //             `PURC_FORM${formCode[0]}`,
-    //             branchId,
-    //             authToken,
-    //             true
-    //         )
-    //             .then((response) => {
-    //                 console.log("Form Purchase Order lookup data:", response);
-    //                 formMmtData = HandleToUppercase(response.data);
-    //                 setTotalItems(response.totalAllData);
-    //             })
-    //             .catch((error) => {
-    //                 console.error("Failed to fetch form Purchase Order lookup:", error);
-    //             });
-
-    //         fetchFormMmtData.then(() => {
-    //             console.log('MMT DATA', formMmtData);
-    //             setDataTable(formMmtData);
-    //             setIsLoadingTable(false);
-    //         });
-    //     }
-    // }, [formCode, pageSize, currentPage, refreshTable, isFilterSet]);
-
+   
     const handlePageSizeChange = (event) => {
         setPageSize(parseInt(event.target.value, 10));
         setCurrentPage(1);
@@ -245,7 +251,6 @@ const PurchaseOrder = () => {
     };
 
     
-
     const handleFilterSearch = ({ filters }) => {
         console.log('filter Purchase Request list:', filters);
     
@@ -375,6 +380,7 @@ const PurchaseOrder = () => {
                         selectedData={handleSelectData}
                         EditPurchaseOrder={handleEditPurchaseOrder}
                         checker={permissions.Purchase?.["List Purchase Order"].verify}
+                        ChangLookup={ChangLookup}
                     />
                 )}
 

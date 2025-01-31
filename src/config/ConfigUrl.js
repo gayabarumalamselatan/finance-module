@@ -17,3 +17,8 @@ export const ACCOUNTING_SERVICE_BASE = process.env.REACT_APP_API_ACCOUNTING_SERV
     export const GENERATED_DUE_DATE = `${ACCOUNTING_SERVICE_BASE}/accounting-service/get-due-date`;
     export const UPLOAD_FILES = `${ACCOUNTING_SERVICE_BASE}/accounting-service/upload/save`;
     export const DOWNLOAD_FILES = `${ACCOUNTING_SERVICE_BASE}/accounting-service/document/download`;
+
+export const AUTH_SERVICE_BASE = process.env.REACT_APP_API_AUTH_SERVICE_BASE;
+
+    export const AUTH_SERVICE_LIST_USER_DETAIL = `${AUTH_SERVICE_BASE}/auth-service/core-user/user-detail`
+    export const AUTH_SERVICE_LIST_USER = `${AUTH_SERVICE_BASE}/auth-service/core-user/list`;

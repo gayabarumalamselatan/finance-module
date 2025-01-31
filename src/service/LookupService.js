@@ -1,13 +1,13 @@
 // LookupService.js
 
 import axios from 'axios';
-import { FORM_SERVICE_LOAD_DATA } from '../config/ConfigUrl';
+import { AUTH_SERVICE_LIST_USER_DETAIL, FORM_SERVICE_LOAD_DATA } from '../config/ConfigUrl';
 import { getToken } from '../config/Constant';
 
 const LookupService = {
     
   // Fungsi untuk mengambil data lookup dari server
-  fetchLookupData: async (lookupTable, headers,branchId) => {
+  fetchLookupData: async (lookupTable, headers, branchId) => {
     try {
       const response = await axios.get(`${FORM_SERVICE_LOAD_DATA}?t=${lookupTable}&branchId=${branchId}&page=1&size=500&showAll=YES`, {
         headers: {
@@ -19,7 +19,7 @@ const LookupService = {
       console.error('Error fetching lookup data:', error);
       throw new Error('Failed to fetch lookup data');
     }
-  }
+  },
 };
 
 export default LookupService;
