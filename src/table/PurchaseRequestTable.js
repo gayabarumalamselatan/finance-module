@@ -10,6 +10,7 @@ import { DisplayFormat } from "../utils/DisplayFormat";
 import Swal from "sweetalert2";
 import DeleteDataService from "../service/DeleteDataService";
 import { dateFormat } from "../utils/DateFormat";
+import { handleExportReport } from "../service/ExportReportService";
 
 const PurchaseRequestTable = ({
     formCode,
@@ -408,10 +409,33 @@ const PurchaseRequestTable = ({
     const endIndex = Math.min(startIndex + pageSize, totalItems);
 
     const handleExport = () => {
-        // Add logic for exporting selected rows
-        console.log("Export selected rows:", Array.from(selectedRows));
+        // Mengambil data dari baris yang dipilih
+        const dataSelected = getSelectedRowsData();
+        
+        // Jika tidak ada data yang dipilih, tampilkan peringatan
+        if (!dataSelected || dataSelected.length === 0) {
+            showDynamicSweetAlert('Warning!', 'No data selected for export', 'warning');
+            return;
+        }
+    
+        // Mengambil nilai PR_NUMBER dari data pertama yang dipilih
+        const prNumber = dataSelected[0]?.PR_NUMBER;
+    
+        // Jika PR_NUMBER tidak tersedia, tampilkan pesan error
+        if (!prNumber) {
+            showDynamicSweetAlert('Error!', 'Selected data does not have PR_NUMBER', 'error');
+            return;
+        }
+    
+        // Memanggil fungsi handleExportReport dengan parameter yang sesuai
+        handleExportReport(
+            'PDF', // Format file (bisa diganti ke 'XLSX' jika diperlukan)
+            'purchase_requisition_print', // Nama laporan
+            { Parameter1: prNumber}, // Parameter API
+            authToken
+        );
     };
-
+    
     return (
         <div>
             <div className="card card-default">

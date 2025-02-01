@@ -17,3 +17,7 @@ export const ACCOUNTING_SERVICE_BASE = process.env.REACT_APP_API_ACCOUNTING_SERV
     export const GENERATED_DUE_DATE = `${ACCOUNTING_SERVICE_BASE}/accounting-service/get-due-date`;
     export const UPLOAD_FILES = `${ACCOUNTING_SERVICE_BASE}/accounting-service/upload/save`;
     export const DOWNLOAD_FILES = `${ACCOUNTING_SERVICE_BASE}/accounting-service/document/download`;
+
+    // REPORT CUSTOM
+export const REPORT_SERVICE_BASE= process.env.REACT_APP_API_REPORT_SERVICE_BASE;
+    export const REPORT_SERVICE_DOWNLOAD_REPORT = `${REPORT_SERVICE_BASE}/report-service/download-report-custom`;
