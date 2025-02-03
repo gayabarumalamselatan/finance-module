@@ -67,10 +67,7 @@ const AddPurchaseInvoice = ({
   const [requestorOptions, setRequestorOptions] = useState([]);
   const [selectedRequestor, setSelectedRequestor] = useState(null);
   const [currencyOptions, setCurrencyOptions] = useState([]);
-  const [selectedCurrency, setSelectedCurrency] = useState({
-    value: "IDR",
-    label: "IDR",
-  });
+  const [selectedCurrency, setSelectedCurrency] = useState("");
   const [departementOptions, setDepartementOptions] = useState([]);
   const [companyOptions, setCompanyOptions] = useState([]);
   const [selectedCompany, setSelectedCompany] = useState(null);
@@ -143,7 +140,7 @@ const AddPurchaseInvoice = ({
   const [isAddFile, setIsAddFile] = useState(false);
   const [tax_ppn_royalty_option, setTaxPpnRoyaltyOption] = useState([]);
   const [fetchedDetail, setFetchedDetail] = useState([]);
-  const [createdBy, setCreatedBy] = useState(userId);
+  const [createdBy, setCreatedBy] = useState({ id: null, userName: "" });
   const [isSubmited, setIsSubmited] = useState(false);
   const [currency, setCurrency] = useState("IDR");
   const [total_amount_idr, setTotalAmountIdr] = useState("");
@@ -239,6 +236,106 @@ const AddPurchaseInvoice = ({
                 setCreatedBy({ id: response.id, userName: response.userName });
               }
             );
+            LookupParamService.fetchLookupDataView(
+              "MSDT_FORMCUST",
+              authToken,
+              branchId
+            )
+              .then((data) => {
+                console.log("Vendor lookup data:", data);
+
+                // Transform keys to uppercase directly in the received data
+                const transformedData = data.data.map((item) =>
+                  Object.keys(item).reduce((acc, key) => {
+                    acc[key.toUpperCase()] = item[key];
+                    return acc;
+                  }, {})
+                );
+                //console.log('Transformed data:', transformedData);
+
+                const allOptions = transformedData.map((item) => ({
+                  id: item.ID,
+                  value: item.NAME,
+                  label: item.NAME,
+                }));
+                setAllVendorOptions(allOptions);
+                setVendor(allvendoroptions.value);
+                setVendorId(allvendoroptions.id);
+                const selectVendorOption =
+                  allOptions.find(
+                    (option) => option.id === selectedData[0].VENDOR_ID
+                  ) || "";
+                setSelectedVendor(selectVendorOption);
+                console.log("Selected vendor option:", selectedVendor);
+
+                if (selectedData[0].DOC_REFF === "purchaseOrder") {
+                  const bothOptions = transformedData
+                    .filter(
+                      (item) =>
+                        item.ENTITY_TYPE === "BOTH" ||
+                        item.ENTITY_TYPE === "Vendor"
+                    )
+                    .map((item) => ({
+                      id: item.ID,
+                      value: item.NAME,
+                      label: item.NAME,
+                    }));
+                  setVendorOptions(bothOptions);
+                  setVendor(vendorOptions.value);
+                  setVendorId(vendorOptions.id);
+                  const selectedVendorOption = allOptions.find(
+                    (option) => option.id === selectedData[0].VENDOR_ID
+                  );
+                  setSelectedBothVendor(selectedVendorOption || null);
+                  console.log("asdhhkjda", selectedVendor);
+                }
+              })
+              .catch((error) => {
+                console.error("Failed to fetch vendor lookup:", error);
+              });
+
+            LookupParamService.fetchLookupDataView(
+              "MSDT_FORMCCY",
+              authToken,
+              branchId
+            )
+              .then((currencyData) => {
+                console.log("Currency lookup data:", currencyData);
+
+                // Transform and map currency data to options
+                const transformedCurrencyData = currencyData.data.map((item) =>
+                  Object.keys(item).reduce((acc, key) => {
+                    acc[key.toUpperCase()] = item[key];
+                    return acc;
+                  }, {})
+                );
+
+                const currencyOptions = transformedCurrencyData.map((item) => ({
+                  id: item.ID,
+                  value: item.CODE,
+                  label: item.CODE,
+                }));
+
+                setCurrencyOptions(currencyOptions); // Set currency options to state
+                if (selectedData) {
+                  const selectCurrency = currencyOptions.find(
+                    (option) => option.id === selectedData[0].CURRENCY_ID || ""
+                  );
+                  setSelectedCurrency(selectCurrency || null);
+                  setCurrencyId(selectCurrency.id);
+                } else if (!selectedData) {
+                  const defaultCurrency = currencyOptions.find(
+                    (option) => option.id === 61
+                  );
+                  setSelectedCurrency(defaultCurrency);
+                  setCurrencyId(defaultCurrency.id);
+                }
+
+                // Set the updated items with selected product and currency options to stat
+              })
+              .catch((error) => {
+                console.error("Failed to fetch currency lookup:", error);
+              });
           } else {
             console.log("No data found");
           }
@@ -579,7 +676,7 @@ const AddPurchaseInvoice = ({
           console.error("Failed to fetch vendor lookup:", error);
         });
 
-      UserService.fetchAllUser("core_user", authToken, branchId, idUser)
+      UserService.fetchAllUser(authToken)
         .then((data) => {
           console.log("Payment term lookup data:", data);
 
@@ -980,6 +1077,12 @@ const AddPurchaseInvoice = ({
         console.error("Failed to fetch currency lookup:", error);
       });
 
+    UserService.fetchUserData(sessionStorage.getItem("id"), authToken).then(
+      (response) => {
+        setCreatedBy({ id: response.id, userName: response.userName });
+      }
+    );
+
     // buat payment term
     LookupParamService.fetchLookupDataView("MSDT_FORMPYTM", authToken, branchId)
       .then((data) => {
@@ -1354,7 +1457,7 @@ const AddPurchaseInvoice = ({
     if (selectedOption) {
       // Fetch lookup data based on the selected option
       LookupService.fetchLookupData(
-        `PURC_FORMPUREQD&filterBy=PR_NUMBER&filterValue=${selectedOption.value}&operation=EQUAL`,
+        `PURC_FORMPUREQD&filterBy=PR_NUMBER&filterValue=${selectedOption.value}&operation=EQUAL&filterBy=CURRENCY_ID&filterValue=${currency_id}&operation=EQUAL`,
         authToken,
         branchId
       )
@@ -2541,7 +2644,7 @@ const AddPurchaseInvoice = ({
     setTitle("");
     setInternalMemo("");
     setCustomerContract("");
-    setCreatedBy(createdBy);
+    setCreatedBy(createdBy.userName);
     setID(null);
     setDocRef("");
     setInvoiceNumber("");
@@ -3037,7 +3140,7 @@ const AddPurchaseInvoice = ({
           }
 
           // Insert updated INVCTAX records
-          for (const item of items) {
+          for (const item of taxSummaryItems) {
             const taxInv = {
               tax_account: item.tax_account,
               tax_code: item.tax_code,
@@ -3064,7 +3167,7 @@ const AddPurchaseInvoice = ({
           }
         } else if (response.message === "insert Data Successfully") {
           // Insert new INVCTAX records
-          for (const item of items) {
+          for (const item of taxSummaryItems) {
             const taxInv = {
               tax_account: item.tax_account,
               tax_code: item.tax_code,
@@ -3629,6 +3732,12 @@ const AddPurchaseInvoice = ({
                               "cod_cor_skb",
                               "tax_base_idr",
                               "invoice_number",
+                              "currency",
+                              "vendor",
+                              "tax_ppn_id",
+                              "tax_pph_id",
+                              "tax_account_ppn",
+                              "tax_account_pph",
                             ];
 
                             fieldsToDelete.forEach(
@@ -3768,6 +3877,12 @@ const AddPurchaseInvoice = ({
                       "total_amount_ppn_idr",
                       "product",
                       "invoice_number",
+                      "currency",
+                      "vendor",
+                      "tax_ppn_id",
+                      "tax_pph_id",
+                      "tax_account_ppn",
+                      "tax_account_pph",
                     ];
 
                     fieldsToDelete.forEach(

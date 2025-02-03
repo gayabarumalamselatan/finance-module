@@ -155,9 +155,9 @@ const ListPurchaseInvoice = ({ selectedRow, onClose }) => {
         console.error("Failed to fetch currency lookup:", error);
       });
 
-    UserService.fetchAllUser("core_user", authToken, branchId, idUser)
+    UserService.fetchAllUser(authToken)
       .then((data) => {
-        console.log("User  lookup response:", JSON.stringify(data, null, 2)); // Log the entire response
+        console.log("Usere:", JSON.stringify(data, null, 2)); // Log the entire response
 
         // Check if the users array is defined
         if (data && Array.isArray(data.users)) {
@@ -178,6 +178,7 @@ const ListPurchaseInvoice = ({ selectedRow, onClose }) => {
           const userMap = new Map(
             options.map((option) => [option.id, option.label])
           );
+          console.log("userr", authToken);
           setCoreUserOptions(userMap); // Store the Map instead of an array
         } else {
           console.error("Unexpected response format:", data);

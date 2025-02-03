@@ -56,7 +56,7 @@ const PurchaseInvoiceTable = ({
   useEffect(() => {
     setSelectedRows(new Set());
 
-    UserService.fetchAllUser("core_user", authToken, branchId)
+    UserService.fetchAllUser(authToken)
       .then((data) => {
         console.log("User  lookup response:", JSON.stringify(data, null, 2)); // Log the entire response
 
