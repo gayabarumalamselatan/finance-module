@@ -8,7 +8,7 @@ import Swal from "sweetalert2";
 import { messageAlertSwal } from "../config/Swal";
 import EditCoaModal from "../modal/EditCoaModal";
 import * as XLSX from 'xlsx';
-import getDateTime from "../utils/DateTime";
+import  { getDateTime } from '../utils/DateTime';
 import { DisplayFormat } from "../utils/DisplayFormat";
 
 const CoaTable = ({

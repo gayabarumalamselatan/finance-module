@@ -1,5 +1,8 @@
 import axios from 'axios';
 import { REPORT_SERVICE_DOWNLOAD_REPORT } from '../config/ConfigUrl';
+import Swal from 'sweetalert2';
+import { messageAlertSwal } from '../config/Swal';
+import  { getDateTimeLocal } from '../utils/DateTime';
 
 export const handleExportReport = async (exportType, reportName, params, authToken) => {
     try {
@@ -29,8 +32,10 @@ export const handleExportReport = async (exportType, reportName, params, authTok
         // Membuat elemen link untuk mengunduh file
         const link = document.createElement('a');
         link.href = url;
-        link.setAttribute('download', `${reportName}-${new Date().toISOString().replace(/[:.-]/g, '_')}.${exportType.toLowerCase()}`);
-
+        link.setAttribute(
+            'download', 
+            `${reportName}-${getDateTimeLocal().replace(/[:. ]/g, '_')}.${exportType.toLowerCase()}`
+          );
         // Menjalankan unduhan
         document.body.appendChild(link);
         link.click();
@@ -40,6 +45,6 @@ export const handleExportReport = async (exportType, reportName, params, authTok
         window.URL.revokeObjectURL(url);
     } catch (error) {
         console.error('Error fetching or saving file:', error);
-        showDynamicSweetAlert('Error!', 'Error Fetching Data', 'error');
+        messageAlertSwal('Error!', 'Error Fetching Data', 'error');
     }
 };
