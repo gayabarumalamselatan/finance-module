@@ -77,6 +77,7 @@ const PurchaseOrder = () => {
     const idForm = sessionStorage.getItem('idForm');
 
     const ChangLookup = async (fata) => {
+        setIsLoadingTable(true)
         try {
             // Fetch users and vendor lookup data concurrently
             const [userResponse, vendorResponse, currencyResponse] = await Promise.all([
@@ -127,6 +128,7 @@ const PurchaseOrder = () => {
             });
     
             setDataTable(updatedTable); // Update the original dataTable with the new field
+            setIsLoadingTable(false)
             console.log('Updated dataTable:', updatedTable);
         } catch (error) {
             console.error('Error in ChangLookup:', error);

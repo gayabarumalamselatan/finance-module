@@ -101,10 +101,19 @@ const InvoiceTable = ({
           <div className="row align-items-center">
             <div className="col-md-4">
               <div className="col-md-12 d-flex align-items-center">
-                <div className="row-per-page-label" style={{ whiteSpace: "nowrap" }}>
+                <div
+                  className="row-per-page-label"
+                  style={{ whiteSpace: "nowrap" }}
+                >
                   Rows per page:
                 </div>
-                <select style={{ margin: "5px" }} id="pageSizeSelect" value={pageSize} onChange={handlePageSizeChange} className="form-form-select form-select-sm">
+                <select
+                  style={{ margin: "5px" }}
+                  id="pageSizeSelect"
+                  value={pageSize}
+                  onChange={handlePageSizeChange}
+                  className="form-form-select form-select-sm"
+                >
                   <option value="5">5</option>
                   <option value="10">10</option>
                   <option value="30">30</option>
@@ -115,26 +124,52 @@ const InvoiceTable = ({
             </div>
             <div className="col-md-8 d-flex justify-content-end align-items-center">
               <div className="btn-group ml-2">
-                <button type="button" className="btn btn-default" onClick={handleRefresh}>
+                <button
+                  type="button"
+                  className="btn btn-default"
+                  onClick={handleRefresh}
+                >
                   <FaSyncAlt />
                 </button>
-                <button type="button" className="btn btn-default" onClick={handleNewBond}>
+                <button
+                  type="button"
+                  className="btn btn-default"
+                  onClick={handleNewBond}
+                >
                   <FaAddressBook /> Add New
                 </button>
                 {selectedRows.length > 0 && (
                   <>
-                    <button type="button" className="btn btn-default" onClick={handleEdit}>
+                    <button
+                      type="button"
+                      className="btn btn-default"
+                      onClick={handleEdit}
+                    >
                       <FaEdit /> Edit
                     </button>
-                    <button type="button" className="btn btn-default" onClick={handleDelete}>
+                    <button
+                      type="button"
+                      className="btn btn-default"
+                      onClick={handleDelete}
+                    >
                       <FaTrash /> Delete
                     </button>
-                    <button type="button" className="btn btn-default" onClick={handleExport}>
+                    <button
+                      type="button"
+                      className="btn btn-default"
+                      onClick={handleExport}
+                    >
                       <FaFileExport /> Export
                     </button>
                   </>
                 )}
-                <button type="button" className={`btn ${isFilterOpen ? "btn-secondary" : "btn-default"}`} onClick={handleFilterToggle}>
+                <button
+                  type="button"
+                  className={`btn ${
+                    isFilterOpen ? "btn-secondary" : "btn-default"
+                  }`}
+                  onClick={handleFilterToggle}
+                >
                   {isFilterOpen ? (
                     <>
                       <span className="ml-1">
@@ -156,7 +191,11 @@ const InvoiceTable = ({
           <div className="card-body">
             <form className="row">
               <div className="col-md-4 mb-3">
-                <select className="form-control" value={filterColumn} onChange={(e) => setFilterColumn(e.target.value)}>
+                <select
+                  className="form-control"
+                  value={filterColumn}
+                  onChange={(e) => setFilterColumn(e.target.value)}
+                >
                   <option value="">Select a column</option>
                   <option value="INV_NUMBER">INV Number</option>
                   <option value="TITLE">Title</option>
@@ -177,7 +216,11 @@ const InvoiceTable = ({
                 </select>
               </div>
               <div className="col-md-4 mb-3">
-                <select className="form-control" value={filterOperation} onChange={(e) => setFilterOperation(e.target.value)}>
+                <select
+                  className="form-control"
+                  value={filterOperation}
+                  onChange={(e) => setFilterOperation(e.target.value)}
+                >
                   <option value="">Select filter</option>
                   <option value="EQUAL">Equal</option>
                   <option value="NOTEQUAL">Not Equal</option>
@@ -185,11 +228,20 @@ const InvoiceTable = ({
                 </select>
               </div>
               <div className="col-md-4 mb-3">
-                <input type="text" className="form-control" placeholder="Enter value" value={filterValue} onChange={(e) => setFilterValue(e.target.value)} />
+                <input
+                  type="text"
+                  className="form-control"
+                  placeholder="Enter value"
+                  value={filterValue}
+                  onChange={(e) => setFilterValue(e.target.value)}
+                />
               </div>
             </form>
             <div className="d-flex justify-content-end align-items-center mt-3">
-              <button className="btn btn-secondary mr-2" onClick={handleResetFilters}>
+              <button
+                className="btn btn-secondary mr-2"
+                onClick={handleResetFilters}
+              >
                 Reset
               </button>
               <button className="btn btn-primary" onClick={handleApplyFilters}>
@@ -204,7 +256,14 @@ const InvoiceTable = ({
               <thead>
                 <tr>
                   <th>
-                    <input type="checkbox" onChange={handleSelectAll} checked={selectedRows.length === dataTable.length && dataTable.length > 0} />
+                    <input
+                      type="checkbox"
+                      onChange={handleSelectAll}
+                      checked={
+                        selectedRows.length === dataTable.length &&
+                        dataTable.length > 0
+                      }
+                    />
                   </th>
                   <th>INV Number</th>
                   <th>Title</th>
@@ -241,7 +300,11 @@ const InvoiceTable = ({
                   dataTable.map((item) => (
                     <tr key={item.INV_NUMBER}>
                       <td>
-                        <input type="checkbox" checked={selectedRows.includes(item.INV_NUMBER)} onChange={() => handleRowSelect(item)} />
+                        <input
+                          type="checkbox"
+                          checked={selectedRows.includes(item.INV_NUMBER)}
+                          onChange={() => handleRowSelect(item)}
+                        />
                       </td>
                       <td>{item.INV_NUMBER}</td>
                       <td>{item.TITLE}</td>
@@ -253,7 +316,12 @@ const InvoiceTable = ({
                       <td>{item.COMPANY}</td>
                       <td>{item.PROJECT}</td>
                       <td>
-                        <NumericFormat value={item.TOTAL_AMOUNT} displayType="text" thousandSeparator="," prefix="Rp " />
+                        <NumericFormat
+                          value={item.TOTAL_AMOUNT}
+                          displayType="text"
+                          thousandSeparator=","
+                          prefix="Rp "
+                        />
                       </td>
                       <td>{item.DESCRIPTION}</td>
                       <td>{item.CREATED_BY}</td>
@@ -266,13 +334,18 @@ const InvoiceTable = ({
                 )}
               </tbody>
             </table>
-            <FormPagination pageSize={pageSize} handlePageSizeChange={handlePageSizeChange} currentPage={currentPage} onPageChange={handlePageChange} totalItems={totalItems} />
-            {
-              showLoadButton === true ? 
+            <FormPagination
+              pageSize={pageSize}
+              handlePageSizeChange={handlePageSizeChange}
+              currentPage={currentPage}
+              onPageChange={handlePageChange}
+              totalItems={totalItems}
+            />
+            {showLoadButton === true ? (
               <button className="btn btn-primary">Load Data</button>
-              :
+            ) : (
               <></>
-            }
+            )}
           </div>
         </div>
       </div>
