@@ -10,6 +10,7 @@ import { DisplayFormat } from "../utils/DisplayFormat";
 import Swal from "sweetalert2";
 import DeleteDataService from "../service/DeleteDataService";
 import { dateFormat } from "../utils/DateFormat";
+import { handleExportReport } from "../service/ExportReportService";
 
 const PurchaseRequestTable = ({
     formCode,
@@ -69,12 +70,12 @@ const PurchaseRequestTable = ({
         setSelectedRowData(rowData); // Set the row data
 
         const PR_NUMBER = rowData.PR_NUMBER;
-        console.log('Fetching data for PR_NUMBER:', PR_NUMBER);
+        // console.log('Fetching data for PR_NUMBER:', PR_NUMBER);
 
         LookupService.fetchLookupData(`VW_PUREQD&filterBy=PR_NUMBER&filterValue=${PR_NUMBER}&operation=EQUAL&viewOnly=true`, authToken, branchId)
             .then(response => {
                 const fetchedItems = response.data || [];
-                console.log('Items fetched from API:', fetchedItems);
+                // console.log('Items fetched from API:', fetchedItems);
 
                 // Set fetched items to state
                 setSelectedRowDataItem(fetchedItems);
@@ -87,7 +88,7 @@ const PurchaseRequestTable = ({
     };
 
     useEffect(() => {
-        console.log('selectedRowDataItem:', selectedRowDataItem);
+        // console.log('selectedRowDataItem:', selectedRowDataItem);
     }, [selectedRowDataItem]);
 
     const handleModalClose = () => {
@@ -112,7 +113,7 @@ const PurchaseRequestTable = ({
 
     const handleEditPurchaseRequest = (value) => {
         const dataSelected = getSelectedRowsData();
-        console.log('dataSelected Edit:', dataSelected);
+        // console.log('dataSelected Edit:', dataSelected);
 
         if (dataSelected.length > 1) {
             Swal.fire({
@@ -126,7 +127,7 @@ const PurchaseRequestTable = ({
 
         // Get the current user's userId
         const userId = sessionStorage.getItem('userId');
-        console.log('checker:', checker);
+        // console.log('checker:', checker);
 
         // Check if status_request is 'IN_PROCESS' and userId matches created_by
         if (
@@ -148,7 +149,7 @@ const PurchaseRequestTable = ({
 
     const handleDuplicatePurchaseRequest = (value) => {
         const dataSelected = getSelectedRowsData();
-        console.log('dataSelected Edit:', dataSelected);
+        // console.log('dataSelected Edit:', dataSelected);
 
         if (dataSelected.length > 1) {
             Swal.fire({
@@ -162,7 +163,7 @@ const PurchaseRequestTable = ({
 
         // Get the current user's userId
         const userId = sessionStorage.getItem('userId');
-        console.log('checker:', checker);
+        // console.log('checker:', checker);
 
         // Check if status_request is 'IN_PROCESS' and userId matches created_by
         if (
@@ -215,7 +216,7 @@ const PurchaseRequestTable = ({
 
     const handleDelete = async (value) => {
         const dataSelected = getSelectedRowsData(); // Ambil data yang dipilih
-        console.log('dataSelected Delete:', dataSelected);
+        // console.log('dataSelected Delete:', dataSelected);
 
         // Cek jika lebih dari satu baris dipilih
         if (dataSelected.length !== 1) {
@@ -270,7 +271,7 @@ const PurchaseRequestTable = ({
                     );
 
                     const fetchedItems = responseDetail.data || [];
-                    console.log('Items fetch:', fetchedItems);
+                    // console.log('Items fetch:', fetchedItems);
 
                     if (fetchedItems.length > 0) {
                         // Hapus setiap detail yang ditemukan
@@ -278,13 +279,13 @@ const PurchaseRequestTable = ({
                             if (item.ID) {
                                 try {
                                     const itemResponseDelete = await DeleteDataService.postData(`column=id&value=${item.ID}`, "PUREQD", authToken, branchId);
-                                    console.log('Item deleted successfully:', itemResponseDelete);
+                                    // console.log('Item deleted successfully:', itemResponseDelete);
                                 } catch (error) {
                                     console.error('Error deleting item:', item, error);
                                     throw new Error('Failed to delete one or more detail items');
                                 }
                             } else {
-                                console.log('No ID found for this item, skipping delete:', item);
+                                // console.log('No ID found for this item, skipping delete:', item);
                             }
                         }
                     } else {
@@ -350,7 +351,7 @@ const PurchaseRequestTable = ({
 
     // Terapkan filter
     const handleApplyFilters = () => {
-        console.log("Applied Filters:", filters);
+        // console.log("Applied Filters:", filters);
         handleFilterSearch({ filters });
         // Kirim ke backend atau gunakan logika filtering di sini
     };
@@ -385,14 +386,14 @@ const PurchaseRequestTable = ({
 
         setSelectedRowData(selectedData[0]);
 
-        console.log("View selected rows data:", selectedData);
+        // console.log("View selected rows data:", selectedData);
         const PR_NUMBER = selectedData[0].PR_NUMBER;
-        console.log('Fetching data for PR_NUMBER:', PR_NUMBER);
+        // console.log('Fetching data for PR_NUMBER:', PR_NUMBER);
 
         LookupService.fetchLookupData(`PURC_FORMPUREQD&filterBy=PR_NUMBER&filterValue=${PR_NUMBER}&operation=EQUAL`, authToken, branchId)
             .then(response => {
                 const fetchedItems = response.data || [];
-                console.log('Items fetched from API:', fetchedItems);
+                // console.log('Items fetched from API:', fetchedItems);
 
                 // Set fetched items to state
                 setSelectedRowDataItem(fetchedItems);
@@ -408,10 +409,35 @@ const PurchaseRequestTable = ({
     const endIndex = Math.min(startIndex + pageSize, totalItems);
 
     const handleExport = () => {
-        // Add logic for exporting selected rows
-        console.log("Export selected rows:", Array.from(selectedRows));
+        // Mengambil data dari baris yang dipilih
+        const dataSelected = getSelectedRowsData();
+        
+        // console.log('Data selected for export:', dataSelected);
+        // console.log('PR_NUMBER:', dataSelected[0]?.PR_NUMBER);
+        // Jika tidak ada data yang dipilih, tampilkan peringatan
+        if (!dataSelected || dataSelected.length === 0) {
+            showDynamicSweetAlert('Warning!', 'No data selected for export', 'warning');
+            return;
+        }
+    
+        // Mengambil nilai PR_NUMBER dari data pertama yang dipilih
+        const prNumber = dataSelected[0]?.PR_NUMBER;
+    
+        // Jika PR_NUMBER tidak tersedia, tampilkan pesan error
+        if (!prNumber) {
+            showDynamicSweetAlert('Error!', 'Selected data does not have PR_NUMBER', 'error');
+            return;
+        }
+    
+        // Memanggil fungsi handleExportReport dengan parameter yang sesuai
+        handleExportReport(
+            'PDF', // Format file (bisa diganti ke 'XLSX' jika diperlukan)
+            'purchase_requisition_print', // Nama laporan
+            { Parameter1: prNumber}, // Parameter API
+            authToken
+        );
     };
-
+    
     return (
         <div>
             <div className="card card-default">
