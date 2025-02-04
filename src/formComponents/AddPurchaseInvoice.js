@@ -177,7 +177,8 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
             setDueDate(data.due_date);
             setCurrencyId(data.currency_id); // Set the currency ID
             const selectedCurrencyOption = currencyOptions.find((option) => option.id === data.currency_id);
-            setSelectedCurrency(selectedCurrencyOption); // Set the selected currency            setTermOfPayment(data.term_of_payment);
+            setSelectedCurrency(selectedCurrencyOption); // Set the selected currency            
+            setTermOfPayment(data.term_of_payment);
             setTypeOfPayment(data.type_of_payment);
             setBiMiddleRate(data.bi_middle_rate);
             setTaxInvoiceNumber(data.tax_invoice_number);
