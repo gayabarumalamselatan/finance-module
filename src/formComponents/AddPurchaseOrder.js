@@ -5,7 +5,7 @@ import Swal from 'sweetalert2';
 import { messageAlertSwal } from "../config/Swal";
 import InsertDataService from '../service/InsertDataService';
 import { getBranch, getToken, idUser, userLoggin } from '../config/Constant';
-import { DOWNLOAD_FILES, FORM_SERVICE_UPDATE_DATA, GENERATED_NUMBER, UPLOAD_FILES } from '../config/ConfigUrl';
+import { AUTH_SERVICE_LIST_USER, AUTH_SERVICE_LIST_USER_DETAIL, DOWNLOAD_FILES, FORM_SERVICE_UPDATE_DATA, GENERATED_NUMBER, UPLOAD_FILES, USER_SERVICE_USER_DETAIL } from '../config/ConfigUrl';
 import { generateUniqueId } from '../service/GeneratedId';
 import Select from 'react-select';
 import LookupParamService from '../service/LookupParamService';
@@ -17,7 +17,7 @@ import DeleteDataService from '../service/DeleteDataService';
 import DatePicker from 'react-datepicker';
 import moment from 'moment';
 import { FaCalendar } from 'react-icons/fa';
-import { tr } from 'date-fns/locale';
+import UserService from '../service/UserService';
 
 const AddPurchaseOrder = ({ 
   setIsAddingNewPurchaseOrder, 
@@ -34,7 +34,7 @@ const AddPurchaseOrder = ({
 }) => {
   const headers = getToken();
   const branchId = getBranch();
-  const userId = userLoggin();
+  const userId = sessionStorage.getItem('id');
 
   const [items, setItems] = useState([]);
   const [description, setDescription] = useState('');
@@ -46,22 +46,19 @@ const AddPurchaseOrder = ({
   // PO Fields
   const [po_number, setPoNumber] = useState('');
   const [docRef,setDocRef] = useState(''); 
-  const [request_date, setRequestDate] = useState(new Date().toISOString().slice(0, 10));
 
   const [order_date, setOrderDate] = useState(new Date().toISOString('en-GB').slice(0, 10));
-  const [createdBy, setCreatedBy] = useState(userId);
-  const [approveBy, setApproveBy] = useState('');
+  const [createdBy, setCreatedBy] = useState({id: null, userName:''});
   const [shipTo, setShipTo] = useState('PT. Abhimata Persada');
   const [shipToAddress, setShipToAddress] = useState('Menara Batavia, 5th Floor, DKI Jakarta, 10220, ID');
   const [billTo, setBillTo] = useState('PT. Abhihmata Persada');
   const [billToAddress, setBillToAddress] = useState('Menara Batavia, 5th Floor, DKI Jakarta, 10220, ID');
   const [termConditions, setTermConditions] = useState('');
   const [endToEnd,setEndToEnd] = useState('');
-  const [discount, setDiscount] = useState(0);
   const [PPNRoyaltyOptions, setPPNRoyaltyOptions] = useState([]);
   const [taxTypeIncludeOptions, setTaxTypeIncludeOptions] = useState([]);
   const [taxTypeExcludeOptions, setTaxTypExcludeeOptions] = useState([]);
-  const [isCurrencyIsSet, setIsCurrencyIsSet] = useState(false);
+
 
   // PO Lookup
   const [projectOptions, setProjectOptions] = useState([]);
@@ -69,14 +66,11 @@ const AddPurchaseOrder = ({
   const [vendorOptions, setVendorOptions] = useState([]);
   const [customerOptions, setCustomerOptions] = useState([]);
   const [productOptions, setProductOptions] = useState([]);
-  const [selectedProduct, setSelectedProduct] = useState(null);
   const [PROptions, setPROptions] = useState([]);
-  const [docRefNumber, setDocRefNumber] = useState('');
   const [currency_id, setCurrencyId] = useState(61);
   const [to, setTo] = useState('');
   const [form_to_id, setFormToId] = useState('');
   const [vendor_id, setVendorId] = useState('');
-  const [toOptions, setToOptions] = useState([]);
   const [selectedTo, setSelectedTo] = useState(null);
   const [toAddress, setToAddress] = useState('');
   const [toAddressOptions, setToAddressOptions] = useState([]);
@@ -88,37 +82,38 @@ const AddPurchaseOrder = ({
   const [selectedCurrency, setSelectedCurrency] = useState(null);
   const [currency, setCurrency] = useState('');
   const [isSubmited, setIsSubmited] = useState(false);
-
-  // Dynamic Form Field Width
-  // const [inputWidth, setInputWidth] = useState(Array(items.length).fill(0));
+  const [allPROptions, setAllPROption] = useState([])
 
   const authToken = headers;
+
+    const isDark = localStorage.getItem('darkmode')
+    // console.log('isdarke', isDark)
 
 
   // Lookup Department
   const lookupDepartment = () => {
-      LookupParamService.fetchLookupDataView("MSDT_FORMDPRT", authToken, branchId)
-      .then(data => {
+    LookupParamService.fetchLookupDataView("MSDT_FORMDPRT", authToken, branchId)
+    .then(data => {
 
-        // Transform keys to uppercase directly in the received data
-        const transformedData = data.data.map(item =>
-          Object.keys(item).reduce((acc, key) => {
-            acc[key.toUpperCase()] = item[key];
-            return acc;
-          }, {})
-        );
+      // Transform keys to uppercase directly in the received data
+      const transformedData = data.data.map(item =>
+        Object.keys(item).reduce((acc, key) => {
+          acc[key.toUpperCase()] = item[key];
+          return acc;
+        }, {})
+      );
 
-        const options = transformedData.map(item => ({
-          id: item.ID,
-          value: item.NAME,
-          label: item.NAME
-        }));
+      const options = transformedData.map(item => ({
+        id: item.ID,
+        value: item.NAME,
+        label: item.NAME
+      }));
 
-        setDepartementOptions(options);
+      setDepartementOptions(options);
 
-      }).catch(error => {
-        console.error('Failed to fetch Department lookup:', error);
-      });
+    }).catch(error => {
+      console.error('Failed to fetch Department lookup:', error);
+    });
   }
 
 
@@ -199,15 +194,6 @@ const AddPurchaseOrder = ({
       }));
       setVendorOptions(options);
 
-      const optionForTo = transformedData.map(item => ({
-        id: item.ID,
-        value: item.NAME,
-        label: item.NAME,
-        vendAddress: item.ADDRESS
-      }));
-      setToOptions(optionForTo);
-      console.log('toopt', optionForTo)
-
       const uniqueAddress = [...new Set(transformedData.map(item => item.ADDRESS))];
       const optionsForToAddress = uniqueAddress.map(address => ({
         value: address,
@@ -217,13 +203,13 @@ const AddPurchaseOrder = ({
 
       if(selectedData){
         // Vendor
-        const selectVendor = options.find(option => option.value === selectedData[0].VENDOR) || "";
+        const selectVendor = options.find(option => option.id === selectedData[0].VENDOR_ID) || "";
         setSelectedVendor(selectVendor || null);
         setVendor(selectVendor.value);
         setVendorId(selectVendor.id)
-
+        console.log('idven', selectedData)
         // To
-        const selectTo = optionForTo.find(option => option.value === selectedData[0].FORM_TO) || "";
+        const selectTo = options.find(option => option.id === selectedData[0].VENDOR_ID) || "";
         setSelectedTo(selectTo || null);
         setTo(selectTo.value);
         setFormToId(selectTo.id)
@@ -242,7 +228,6 @@ const AddPurchaseOrder = ({
 
   // Lookup Project
   const lookupProject = () => {
-    
     LookupParamService.fetchLookupDataView("MSDT_FORMPRJT", authToken, branchId)
     .then(data => {
 
@@ -263,12 +248,13 @@ const AddPurchaseOrder = ({
       }));
 
       const optionsCustomer = transformedData.map(item => ({
+        id: item.CUSTOMER_ID,
         value: item.CUSTOMER,
         label: item.CUSTOMER,
       }))
 
       const contractNumOptions = transformedData.map(item=> ({
-        id: item.id,
+        id: item.ID,
         value: item.CONTRACT_NUMBER,
         label: item.CONTRACT_NUMBER,
         customer: item.CUSTOMER,
@@ -327,17 +313,15 @@ const AddPurchaseOrder = ({
 
       // Default Currency
       if(selectedData) {
-      const selectCurrency = options.find(option => option.value === selectedData[0].CURRENCY)
-      setSelectedCurrency(selectCurrency || null)
-      setCurrency(selectCurrency.value);
-      setCurrencyId(selectCurrency.id);
-      }else if(!selectedData){
-      const defaultCurrency = options.find(option => option.value === 'IDR');
-      if(defaultCurrency){
-        setSelectedCurrency(defaultCurrency);
-        setCurrency(defaultCurrency.value);
-        setCurrencyId(defaultCurrency.id);
-      }
+        const selectCurrency = options.find(option => option.id === selectedData[0].CURRENCY_ID || "")
+        setSelectedCurrency(selectCurrency || null)
+        setCurrency(selectCurrency.value)
+        setCurrencyId(selectCurrency.id);
+      } else if(!selectedData){
+        const defaultCurrency = options.find(option => option.id === 61)
+        setSelectedCurrency(defaultCurrency)
+        setCurrency(defaultCurrency.value)
+        setCurrencyId(defaultCurrency.id)
       }
       console.log('isselceted', selectedData)
     }).catch(error => {
@@ -348,12 +332,6 @@ const AddPurchaseOrder = ({
   // Lookup Pr
   const lookupPR = (selectedCurrency, selectedVendor) => {
     let prUrl = "PURC_FORMPUREQ&filterBy=STATUS&filterValue=APPROVED&operation=EQUAL";
-    // if(selectedCurrency) {
-    //   prUrl += `&filterBy=CURRENCY&operation=EQUAL&filterValue=${selectedCurrency}`
-    // }
-    // if(selectedVendor){
-    //   prUrl += `&filterBy=VENDOR&operation=EQUAL&filterValue=${selectedVendor}`
-    // }
     console.log(prUrl); 
     LookupService.fetchLookupData(prUrl, authToken, branchId)
     .then(data => {
@@ -369,6 +347,15 @@ const AddPurchaseOrder = ({
       
       // Pureqd lookup
       // LookupParamService.fetchLookupDataView(`PURC_FORMPUREQD&filterBy=PR_NUMBER&filterValue=${selectedOption.value}&operation=EQUAL&filterBy=CURRENCY_ID&filterValue=${selectCurrency}&operation=EQUAL`, authToken, branchId)
+
+      const allOptionPr = transformedData.map(item => {
+        return{
+          id: item.ID,
+          value: item.PR_NUMBER,
+          label: item.PR_NUMBER
+        }
+      })
+      setAllPROption(allOptionPr)
 
       const options = transformedData.filter(item => item.STATUS_REQUEST === 'PARTIAL_REQUESTED' || item.STATUS_REQUEST === 'IN_PROCESS').map(item => {
         const label = item.PR_NUMBER;
@@ -396,10 +383,9 @@ const AddPurchaseOrder = ({
           authToken, 
           branchId
         ).then(pureqdData => {
-          // Process pureqdData if needed
           return {
             ...option,
-            pureqdData: pureqdData.data // Assuming pureqdData has a data property
+            pureqdData: pureqdData.data.filter(item => item.status_detail === null)
           };
         });
       });
@@ -407,20 +393,20 @@ const AddPurchaseOrder = ({
       return Promise.all(pureqdPromises);
     })
     .then(allPureqdData => {
-      // Set the options with pureqd data
       const validOptions = allPureqdData.filter(item => 
         item.pureqdData && Array.isArray(item.pureqdData) && item.pureqdData.length > 0
       );
 
       setPROptions(validOptions);
-      console.log('promises', validOptions)
     }).catch(error => {
       console.error('Failed to fetch currency lookup:', error);
     });
   }
 
+
   // Lookup caller
   useEffect(() => {
+
     console.log('duplicated', duplicateFlag)
     if(selectedData) {
       const { ID, PO_NUMBER } = selectedData[0];
@@ -430,8 +416,9 @@ const AddPurchaseOrder = ({
       if(duplicateFlag === false){
         setPoNumber(PO_NUMBER);
       }
-
+      
       // console.log('deda', selectedData[0]);
+      // const headers = { Authorization: `Bearer ${authToken}` };
 
       // Panggil API untuk mendapatkan data berdasarkan ID
       LookupService.fetchLookupData(`PURC_FORMPUOR&filterBy=PO_NUMBER&filterValue=${PO_NUMBER}&operation=EQUAL`, authToken, branchId)
@@ -439,16 +426,21 @@ const AddPurchaseOrder = ({
         const data = response.data[0];
         console.log('Data:', data);
         setOrderDate(data.order_date);
-        setCreatedBy(data.created_by);
         setDocRef(data.doc_reff);
         setShipTo(data.ship_to);
         setShipToAddress(data.ship_to_address);
         setBillTo(data.bill_to);
         setBillToAddress(data.bill_to_address);
-        setDiscount(data.discount);
         setTermConditions(data.term_conditions);
         setDescription(data.description);
-        // setCurrency(data.currency);
+
+        // const userCreated = axios.get(`${AUTH_SERVICE_LIST_USER_DETAIL}?id=${data.create_by_id}`, { headers });
+        UserService.fetchUserData(data.create_by_id, authToken).then(response => {
+          console.log('userf', response.userName)
+          setCreatedBy({id: response.id, userName: response.userName})
+        })
+        
+        // console.log('userf', userCreated)
       }).catch(error => {
         console.error('Failed to load purchase request data:', error);
       });
@@ -467,17 +459,16 @@ const AddPurchaseOrder = ({
           const prDetailPromises = fetchedItems.map(item => {
           
             return LookupService.fetchLookupData(`PURC_FORMPUREQD&filterBy=PR_NUMBER&filterValue=${item.doc_reff_no}&operation=EQUAL`, authToken, branchId)
-                .then(prResponse => {
-                    return prResponse.data || [];
-                })
-                .catch(error => {
-                    console.error(`Failed to load PR details for ${item.doc_reff_no}:`, error);
-                    return []; 
-                });
+            .then(prResponse => {
+              return prResponse.data || [];
+            })
+            .catch(error => {
+              console.error(`Failed to load PR details for ${item.doc_reff_no}:`, error);
+              return []; 
+            });
           });
           console.log('prdetailpromise', prDetailPromises)
 
-          
           Promise.all(prDetailPromises)
           .then(allFetchedPRDetails => {
             const flattenedPRDetails = allFetchedPRDetails.flat();
@@ -496,11 +487,15 @@ const AddPurchaseOrder = ({
 
       lookupVendor(selectedData);
       lookupCurrency(selectedData);
+    } else {
+      UserService.fetchUserData(sessionStorage.getItem('id'), authToken).then(response => {
+        setCreatedBy({id: response.id, userName: response.userName})
+      })
     }
-    
+
     lookupPR();
 
-    lookupCurrency();
+    lookupCurrency(selectedData);
     
     lookupDepartment();
 
@@ -511,7 +506,7 @@ const AddPurchaseOrder = ({
     lookupProject();
       
     lookupProduct();
-      
+    
   }, []);
 
 
@@ -557,16 +552,13 @@ const AddPurchaseOrder = ({
   }     
 
   const defaultItems = {
-    product: '', 
     product_id: '',
     product_note: '', 
     quantity: 1, 
-    currency: 'IDR', 
     unit_price: 0, 
     original_unit_price: 0, 
     total_price: 0, 
     type_of_vat: '',
-    tax_ppn: '', 
     tax_ppn_rate: 0, 
     tax_ppn_amount: 0 , 
     tax_base: 0, 
@@ -575,13 +567,8 @@ const AddPurchaseOrder = ({
     vat_included: false,
     new_unit_price: 0,
     doc_reff_no: '',
-    vendor: '',
-    project: '',
-    customer: '',
-    departement: '',
     project_contract_number: '',
     company:'PT. Abhimata Persada',
-    requestor: userId,
     requestor_id: parseInt(idUser),
     doc_source: '',
     order_id: '',
@@ -809,8 +796,6 @@ const AddPurchaseOrder = ({
       }
       newItems[index].total_price = Math.max((newItems[index].unit_price - newItems[index].discount), 0) * newItems[index].quantity;
     }
-    console.log('taxPPN', newItems[index].tax_ppn_amount);
-    console.log('newitems', newItems);
     setItems(newItems);
   };
 
@@ -825,7 +810,6 @@ const AddPurchaseOrder = ({
     // Reset curency
     if(newItems.length === 0){
       console.log('lengt',selectedItems.length)
-      setIsCurrencyIsSet(false);
       setFetchedPRDetail([]);
       return;
     }
@@ -852,18 +836,12 @@ const AddPurchaseOrder = ({
     const newItems = items.slice(0, items.length - 1); // Create a new array excluding the last item
     setItems(newItems);
     setSelectedItems([]);
-    if (newItems.length === 0) {
-        setIsCurrencyIsSet(false);
-    }
   };
 
   const handleDeleteSelected = () => {
     const newItems = items.filter((_, index) => !selectedItems.includes(index));
     setItems(newItems);
     setSelectedItems([]);
-    if(newItems.length === 0){
-      setIsCurrencyIsSet(false);
-    }
   };
 
   const calculateTotalAmount = (currency = 'IDR') => {
@@ -885,9 +863,6 @@ const AddPurchaseOrder = ({
       const taxPPNAmount = isNaN(item.tax_ppn_amount) ? 0 : parseFloat(item.tax_ppn_amount);
       return total + taxPPNAmount;
     }, 0);
-
-    const hasRoyalty = items.some(item => item.type_of_vat === 'PPNRoyalty');
-
     
     const totalAmount  = Math.round(subTotal + totalPPNAmount);
     const validTotalAmount = isNaN(totalAmount) ? 0 : parseFloat(totalAmount);
@@ -911,9 +886,8 @@ const AddPurchaseOrder = ({
   const resetForm = () => {
     setPoNumber('');
     setDocRef('');
-    setDocRefNumber('');
     setOrderDate(order_date);
-    setCreatedBy(createdBy);
+    setCreatedBy(createdBy.userName);
     setDescription('');
     setShipTo('PT. Abhimata Persada');
     setShipToAddress('Menara Batavia, 5th Floor, DKI Jakarta, 10220, ID');
@@ -961,7 +935,15 @@ const AddPurchaseOrder = ({
     'vat_included',
     'subTotal',
     'request_id',
-    'company_id'
+    'company_id',
+    'currency',
+    'requestor',
+    'tax_ppn',
+    'departement',
+    'project',
+    'customer',
+    'vendor',
+    'product'
   ];
 
   const storedToDelete = [
@@ -981,7 +963,15 @@ const AddPurchaseOrder = ({
     'vat_included',
     'new_unit_price',
     'requestor',
-    'requestor_id'
+    'requestor_id',
+    'product',
+    'po_number',
+    'currency',
+    'customer',
+    'company',
+    'departement',
+    'project',
+    'vendor'
   ];
 
   const handleItemsInsert = async (po_number, duplicateFlag) => {
@@ -1024,12 +1014,8 @@ const AddPurchaseOrder = ({
       doc_reff: docRef,
       status_po: statuspo,
       order_date: moment().format('YYYY-MM-DD'),
-      request_date,
-      created_by: createdBy,
       description,
       total_amount: calculateTotalAmount().totalAmount,
-      approved_by: approveBy,
-      form_to: to,
       to_address: toAddress,
       ship_to: shipTo,
       ship_to_address: shipToAddress,
@@ -1040,11 +1026,10 @@ const AddPurchaseOrder = ({
       term_conditions: termConditions,
       endtoendid: endToEndId,
       total_discount: calculateTotalAmount().totalDiscount,
-      vendor,
-      currency,
       form_to_id,
       vendor_id,
-      currency_id
+      currency_id,
+      create_by_id: createdBy.id || parseInt(idUser)
     };
   };
 
@@ -1368,10 +1353,9 @@ const AddPurchaseOrder = ({
                     const usedDataEntry = checkIsUsedData.find(entry => entry.ID === del);
                     console.log('usedDataEn', usedDataEntry)
                     if (usedDataEntry) {
-                        // If the status_detail is "USED", use the po_number from the used data
-                        if (usedDataEntry.status_detail === "USED") {
-                            ponumb = usedDataEntry.po_number; // Set ponumb from checkIsUsedData
-                        }
+                      if (usedDataEntry.status_detail === "USED") {
+                          ponumb = usedDataEntry.order_id; 
+                      }
                     }
                     
                     for (const item of fetchedPRDetail) { 
@@ -1380,15 +1364,15 @@ const AddPurchaseOrder = ({
                       };
                       if (storedItem.ID === item.ID) {
                         statusDetail = "USED";
-                        ponumb = po_number;
-                        break; // Exit the loop early if we find a match
+                        ponumb = IDforOrderID;
+                        break;
                       }
                     }
               
                     const updatedStoredItem = {
                       ...stored,
                       status_detail: statusDetail,
-                      po_number: ponumb,
+                      order_id: ponumb,
                     };
                     console.log('updatedstatus', updatedStoredItem.status_detail);
               
@@ -1408,18 +1392,18 @@ const AddPurchaseOrder = ({
                 }
               }
 
-              // Update Status PR Detail 
-              const getPRList = await LookupService.fetchLookupData(`PURC_FORMPUREQ&filterBy=pr_number&filterValue=${item.doc_reff_no}&operation=EQUAL`, authToken, branchId);
-              const prID = getPRList.data[0].ID;
-              console.log('PRid', prID);
+              if(docRef === 'purchaseRequest') {
+                // Update Status PR Detail 
+                const getPRList = await LookupService.fetchLookupData(`PURC_FORMPUREQ&filterBy=pr_number&filterValue=${item.doc_reff_no}&operation=EQUAL`, authToken, branchId);
+                const prID = getPRList.data[0].ID;
 
-              const checkNullStatus = await LookupService.fetchLookupData(`PURC_FORMPUREQD&filterBy=pr_number&filterValue=${item.pr_number}&operation=EQUAL`, authToken, branchId);
-              const nullStatusExists = checkNullStatus.data.some(entry => entry.status_detail === null);
+                const checkNullStatus = await LookupService.fetchLookupData(`PURC_FORMPUREQD&filterBy=pr_number&filterValue=${item.pr_number}&operation=EQUAL`, authToken, branchId);
+                const nullStatusExists = checkNullStatus.data.some(entry => entry.status_detail === null);
 
-              // Update Status
-              const updatePrStatusData = {
-                status_request: nullStatusExists ? "PARTIAL_REQUESTED" : "REQUESTED",
-              }
+                // Update Status
+                const updatePrStatusData = {
+                  status_request: nullStatusExists ? "PARTIAL_REQUESTED" : "REQUESTED",
+                }
 
                 const updatePRStatus = await axios.post(`${FORM_SERVICE_UPDATE_DATA}?f=PUREQ&column=id&value=${prID}&branchId=${branchId}`, updatePrStatusData, {
                   headers: {
@@ -1427,6 +1411,7 @@ const AddPurchaseOrder = ({
                   }
                 });
                 await updatePRStatus;
+              }
             }
           }
 
@@ -1506,7 +1491,7 @@ const AddPurchaseOrder = ({
                     if (usedDataEntry) {
                         // If the status_detail is "USED", use the po_number from the used data
                         if (usedDataEntry.status_detail === "USED") {
-                            ponumb = usedDataEntry.po_number; // Set ponumb from checkIsUsedData
+                            ponumb = usedDataEntry.order_id; // Set ponumb from checkIsUsedData
                         }
                     }
 
@@ -1516,7 +1501,7 @@ const AddPurchaseOrder = ({
                       };
                       if (storedItem.ID === item.ID) {
                         statusDetail = "USED";
-                        ponumb = po_number;
+                        ponumb = IDforOrderID;
                         break; 
                       }
                     }
@@ -1526,7 +1511,7 @@ const AddPurchaseOrder = ({
                     const updatedStoredItem = {
                       ...stored,
                       status_detail: statusDetail,
-                      po_number: ponumb,
+                      order_id: ponumb,
                     };
                     console.log('updatedstatus', updatedStoredItem.status_detail);
               
@@ -1584,7 +1569,7 @@ const AddPurchaseOrder = ({
               })
               .catch(error => {
                 console.error('Failed to update data:', error);
-              });
+              }); 
 
           })
           .catch(error => {
@@ -1609,9 +1594,15 @@ const AddPurchaseOrder = ({
 
   // Get File Document
   const getFileDocument = async (endtoendid) => {
+    let requestCode;
+    if(docRef === 'purchaseRequest'){
+      requestCode = 'PUREQD';
+    }else{
+      requestCode = 'PUORD';
+    }
     const request = {
       idTrx: endtoendid,
-      code: 'PUREQD',
+      code: requestCode,
     };
     
     const formData = new FormData();
@@ -1786,6 +1777,8 @@ const AddPurchaseOrder = ({
                           value={docRef}
                           onChange={(e) => {
                             setDocRef(e.target.value);
+                            setItems([])
+                            setFetchedPRDetail([])
                           }}
                         >
                           <option value="">Select Document Reference</option>
@@ -1804,8 +1797,8 @@ const AddPurchaseOrder = ({
                         <Form.Control
                           type="text"
                           placeholder='Insert Created By'
-                          value={createdBy}
-                          onChange={(e) => setCreatedBy(e.target.value)}
+                          value={createdBy.userName}
+                          onChange={(e) => setCreatedBy(e.target.id)}
                           disabled
                         />
                       </Form.Group>
@@ -2059,7 +2052,7 @@ const AddPurchaseOrder = ({
                                     <td>
                                       {docRef === 'purchaseRequest' ? 
                                         <Select 
-                                          value={PROptions.find(option => option.value === item.doc_reff_no)}
+                                          value={allPROptions.find(option => option.value === item.doc_reff_no)}
                                           options={optionsWithDisabled}
                                           onChange={(selectedOption) => {
                                             handleItemChange(index, 'doc_reff_no', selectedOption ? selectedOption.value : null);
@@ -2139,13 +2132,12 @@ const AddPurchaseOrder = ({
                                     <td>
                                       <Select
                                           value={
-                                            items[index].product ? 
-                                              productOptions.find(option => option.value === items[index].product) 
+                                            items[index].product_id ? 
+                                              productOptions.find(option => option.id === items[index].product_id) 
                                             : 
                                               null
                                           }
                                           onChange={(selectedOption) => {
-                                            handleItemChange(index, 'product', selectedOption ? selectedOption.value : null);
                                             handleItemChange(index, 'product_id', selectedOption ? selectedOption.id : null);
                                           }}
                                           options={productOptions}
@@ -2162,6 +2154,7 @@ const AddPurchaseOrder = ({
                                     
                                     <td>
                                       <Form.Control
+                                        id='panjangdinamis'
                                         type="text"
                                         value={item.product_note}
                                         onChange={(e) => handleItemChange(index, 'product_note', e.target.value)}
@@ -2189,6 +2182,7 @@ const AddPurchaseOrder = ({
                                     <td>
                                       {currency === 'IDR' ?
                                         <Form.Control
+                                          id='panjangdinamis'
                                           className='text-right'
                                           type="text"
                                           value={item.unit_price !== undefined && item.unit_price !== null ? item.unit_price.toLocaleString('en-US') : 0}
@@ -2200,6 +2194,7 @@ const AddPurchaseOrder = ({
                                         />
                                       : 
                                         <Form.Control
+                                          id='panjangdinamis'
                                           className="text-right"
                                           type="text"
                                           value={
@@ -2224,6 +2219,7 @@ const AddPurchaseOrder = ({
                                     <td>
                                       {currency === 'IDR' ? 
                                         <FormControl
+                                          id='panjangdinamis'
                                           className='text-right'  
                                           type="text"
                                           value={item.discount !== undefined && item.discount !== null ? item.discount.toLocaleString('en-US') : 0}
@@ -2236,6 +2232,7 @@ const AddPurchaseOrder = ({
                                       
                                       :
                                         <Form.Control
+                                          id='panjangdinamis'
                                           className="text-right"
                                           type="text"
                                           value={
@@ -2265,6 +2262,7 @@ const AddPurchaseOrder = ({
                                   
                                     <td>
                                       <Form.Select
+                                        id='panjangdinamis'
                                         value={
                                           items[index].type_of_vat || ''
                                         }
@@ -2290,12 +2288,12 @@ const AddPurchaseOrder = ({
                                       <Select
                                         value={
                                           items[index].type_of_vat === 'PPNRoyalty' ?
-                                            PPNRoyaltyOptions.find(option => option.value === item.tax_ppn) || null
+                                            PPNRoyaltyOptions.find(option => option.id === item.tax_ppn_id) || null
                                           :
                                             items[index].type_of_vat === 'include' ? 
-                                              taxTypeIncludeOptions.find(option => option.value === item.tax_ppn) || null
+                                              taxTypeIncludeOptions.find(option => option.id === item.tax_ppn_id) || null
                                               :
-                                              taxTypeExcludeOptions.find(option => option.value === item.tax_ppn) || null
+                                              taxTypeExcludeOptions.find(option => option.id === item.tax_ppn_id) || null
                                         }
                                         options={items[index].type_of_vat === 'PPNRoyalty' ? PPNRoyaltyOptions : items[index].type_of_vat === 'include' ? taxTypeIncludeOptions : taxTypeExcludeOptions}
                                         placeholder="Select Tax Type"
@@ -2306,7 +2304,6 @@ const AddPurchaseOrder = ({
                                           } else {
                                             handleItemChange(index, 'tax_ppn_rate', 0);
                                           }
-                                          handleItemChange(index, 'tax_ppn', selectedOption  ? selectedOption.value : ''  );
                                           handleItemChange(index, 'tax_ppn_id', selectedOption ? selectedOption.id : ''  );
                                         }}
                                         isDisabled={items[index].type_of_vat === 'nonPPN' || items[index].type_of_vat === ''}
@@ -2364,11 +2361,13 @@ const AddPurchaseOrder = ({
 
                                     <td>
                                       <Form.Control
-                                        id='requestor'
+                                        id='panjangdinamis'
                                         placeholder='Requestor...'
-                                        value={item.requestor}
+                                        value={
+                                          createdBy.userName
+                                        }
                                         onChange={(e) => {
-                                          handleItemChange(index, 'requestor', e.target.value)
+                                          handleItemChange(index, 'requestor_id', e.target.id)
                                         }}
                                         style={detailFormStyle()}
                                         readOnly
@@ -2379,21 +2378,18 @@ const AddPurchaseOrder = ({
                                       <Select
                                         id="project"
                                         value={
-                                          items[index].project ?
-                                            projectOptions.find(option => option.value === item.project)
+                                          items[index].project_id ?
+                                            projectOptions.find(option => option.id === item.project_id)
                                           :
                                             null
                                         }
                                         options={projectOptions}
                                         onChange={(selectedOption) => {
-                                          handleItemChange(index, 'project', selectedOption ? selectedOption.value : null);
                                           handleItemChange(index, 'project_id', selectedOption ? selectedOption.id : null);
                                           if(selectedOption){
                                             handleItemChange(index, 'project_contract_number', selectedOption.project_contract_number);
-                                            handleItemChange(index, 'customer', selectedOption.customer);
                                             handleItemChange(index, 'customer_id', selectedOption.id);
                                           }else{
-                                            handleItemChange(index, "customer", ""); 
                                             handleItemChange(index, "project_contract_number", "");
                                             handleItemChange(index, "customer_id", ""); 
                                           }
@@ -2443,13 +2439,12 @@ const AddPurchaseOrder = ({
                                       <Select
                                         id='customer'
                                         value={
-                                          items[index].customer ?
-                                            customerOptions.find(option => option.value === item.customer)
+                                          items[index].customer_id ?
+                                            customerOptions.find(option => option.id === item.customer_id)
                                           : 
                                             null
                                         }
                                         onChange={(selectedOption) => {
-                                          handleItemChange(index, 'customer', selectedOption ? selectedOption.value : null)
                                           handleItemChange(index, 'customer_id', selectedOption ? selectedOption.id : null)
                                         }}
                                         options={customerOptions}
@@ -2469,13 +2464,12 @@ const AddPurchaseOrder = ({
                                       <Select
                                         id='department'
                                         value={
-                                          items[index].departement ?
-                                            departementOptions.find(option => option.value === items[index].departement)
+                                          items[index].department_id ?
+                                            departementOptions.find(option => option.id === items[index].department_id)
                                           :
                                             null
                                         }
                                         onChange={(selectedOption)  => {
-                                          handleItemChange(index, 'departement', selectedOption ? selectedOption.value : null)
                                           handleItemChange(index, 'department_id', selectedOption ? selectedOption.id : null)
                                         }}
                                         options={departementOptions}
