@@ -433,7 +433,8 @@ const PurchaseRequestTable = ({
         handleExportReport(
             'PDF', // Format file (bisa diganti ke 'XLSX' jika diperlukan)
             'purchase_requisition_print', // Nama laporan
-            { Parameter1: prNumber}, // Parameter API
+            { Parameter1: prNumber
+            }, // Parameter API
             authToken
         );
     };
