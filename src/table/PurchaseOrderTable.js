@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import FormPagination from "../utils/FormPagination";
 import { NumericFormat } from "react-number-format";
 import { FaAddressBook, FaClone, FaEye, FaFilter, FaSyncAlt } from "react-icons/fa";
-import { FaEdit, FaTrash, FaFileExport } from "react-icons/fa"; // Import icons for Edit, Delete, and Export
+import { FaEdit, FaTrash, FaFileExport } from "react-icons/fa"; 
 import { Button, Modal, Table } from "react-bootstrap";
 import { getBranch, getToken, userLoggin } from "../config/Constant";
 import LookupService from "../service/LookupService";

@@ -82,6 +82,7 @@ const AddPurchaseOrder = ({
   const [selectedCurrency, setSelectedCurrency] = useState(null);
   const [currency, setCurrency] = useState('');
   const [isSubmited, setIsSubmited] = useState(false);
+  const [allPROptions, setAllPROption] = useState([])
 
   const authToken = headers;
 
@@ -314,10 +315,12 @@ const AddPurchaseOrder = ({
       if(selectedData) {
         const selectCurrency = options.find(option => option.id === selectedData[0].CURRENCY_ID || "")
         setSelectedCurrency(selectCurrency || null)
+        setCurrency(selectCurrency.value)
         setCurrencyId(selectCurrency.id);
       } else if(!selectedData){
         const defaultCurrency = options.find(option => option.id === 61)
         setSelectedCurrency(defaultCurrency)
+        setCurrency(defaultCurrency.value)
         setCurrencyId(defaultCurrency.id)
       }
       console.log('isselceted', selectedData)
@@ -345,6 +348,15 @@ const AddPurchaseOrder = ({
       // Pureqd lookup
       // LookupParamService.fetchLookupDataView(`PURC_FORMPUREQD&filterBy=PR_NUMBER&filterValue=${selectedOption.value}&operation=EQUAL&filterBy=CURRENCY_ID&filterValue=${selectCurrency}&operation=EQUAL`, authToken, branchId)
 
+      const allOptionPr = transformedData.map(item => {
+        return{
+          id: item.ID,
+          value: item.PR_NUMBER,
+          label: item.PR_NUMBER
+        }
+      })
+      setAllPROption(allOptionPr)
+
       const options = transformedData.filter(item => item.STATUS_REQUEST === 'PARTIAL_REQUESTED' || item.STATUS_REQUEST === 'IN_PROCESS').map(item => {
         const label = item.PR_NUMBER;
         if (label.startsWith('DRAFT')) {
@@ -364,7 +376,6 @@ const AddPurchaseOrder = ({
           REQUESTOR: item.REQUESTOR,
         };
       }).filter(option => option !== null);
-
 
       const pureqdPromises = options.map(option => {
         return LookupParamService.fetchLookupDataView(
@@ -2041,7 +2052,7 @@ const AddPurchaseOrder = ({
                                     <td>
                                       {docRef === 'purchaseRequest' ? 
                                         <Select 
-                                          value={PROptions.find(option => option.value === item.doc_reff_no)}
+                                          value={allPROptions.find(option => option.value === item.doc_reff_no)}
                                           options={optionsWithDisabled}
                                           onChange={(selectedOption) => {
                                             handleItemChange(index, 'doc_reff_no', selectedOption ? selectedOption.value : null);
