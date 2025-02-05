@@ -1114,7 +1114,7 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
             label: item.NAME,
             RATE: item.RATE,
             tax_account: item.TAX_ACCOUNT,
-            coa_id: item.coa_id,
+            coa_id: item.COA_ID,
           }));
         setTax_Pph_Type_Option(options);
 
@@ -1126,7 +1126,7 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
             label: item.NAME,
             RATE: item.RATE,
             tax_account: item.TAX_ACCOUNT,
-            coa_id: item.coa_id,
+            coa_id: item.COA_ID,
           }));
         setTaxPpnTypeOption(optionsPpn);
 
@@ -1138,7 +1138,7 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
             RATE: item.RATE,
             id: item.ID,
             tax_account: item.TAX_ACCOUNT,
-            coa_id: item.coa_id,
+            coa_id: item.COA_ID,
           }));
         setTaxTypeIncludeOptions(IncludeOptions);
 
@@ -1150,7 +1150,7 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
             RATE: item.RATE,
             id: item.ID,
             tax_account: item.TAX_ACCOUNT,
-            coa_id: item.coa_id,
+            coa_id: item.COA_ID,
           }));
         setTaxTypExcludeeOptions(ExcludeOptions);
 
@@ -1162,7 +1162,7 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
             RATE: item.RATE,
             id: item.ID,
             tax_account: item.TAX_ACCOUNT,
-            coa_id: item.coa_id,
+            coa_id: item.COA_ID,
           }));
         setTaxTypeIncludePphOptions(IncludepphOptions);
 
@@ -1174,7 +1174,7 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
             RATE: item.RATE,
             id: item.ID,
             tax_account: item.TAX_ACCOUNT,
-            coa_id: item.coa_id,
+            coa_id: item.COA_ID,
           }));
         setTaxTypExcludeePphOptions(ExcludepphOptions);
 
@@ -1185,7 +1185,7 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
             label: item.NAME,
             RATE: item.RATE,
             tax_account: item.tax_account,
-            coa_id: item.coa_id,
+            coa_id: item.COA_ID,
           }));
         setTaxPpnRoyaltyOption(optionsPpnRoyalty);
 
@@ -1765,6 +1765,8 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
         currency_id: currency_id,
         tax_account_ppn: "",
         tax_account_pph: "",
+        account_id_pph: 0,
+        account_id_ppn:0
       },
     ]);
   };
@@ -1819,6 +1821,8 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
             tax_account: item.tax_account_ppn,
             base_amount_idr: item.tax_base_idr,
             tax_amount_idr: item.tax_ppn_amount_idr,
+            account_id: item.account_id_ppn,
+            tax_id: item.tax_ppn_id
           });
         }
       }
@@ -1840,6 +1844,8 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
             tax_account: item.tax_account_pph,
             base_amount_idr: item.tax_base_idr,
             tax_amount_idr: item.tax_pph_amount_idr,
+            account_id: item.account_id_pph,
+            tax_id: item.tax_pph_id
           });
         }
       }
@@ -2504,6 +2510,8 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
             delete updatedItem.project;
             delete updatedItem.customer;
             delete updatedItem.departement;
+            delete updatedItem.account_id_pph;
+            delete updatedItem.account_id_ppn;
 
             try {
               const itemResponse = await InsertDataService.postData(updatedItem, "PUINVCD", authToken, branchId);
@@ -2583,6 +2591,8 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
             delete updatedItem.project;
             delete updatedItem.customer;
             delete updatedItem.departement;
+            delete updatedItem.account_id_pph;
+            delete updatedItem.account_id_ppn;
 
             const itemResponse = await InsertDataService.postData(updatedItem, "PUINVCD", authToken, branchId);
             console.log("Item posted successfully:", itemResponse);
@@ -2637,6 +2647,8 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
               invoice_id: idforIVCID.ID,
               base_amount: item.base_amount,
               base_amount_idr: item.base_amount_idr,
+              account_id: item.account_id,
+              tax_id: item.tax_id
             };
             delete taxInv.ID;
             delete taxInv.id;
@@ -2659,6 +2671,8 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
               invoice_id: idforIVCID.ID,
               base_amount: item.base_amount,
               base_amount_idr: item.base_amount_idr,
+              account_id: item.account_id,
+              tax_id: item.tax_id
             };
             delete taxInv.ID;
             delete taxInv.id;
@@ -2835,6 +2849,7 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
               create_by_id: parseInt(create_by_id, 10),
               vendor_id: parseInt(vendor_id, 10), // Ensure this is an integer
               currency_id: parseInt(currency_id, 10), // Ensure this is an integer
+              
             };
             delete updatedItem.ID;
             delete updatedItem.id;
@@ -2895,6 +2910,8 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
             delete updatedItem.project;
             delete updatedItem.customer;
             delete updatedItem.departement;
+            delete updatedItem.account_id_pph;
+            delete updatedItem.account_id_ppn;
             try {
               const itemResponse = await InsertDataService.postData(updatedItem, "PUINVCD", authToken, branchId);
               console.log("Item inserted successfully:", itemResponse);
@@ -2921,6 +2938,7 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
               tax_pph_amount: item.tax_pph_amount,
               tax_exchange_rate: item.tax_exchange_rate,
               total_after_discount: item.subtotalAfterDiscount,
+              invoice_id: idforIVCID.ID,
             };
             delete updatedItem.ID;
             delete updatedItem.id;
@@ -2978,6 +2996,8 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
             delete updatedItem.project;
             delete updatedItem.customer;
             delete updatedItem.departement;
+            delete updatedItem.account_id_pph;
+            delete updatedItem.account_id_ppn;
 
             const itemResponse = await InsertDataService.postData(updatedItem, "PUINVCD", authToken, branchId);
             console.log("Item posted successfully:", itemResponse);
@@ -3283,7 +3303,7 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
             }
 
             // Insert updated INVCTAX records
-            for (const item of items) {
+            for (const item of taxSummaryItems) {
               const taxInv = {
                 tax_account: item.tax_account,
                 tax_code: item.tax_code,
@@ -3292,6 +3312,8 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
                 invoice_id: idforIVCID.ID,
                 base_amount: item.base_amount,
                 base_amount_idr: item.base_amount_idr,
+                account_id: item.account_id,
+              tax_id: item.tax_id
               };
               delete taxInv.ID;
               delete taxInv.id;
@@ -3316,6 +3338,8 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
                 invoice_id: idforIVCID.ID,
                 base_amount: item.base_amount,
                 base_amount_idr: item.base_amount_idr,
+                account_id: item.account_id,
+                tax_id: item.tax_id
               };
               delete taxInv.ID;
               delete taxInv.id;
@@ -3978,6 +4002,7 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
                                         handleItemChange(index, "tax_ppn", selectedOption ? selectedOption.value : "");
                                         handleItemChange(index, "tax_ppn_id", selectedOption ? selectedOption.id : "");
                                         handleItemChange(index, "tax_account_ppn", selectedOption ? selectedOption.tax_account : "");
+                                        handleItemChange(index, "account_id_ppn", selectedOption ? selectedOption.coa_id : "");
 
                                         // Update the PpnRate for the specific item
                                         if (selectedOption) {
@@ -4047,6 +4072,7 @@ const AddPurchaseInvoice = ({ setIsAddingNewPurchaseInvoice, setIsEditingPurchas
                                         handleItemChange(index, "tax_pph", selectedOption ? selectedOption.value : "");
                                         handleItemChange(index, "tax_pph_id", selectedOption ? selectedOption.id : "");
                                         handleItemChange(index, "tax_account_pph", selectedOption ? selectedOption.tax_account : "");
+                                        handleItemChange(index, "account_id_pph", selectedOption ? selectedOption.coa_id : "");
 
                                         // Update the PphRate for the specific item
                                         if (selectedOption) {
