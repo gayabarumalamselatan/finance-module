@@ -1,0 +1,9 @@
+.input-group-text {
+    background-color: #fff; /* Match input background */
+    border: 1px solid #ced4da; /* Match input border */
+    cursor: pointer;
+  }
+  
+  .react-datepicker-wrapper {
+    width: 100%; /* Ensures the DatePicker spans full width */
+  }

@@ -9,7 +9,8 @@ const AddCoaModal = ({ show, handleClose, handleSave }) => {
     const [name, setName] = useState('');
     const [type, setType] = useState('');
     const [description, setDescription] = useState('');
-    const [currency, setCurrency] = useState(null);
+    // const [currency, setCurrency] = useState(null);
+    const [normalBalancePosition, setNormalBalancePosition] = useState(0);
     const [currencyOptions, setCurrencyOptions] = useState([]);
     const [parentCode, setParentCode] = useState(null);
     const [parentCodeOptions, setParentCodeOptions] = useState([]);
@@ -24,7 +25,8 @@ const AddCoaModal = ({ show, handleClose, handleSave }) => {
         setName('');
         setType('');
         setDescription('');
-        setCurrency(null);
+        // setCurrency(null);
+        setNormalBalancePosition(0);
         setParentCode(null);
         setIsParent('Y');
     };
@@ -35,7 +37,7 @@ const AddCoaModal = ({ show, handleClose, handleSave }) => {
             NAME: name,
             TYPE: type,
             DESCRIPTION: description,
-            CURRENCY: currency?.value,
+            NORMAL_BALANCE_POSITION: normalBalancePosition,
             PARENT_CODE_ID: parentCode?.value,
             IS_PARENT: isParent,
         };
@@ -152,14 +154,13 @@ const AddCoaModal = ({ show, handleClose, handleSave }) => {
                     </Row>
                     <Row className="mt-3">
                         <Col md={6}>
-                            <Form.Group controlId="currency">
-                                <Form.Label>Currency</Form.Label>
-                                <Select
-                                    value={currency}
-                                    onChange={setCurrency}
-                                    options={currencyOptions}
-                                    placeholder="Select currency"
-                                    isClearable
+                            <Form.Group controlId="nominalBalancePosition">
+                                <Form.Label>Normal Balance Position</Form.Label>
+                                <Form.Control
+                                    type="text"
+                                    value={normalBalancePosition}
+                                    onChange={(e) => setNormalBalancePosition(e.target.value)}
+                                    placeholder="Enter normal balance position"
                                 />
                             </Form.Group>
                         </Col>

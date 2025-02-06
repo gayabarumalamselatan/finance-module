@@ -1,6 +1,5 @@
-
 import React, { Fragment, useEffect, useState } from "react";
-import { getBranch, getToken } from "../config/Constant";
+import { getBranch, getToken, userLoggin } from "../config/Constant";
 import LookupParamService from "../service/LookupParamService";
 import axios from "axios";
 import { FORM_SERVICE_INSERT_DATA, FORM_SERVICE_LOAD_FIELD, FORM_SERVICE_REPORT_DATA_EXCEL, MM_SERVICE_LIST_FILE_TRADE, MM_SERVICE_LIST_JOURNAL } from "../config/ConfigUrl";
@@ -13,6 +12,7 @@ import EditPurchaseRequest from "../formComponents/EditPurchaseRequest";
 const PurchaseRequest = () => {
     const headers = getToken();
     const branchId = getBranch();
+    const userId = userLoggin();
     const [formCode, setFormCode] = useState([]);
     const [formData, setFormData] = useState([]);
     const [isLoading, setIsLoading] = useState(false);
@@ -28,11 +28,22 @@ const PurchaseRequest = () => {
     const [filterColumn, setfilterColumn] = useState('');
     const [filterValue, setFilterValue] = useState('');
     const [filterOperation, setFilterOperation] = useState('');
+    const [filters, setFilters] = useState([]);
 
     const [isAddingNewPurchaseRequest, setIsAddingNewPurchaseRequest] = useState(false);
+    const [isAddingNewDuplicatePurchaseRequest, setIsAddingNewDuplicatePurchaseRequest] = useState(false);
     const [isViewingPurchaseRequest, setIsViewingPurchaseRequest] = useState(false);
     const [isEditingPurchaseRequest, setIsEditingPurchaseRequest] = useState(false);
     const [selectedData, setSelectedData] = useState([]);
+    const [duplicateFlag, setDuplicateFlag] = useState(false);
+
+
+    const permissionsString = sessionStorage.getItem('permisions');
+
+    // Parse the JSON string into a JavaScript object
+    const permissions = JSON.parse(permissionsString);
+
+    
 
     const handleAddNewPurchaseRequest = (value) => {
         setIsAddingNewPurchaseRequest(value);
@@ -42,12 +53,21 @@ const PurchaseRequest = () => {
         setIsEditingPurchaseRequest(value);
     };
 
+    const handleDuplicatePurchaseRequest = (value) => {
+        console.log('duplicate', value);
+        setIsAddingNewDuplicatePurchaseRequest(value);
+    };
+
     const handleViewPurchaseRequest = (value) => {
         setIsViewingPurchaseRequest(value);
     };
 
     const handleSelectData = (value) => {
         setSelectedData(value);
+    };
+
+    const handleDuplicateFlag = (value) => {
+        setDuplicateFlag(value);
     };
 
     const authToken = headers;
@@ -83,30 +103,56 @@ const PurchaseRequest = () => {
     useEffect(() => {
         if (formCode.length > 0) {
             let formMmtData = [];
-
-            let filterColumnParam = filterColumn;
-            let filterOperationParam = filterOperation;
-            let filterValueParam = filterValue;
-
+    
+            // Menggabungkan filter dari URL, permissions, dan input pengguna
+            let dynamicFilters = [...filters]; // Menggunakan filters yang sudah ada
+    
             // Check if URL parameter `status` is set
             const statusParam = new URLSearchParams(window.location.search).get('status');
             if (statusParam) {
-                filterColumnParam = 'STATUS';
-                filterOperationParam = 'EQUAL';
-                filterValueParam = statusParam;
+                // Mengecek apakah filter STATUS sudah ada
+                const isStatusFilterExists = dynamicFilters.some(
+                    (filter) => filter.column === "STATUS" && filter.value === statusParam
+                );
+                if (!isStatusFilterExists) {
+                    dynamicFilters.push({
+                        column: "STATUS",
+                        operation: "EQUAL",
+                        value: statusParam,
+                    });
+                }
             }
-
+    
+            console.log("permissions", permissions.Purchase?.["List Purchase Request"].verify);
+            const checker = permissions.Purchase?.["List Purchase Request"].verify;
+    
+            if (!checker && userId) {
+                // Mengecek apakah filter requestor sudah ada
+                const isRequestorFilterExists = dynamicFilters.some(
+                    (filter) => filter.column === "requestor" && filter.value === userId
+                );
+                if (!isRequestorFilterExists) {
+                    dynamicFilters.push({
+                        column: "requestor",
+                        operation: "EQUAL",
+                        value: userId,
+                    });
+                }
+            }
+    
+            // Fetch data using multiple filters
             const fetchFormMmtData = FormService.fetchData(
                 "",
-                filterColumnParam,
-                filterOperationParam,
-                filterValueParam,
+                "", // filterColumn (not used for multiple filters)
+                "", // filterOperation
+                "", // filterValue
                 currentPage,
                 pageSize,
                 `PURC_FORM${formCode[0]}`,
                 branchId,
                 authToken,
-                true
+                true,
+                dynamicFilters // Pass the filters array
             )
                 .then((response) => {
                     console.log("Form Purchase Request lookup data:", response);
@@ -116,14 +162,15 @@ const PurchaseRequest = () => {
                 .catch((error) => {
                     console.error("Failed to fetch form Purchase Request lookup:", error);
                 });
-
+    
             fetchFormMmtData.then(() => {
                 console.log('MMT DATA', formMmtData);
                 setDataTable(formMmtData);
                 setIsLoadingTable(false);
             });
         }
-    }, [formCode, pageSize, currentPage, refreshTable, isFilterSet]);
+    }, [formCode, pageSize, currentPage, refreshTable, isFilterSet, filters]);  // Add filters to dependency array
+    
 
     const handlePageSizeChange = (event) => {
         setPageSize(parseInt(event.target.value, 10));
@@ -140,27 +187,50 @@ const PurchaseRequest = () => {
         setFormData([]);
     };
 
-    const handleFilterSearch = ({ filterColumn, filterOperation, filterValue }) => {
-        console.log('filter Purchase Request list:', filterColumn, filterOperation, filterValue);
-        setFilterOperation(filterOperation);
-        setfilterColumn(filterColumn);
-        setFilterValue(filterValue);
-        setIsFilterSet(!isFilterSet);
-        setIsLoadingTable(true);
+    // Handle pencarian filter
+const handleFilterSearch = ({ filters }) => {
+    console.log('filter Purchase Request list:', filters);
+
+    // Periksa filter yang sudah ada sebelum menambahkannya
+    let updatedFilters = [...filters]; // Salin filter yang ada
+
+    // Cek apakah filter baru sudah ada di filters
+    if (filterColumn && filterOperation && filterValue) {
+        const isFilterExists = updatedFilters.some(
+            (filter) =>
+                filter.column === filterColumn &&
+                filter.operation === filterOperation &&
+                filter.value === filterValue
+        );
+
+        // Jika filter belum ada, tambahkan filter baru
+        if (!isFilterExists) {
+            updatedFilters.push({
+                column: filterColumn,
+                operation: filterOperation,
+                value: filterValue,
+            });
+        }
     }
 
-    const handleResetFilters = () => {
-        setfilterColumn('');
-        setFilterValue('');
-        setFilterOperation('');
-        setIsFilterSet(!isFilterSet);
-        setIsLoadingTable(true);
-    };
+    // Set filters yang baru untuk pencarian
+    setFilters(updatedFilters); // Update state filters
+    setIsFilterSet(!isFilterSet);
+    setIsLoadingTable(true);
+};
 
+// Reset filters
+const handleResetFilters = () => {
+    setFilters([]); // Reset ke array kosong jika reset
+    setIsFilterSet(!isFilterSet);
+    setIsLoadingTable(true);
+};
+    
 
 
     return (
         <Fragment>
+            {!isEditingPurchaseRequest && (
             <section className="content-header">
                 <div className="container-fluid">
                     <div className="row mb-2">
@@ -180,6 +250,7 @@ const PurchaseRequest = () => {
                     </div>
                 </div>
             </section>
+             )}
             <section className="content">
                 {isAddingNewPurchaseRequest ? (
                     <div>
@@ -189,11 +260,18 @@ const PurchaseRequest = () => {
                         />
                     </div>
                 ) : isEditingPurchaseRequest ? (
-                    <EditPurchaseRequest
+                    <AddPurchaseRequest
                         setIsEditingPurchaseRequest={setIsEditingPurchaseRequest}
                         handleRefresh={handleRefresh}
                         selectedData={selectedData}
-
+                        duplicateFlag={duplicateFlag}
+                    />
+                ) : isAddingNewDuplicatePurchaseRequest ? (
+                    <AddPurchaseRequest
+                        setIsAddingNewDuplicatePurchaseRequest={setIsAddingNewDuplicatePurchaseRequest}
+                        handleRefresh={handleRefresh}
+                        selectedData={selectedData}
+                        duplicateFlag={duplicateFlag}
                     />
                 ) : (
                     <PurchaseRequestTable
@@ -212,7 +290,10 @@ const PurchaseRequest = () => {
                         authToken={authToken}
                         addingNewPurchaseRequest={handleAddNewPurchaseRequest}
                         EditPurchaseRequest={handleEditPurchaseRequest}
+                        duplicatePurchaseRequest={handleDuplicatePurchaseRequest}
+                        duplicateFlag={handleDuplicateFlag}
                         selectedData={handleSelectData}
+                        checker={permissions.Purchase?.["List Purchase Request"].verify}
                     />
                 )}
 

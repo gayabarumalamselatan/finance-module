@@ -6,6 +6,7 @@ import LookupParamService from "../service/LookupParamService";
 import { getBranch, getToken } from "../config/Constant";
 import { DisplayFormat } from "../utils/DisplayFormat";
 import { Table } from "react-bootstrap";
+import LookupService from "../service/LookupService";
 
 const ListPurchaseInvoice = ({ selectedRow, onClose }) => {
   const branchId = getBranch();
@@ -45,7 +46,7 @@ const ListPurchaseInvoice = ({ selectedRow, onClose }) => {
     let url = `PURC_FORMPUINVC&filterBy=INVOICE_NUMBER&filterValue=${selectedRow.INVOICE_NUMBER}&operation=EQUAL`;
     console.log("Fetching data from URL:", url);
 
-    LookupParamService.fetchLookupData(url, authToken, branchId)
+    LookupService.fetchLookupData(url, authToken, branchId)
       .then((data) => {
         if (!data || !data.data) {
           console.error("Unexpected data format:", data);
@@ -70,7 +71,7 @@ const ListPurchaseInvoice = ({ selectedRow, onClose }) => {
     let urlD = `PURC_FORMPUINVCD&filterBy=INVOICE_NUMBER&filterValue=${selectedRow.INVOICE_NUMBER}&operation=EQUAL`;
     console.log("Fetching data from URL for details:", urlD);
 
-    LookupParamService.fetchLookupData(urlD, authToken, branchId)
+    LookupService.fetchLookupData(urlD, authToken, branchId)
       .then((data) => {
         if (!data || !data.data) {
           console.error("Unexpected data format for details:", data);
@@ -240,16 +241,16 @@ const ListPurchaseInvoice = ({ selectedRow, onClose }) => {
               <CgAlignBottom /> Journal
             </button>
           </li>
-          <li className="nav-item">
+          {/* <li className="nav-item">
             <button className={`nav-link ${activeTab === "pair" ? "active" : ""}`} onClick={() => handleTabChange("pair")}>
-              <CgAlignBottom /> Voucher Payment Bank
+              <CgAlignBottom /> Inquiry Purchase Invoice
             </button>
           </li>
           <li className="nav-item">
             <button className={`nav-link ${activeTab === "pos" ? "active" : ""}`} onClick={() => handleTabChange("pos")}>
               <CgAlignBottom /> Voucher Payment Petty Cash
             </button>
-          </li>
+          </li> */}
         </ul>
         {activeTab === "schedule" && (
           <div className="card">
@@ -329,6 +330,10 @@ const ListPurchaseInvoice = ({ selectedRow, onClose }) => {
                     <div className="row mb-3">
                       <div className="col-md-4 font-weight-bold">Description:</div>
                       <div className="col-md-8">{selectedRowData[0].DESCRIPTION}</div>
+                    </div>
+                    <div className="row mb-3">
+                      <div className="col-md-4 font-weight-bold">Bi Middle Rate:</div>
+                      <div className="col-md-8">{selectedRowData[0].BI_MIDDLE_RATE}</div>
                     </div>
                   </div>
                   {/* Add more fields as needed */}
@@ -413,7 +418,7 @@ const ListPurchaseInvoice = ({ selectedRow, onClose }) => {
                             ))
                         ) : (
                           <tr>
-                            <td colSpan="15" className="text-center">
+                            <td colSpan="27" className="text-center">
                               No data selected.
                             </td>
                           </tr>
@@ -535,7 +540,7 @@ const ListPurchaseInvoice = ({ selectedRow, onClose }) => {
                             ))
                         ) : (
                           <tr>
-                            <td colSpan="15" className="text-center">
+                            <td colSpan="27" className="text-center">
                               No data selected.
                             </td>
                           </tr>
@@ -672,8 +677,8 @@ const ListPurchaseInvoice = ({ selectedRow, onClose }) => {
                         </tr>
                       </thead>
                       <tbody>
-                        {selectedRowDataItem.length > 0 ? (
-                          selectedRowDataItem
+                        {bondPairDataItem.length > 0 ? (
+                          bondPairDataItem
                             .sort((a, b) => a.ID - b.ID) // Sort by ID in ascending order
                             .map((detail) => (
                               <tr key={detail.ID}>

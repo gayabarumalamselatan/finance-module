@@ -519,14 +519,15 @@ const PurchaseExpanseTable = ({
               <div className="col-md-4 mb-3">
                 <select className="form-control" value={filterColumn} onChange={(e) => setFilterColumn(e.target.value)}>
                   <option value="">Select a column</option>
-                  <option value="INV_NUMBER">INV Number</option>
-                  <option value="TITLE">Title</option>
-                  <option value="DOC_REFERENCE">Doc Reference</option>
-                  <option value="INVOICE_TYPE">Invoice type</option>
-                  <option value="INVOICE_DATE">Invoice Date</option>
-                  <option value="INVOICE_STATUS">Invoice Status</option>
-                  <option value="Vendor">Vendor</option>
-                  <option value="PROJECT">Project</option>
+                  <option value="VOUCHER_NUMBER">Voucher Number</option>
+                  <option value="VOUCHER_DATE">Voucher Date</option>
+                  <option value="PAYMENT_SOURCE">Payment Source</option>
+                  <option value="VOUCHER_STATUS">Voucher Status</option>
+                  <option value="PAID_TO">Paid To</option>
+                  {/* <option value="INVOICE_DATE">Invoice Date</option> */}
+                  <option value="CURRENCY">Currency</option>
+                  {/* <option value="VENDOR">Vendor</option> */}
+                  {/* <option value="PROJECT">Project</option>
                   <option value="TOTAL_AMOUNT">Total Amount</option>
                   <option value="DESCRIPTION">Description</option>
                   <option value="PAYMENT_TERM">Payment Term</option>
@@ -538,7 +539,7 @@ const PurchaseExpanseTable = ({
                   <option value="TOTAL_TAX_BASE">Total Tax Base</option>
                   <option value="TOTAL_AMOUNT_PPN">Total Amount Ppn</option>
                   <option value="TOTAL_AMOUNT_PPH">Total Amount Pph</option>
-                  <option value="DOC_SOURCE">Doc Source</option>
+                  <option value="DOC_SOURCE">Doc Source</option> */}
                 </select>
               </div>
               <div className="col-md-4 mb-3">
@@ -676,7 +677,7 @@ const PurchaseExpanseTable = ({
                     <div className="col-md-8">{selectedRowData.PAYMENT_SOURCE}</div>
                   </div>
                   <div className="row mb-3">
-                    <div className="col-md-4 font-weight-bold">Bank:</div>
+                    <div className="col-md-4 font-weight-bold">Bank/Cash:</div>
                     <div className="col-md-8">{selectedRowData.BANK_NAME}</div>
                   </div>
                   <div className="row mb-3">
@@ -810,9 +811,6 @@ const PurchaseExpanseTable = ({
                               <th>Amount PPh</th> 
                               <th>Tax Base</th>
                               <th>Amount to be Paid</th>
-                         
-                         
-
                         {/* <th>Invoice Number</th>
                         <th>Product</th>
                         <th>Currency</th>

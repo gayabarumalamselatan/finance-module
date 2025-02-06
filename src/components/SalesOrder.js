@@ -5,11 +5,11 @@ import axios from "axios";
 import { FORM_SERVICE_INSERT_DATA, FORM_SERVICE_LOAD_FIELD, FORM_SERVICE_REPORT_DATA_EXCEL, MM_SERVICE_LIST_FILE_TRADE, MM_SERVICE_LIST_JOURNAL } from "../config/ConfigUrl";
 import { HandleToUppercase } from "../utils/HandleToUpercase";
 import FormService from "../service/FormService";
-import EditPettyCash from "../formComponents/EditPettyCash";
-import AddPettyCash from "../formComponents/AddPettyCash";
-import PettyCashTable from "../table/PettyCashTable";
+import SalesOrderTable from "../table/SalesOrderTable";
+import AddSalesOrder from "../formComponents/AddSalesOrder";
+import EditSalesOrder from "../formComponents/EditSalesOrder";
 
-const PettyCash = () => {
+const SalesOrder = () => {
   const headers = getToken();
   const branchId = getBranch();
   const userId = userLoggin();
@@ -29,15 +29,9 @@ const PettyCash = () => {
   const [filterValue, setFilterValue] = useState("");
   const [filterOperation, setFilterOperation] = useState("");
 
-  const [isAddingNewPettyCash, setIsAddingNewPettyCash] = useState(false);
-  //   const [isAddingNewPurchaseInvoice, setIsAddingNewPurchaseInvoice] = useState(false); //backup
-
-  const [isViewingPettyCash, setIsViewingPettyCash] = useState(false);
-  //   const [isViewingPurchaseInvoice, setIsViewingPurchaseInvoice] = useState(false); //backup
-
-  const [isEditingPettyCash, setIsEditingPettyCash] = useState(false);
-  //   const [isEditingPurchaseInvoice, setIsEditingPurchaseInvoice] = useState(false); //backup
-
+  const [isAddingNewSalesOrder, setIsAddingNewSalesOrder] = useState(false);
+  const [isViewingSalesOrder, setIsViewingSalesOrder] = useState(false);
+  const [isEditingSalesOrder, setIsEditingSalesOrder] = useState(false);
   const [selectedData, setSelectedData] = useState([]);
 
   const permissionsString = sessionStorage.getItem("permisions");
@@ -45,14 +39,14 @@ const PettyCash = () => {
   // Parse the JSON string into a JavaScript object
   const permissions = JSON.parse(permissionsString);
 
-  const handleEditPettyCash = (value) => {
-    setIsEditingPettyCash(value);
+  const handleEditSalesOrder = (value) => {
+    setIsEditingSalesOrder(value);
   };
-  const handleViewPettyCash = (value) => {
-    setIsViewingPettyCash(value);
+  const handleViewSalesOrder = (value) => {
+    setIsViewingSalesOrder(value);
   };
-  const handleAddNewPettyCash = (value) => {
-    setIsAddingNewPettyCash(value);
+  const handleAddNewSalesOrder = (value) => {
+    setIsAddingNewSalesOrder(value);
   };
   const handleSelectData = (value) => {
     setSelectedData(value);
@@ -105,8 +99,8 @@ const PettyCash = () => {
         filterValueParam = statusParam;
       }
 
-      console.log("permissions", permissions.Purchase?.["Purchase Invoice"].verify);
-      const checker = permissions.Purchase?.["Purchase Invoice"].verify;
+      console.log("permissions", permissions.Sales?.["Sales Order"].verify);
+      const checker = permissions.Sales?.["Sales Order"].verify;
       if (checker) {
         // Do not apply any filter if checker is true
         console.log("Checker is true, no filter will be applied.");
@@ -117,14 +111,14 @@ const PettyCash = () => {
         filterValueParam = userId;
       }
 
-      const fetchFormMmtData = FormService.fetchData("", filterColumnParam, filterOperationParam, filterValueParam, currentPage, pageSize, `VOUC_FORM${formCode[0]}`, branchId, authToken, true)
+      const fetchFormMmtData = FormService.fetchData("", filterColumnParam, filterOperationParam, filterValueParam, currentPage, pageSize, `SALE_FORM${formCode[0]}`, branchId, authToken, true)
         .then((response) => {
-          console.log("Form Purchase Request lookup data:", response);
+          console.log("Form Sales Order lookup data:", response);
           formMmtData = HandleToUppercase(response.data);
           setTotalItems(response.totalAllData);
         })
         .catch((error) => {
-          console.error("Failed to fetch form Purchase Request lookup:", error);
+          console.error("Failed to fetch form Sales Order lookup:", error);
         });
 
       fetchFormMmtData.then(() => {
@@ -151,7 +145,7 @@ const PettyCash = () => {
   };
 
   const handleFilterSearch = ({ filterColumn, filterOperation, filterValue }) => {
-    console.log("filter Petty Cash list:", filterColumn, filterOperation, filterValue);
+    console.log("filter Sales Order list:", filterColumn, filterOperation, filterValue);
     setFilterOperation(filterOperation);
     setfilterColumn(filterColumn);
     setFilterValue(filterValue);
@@ -173,28 +167,28 @@ const PettyCash = () => {
         <div className="container-fluid">
           <div className="row mb-2">
             <div className="col-sm-6">
-              <h1>Petty Cash</h1>
+              <h1>Sales Order</h1>
             </div>
             <div className="col-sm-6">
               <ol className="breadcrumb float-sm-right">
                 <li className="breadcrumb-item">
                   <a href="/">Home</a>
                 </li>
-                <li className="breadcrumb-item active">Petty Cash</li>
+                <li className="breadcrumb-item active">Sales Order</li>
               </ol>
             </div>
           </div>
         </div>
       </section>
       <section className="content">
-        {isAddingNewPettyCash ? (
+        {isAddingNewSalesOrder ? (
           <div>
-            <AddPettyCash setIsAddingNewPettyCash={setIsAddingNewPettyCash} handleRefresh={handleRefresh} />
+            <AddSalesOrder setIsAddingNewSalesOrder={setIsAddingNewSalesOrder} handleRefresh={handleRefresh} />
           </div>
-        ) : isEditingPettyCash ? (
-          <EditPettyCash setIsEditingPettyCash={setIsEditingPettyCash} handleRefresh={handleRefresh} selectedData={selectedData} />
+        ) : isEditingSalesOrder ? (
+          <EditSalesOrder setIsEditingSalesOrder={setIsEditingSalesOrder} handleRefresh={handleRefresh} selectedData={selectedData} />
         ) : (
-          <PettyCashTable
+          <SalesOrderTable
             formCode={formCode}
             dataTable={dataTable}
             totalItems={totalItems}
@@ -209,11 +203,11 @@ const PettyCash = () => {
             branchId={branchId}
             authToken={authToken}
             handleSelectData={handleSelectData}
-            handleEditPettyCash={handleEditPettyCash}
-            isAddingNewPettyCash={handleAddNewPettyCash}
-            EditPettyCash={handleEditPettyCash}
+            handleEditSalesOrder={handleEditSalesOrder}
+            isAddingNewSalesOrder={handleAddNewSalesOrder}
+            EditSalesOrder={handleEditSalesOrder}
             selectedData={handleSelectData}
-            checker={permissions.Petty?.["Purchase Voucher"].verify}
+            checker={permissions.Sales?.["Sales Order"].verify}
           />
         )}
 
@@ -227,4 +221,4 @@ const PettyCash = () => {
   );
 };
 
-export default PettyCash;
+export default SalesOrder;

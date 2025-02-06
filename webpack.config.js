@@ -59,15 +59,24 @@ module.exports = {
             filename: 'financeModule.js',
             exposes: {
                 './Coa': './src/components/Coa',
+                './DashboardPr': './src/components/DashboardPr',
+
+                './AddPurchaseRequest': './src/formComponents/AddPurchaseRequest',
                 './PurchaseRequest': './src/components/PurchaseRequest',
-                './ListPurchaseOrder': './src/components/PurchaseOrder',
+
                 './PurchaseOrder': './src/formComponents/AddPurchaseOrder',
-                './ListPurchaseInvoice': './src/components/PurchaseInvoice',
+                './ListPurchaseOrder': './src/components/PurchaseOrder',
+
                 './PurchaseInvoice': './src/formComponents/AddPurchaseInvoice',
+                './ListPurchaseInvoice': './src/components/PurchaseInvoice',
+
                 './PettyCash': './src/formComponents/AddPettyCash',
                 './ListPettyCash': './src/components/PettyCash',
+                
                 './PurchaseExpanseVoucher': './src/formComponents/AddPurchaseExpanseVoucher',
                 './ListPurchaseExpanseVoucher': './src/components/PurchaseExpanseVoucher',
+                
+                './SalesOrder': './src/components/SalesOrder',
             },
             shared: {
                 react: { 

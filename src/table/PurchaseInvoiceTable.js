@@ -321,7 +321,7 @@ const PurchaseInvoiceTable = ({
       }
 
       const userId = sessionStorage.getItem("userId");
-      if (!checker && dataSelected[0].STATUS_REQUEST === "IN_PROCESS" && userId === dataSelected[0].REQUESTOR) {
+      if (!checker && dataSelected[0].INVOICE_STATUS === "IN_PROCESS" && userId === dataSelected[0].CREATED_BY) {
         Swal.fire({
           icon: "warning",
           title: "Delete Restricted",
@@ -411,15 +411,35 @@ const PurchaseInvoiceTable = ({
       });
     }
   };
-  const handleResetFilters = () => {
-    setFilterColumn("");
-    setFilterValue("");
-    setFilterOperation("");
-    handleResetFilter();
+  const [filters, setFilters] = useState([{ column: "", operation: "LIKE", value: "" }]);
+
+  // Tambahkan filter baru
+  const handleAddFilter = () => {
+    setFilters([...filters, { column: "", operation: "LIKE", value: "" }]);
   };
 
+  // Hapus filter
+  const handleRemoveFilter = (index) => {
+    setFilters(filters.filter((_, i) => i !== index));
+  };
+
+  // Perbarui filter tertentu
+  const handleFilterChange = (index, key, value) => {
+    const updatedFilters = filters.map((filter, i) => (i === index ? { ...filter, [key]: value } : filter));
+    setFilters(updatedFilters);
+  };
+
+  // Reset semua filter
+  const handleResetFilters = () => {
+    handleResetFilter([{ column: "", operation: "LIKE", value: "" }]);
+    setFilters([{ column: "", operation: "LIKE", value: "" }]);
+  };
+
+  // Terapkan filter
   const handleApplyFilters = () => {
-    handleFilterSearch({ filterColumn, filterOperation, filterValue });
+    console.log("Applied Filters:", filters);
+    handleFilterSearch({ filters });
+    // Kirim ke backend atau gunakan logika filtering di sini
   };
 
   const handleLoadDataClick = () => {
@@ -450,10 +470,10 @@ const PurchaseInvoiceTable = ({
     setSelectedRowData(selectedData[0]);
 
     console.log("View selected rows data:", selectedData);
-    const INVOICE_NUMBER = selectedData[0].INVOICE_NUMBER;
-    console.log("Fetching data for INVOICE_NUMBER:", INVOICE_NUMBER);
+    const PR_NUMBER = selectedData[0].PR_NUMBER;
+    console.log("Fetching data for PR_NUMBER:", PR_NUMBER);
 
-    LookupService.fetchLookupData(`PURC_FORMPUINVCD&filterBy=INVOICE_NUMBER&filterValue=${INVOICE_NUMBER}&operation=EQUAL`, authToken, branchId)
+    LookupService.fetchLookupData(`PURC_FORMPUREQD&filterBy=PR_NUMBER&filterValue=${PR_NUMBER}&operation=EQUAL`, authToken, branchId)
       .then((response) => {
         const fetchedItems = response.data || [];
         console.log("Items fetched from API:", fetchedItems);
@@ -500,12 +520,12 @@ const PurchaseInvoiceTable = ({
                 <button type="button" className="btn btn-default" onClick={handleRefresh}>
                   <FaSyncAlt />
                 </button>
-                {/* <button type="button" className="btn btn-default" onClick={handleNewBond}>
-                  <FaAddressBook /> Add New
-                </button> */}
+                {/* <button type="button" className="btn btn-default" onClick={handleAddNewPurchaseRequest}>
+                                    <FaAddressBook /> Add New
+                                </button> */}
                 {selectedRows.size > 0 && (
                   <>
-                    <button type="button" className="btn btn-default" onClick={handleEdit}>
+                    <button type="button" className="btn btn-default" onClick={handleEditPurchaseInvoice}>
                       <FaEdit /> Edit
                     </button>
                     <button type="button" className="btn btn-default" onClick={handleView}>
@@ -519,7 +539,7 @@ const PurchaseInvoiceTable = ({
                     </button>
                   </>
                 )}
-                <button type="button" className={`btn ${isFilterOpen ? "btn-default" : "btn-default"}`} onClick={handleFilterToggle}>
+                <button type="button" className={`btn ${isFilterOpen ? "btn-secondary" : "btn-default"}`} onClick={handleFilterToggle}>
                   {isFilterOpen ? (
                     <>
                       <span className="ml-1">
@@ -539,45 +559,48 @@ const PurchaseInvoiceTable = ({
         </div>
         {isFilterOpen && (
           <div className="card-body">
-            <form className="row">
-              <div className="col-md-4 mb-3">
-                <select className="form-control" value={filterColumn} onChange={(e) => setFilterColumn(e.target.value)}>
-                  <option value="">Select a column</option>
-                  {/* <option value="ENDTOENDID">End To End Id</option> */}
-                  <option value="INVOICE_NUMBER">Invoice Number</option>
-                  {/* <option value="TITLE">Title</option> */}
-                  <option value="DOC_REFF">Doc Reference</option>
-                  <option value="DOC_REFF_NO">Doc Reference Number</option>
-                  {/* <option value="INVOICE_TYPE">Invoice type</option> */}
-                  <option value="INVOICE_DATE">Invoice Date</option>
-                  <option value="INVOICE_STATUS">Invoice Status</option>
-                  <option value="Vendor">Vendor</option>
-                  <option value="PROJECT">Project</option>
-                  {/* <option value="TOTAL_AMOUNT">Total Amount</option> */}
-                  <option value="DESCRIPTION">Description</option>
-                  <option value="PAYMENT_TERM">Payment Term</option>
-                  <option value="DUE_DATE">Due Date</option>
-                  <option value="TERM_OF_PAYMENT">Term Of Payment</option>
-                  <option value="TAX_RATE">Tax Rate</option>
-                  <option value="TAX_INVOICE_NUMBER">Tax Invoice Number</option>
-                  <option value="BI_MIDDLE_RATE">Bi Middle Rate</option>
-                  {/* <option value="TOTAL_TAX_BASE">Total Tax Base</option>
-                  <option value="TOTAL_AMOUNT_PPN">Total Amount Ppn</option>
-                  <option value="TOTAL_AMOUNT_PPH">Total Amount Pph</option> */}
-                  <option value="DOC_SOURCE">Doc Source</option>
-                </select>
+            <div className="row">
+              <div className="col-md-12">
+                <a className="btn btn-success btn-sm float-right" onClick={handleAddFilter}>
+                  <i className="fas fa-plus"></i> Add Row
+                </a>
               </div>
-              <div className="col-md-4 mb-3">
-                <select className="form-control" value={filterOperation} onChange={(e) => setFilterOperation(e.target.value)}>
-                  <option value="">Select filter</option>
-                  <option value="EQUAL">Equal</option>
-                  <option value="NOTEQUAL">Not Equal</option>
-                  <option value="LIKE">Contains</option>
-                </select>
-              </div>
-              <div className="col-md-4 mb-3">
-                <input type="text" className="form-control" placeholder="Enter value" value={filterValue} onChange={(e) => setFilterValue(e.target.value)} />
-              </div>
+            </div>
+            <form>
+              {filters.map((filter, index) => (
+                <div className="row mb-3" key={index}>
+                  <div className="col-md-3">
+                    <select className="form-control" value={filter.column} onChange={(e) => handleFilterChange(index, "column", e.target.value)}>
+                      <option value="">Select a column</option>
+                      {/* <option value="ENDTOENDID">End To End Id</option> */}
+                      <option value="INVOICE_NUMBER">Invoice Number</option>
+                      <option value="DOC_REFF">Doc Reference</option>
+                      <option value="INVOICE_DATE">Invoice Date</option>
+                      <option value="INVOICE_STATUS">Invoice Status</option>
+                      <option value="DESCRIPTION">Description</option>
+                      <option value="DUE_DATE">Due Date</option>
+                      <option value="CREATE_BY">Create By</option>
+                      <option value="TOTAL_AMOUNT">Total Amount</option>
+                      <option value="STATUS_WORKFLOW">Status Workflow</option>
+                    </select>
+                  </div>
+                  <div className="col-md-3">
+                    <select className="form-control" value={filter.operation} onChange={(e) => handleFilterChange(index, "operation", e.target.value)}>
+                      <option value="LIKE">Contains</option>
+                      <option value="EQUAL">Equal</option>
+                      <option value="NOTEQUAL">Not Equal</option>
+                    </select>
+                  </div>
+                  <div className="col-md-3">
+                    <input type="text" className="form-control" placeholder="Enter value" value={filter.value} onChange={(e) => handleFilterChange(index, "value", e.target.value)} />
+                  </div>
+                  <div className="col-md-3 d-flex align-items-center">
+                    <button type="button" className="btn btn-danger" onClick={() => handleRemoveFilter(index)}>
+                      <i className="fas fa-trash"></i>
+                    </button>
+                  </div>
+                </div>
+              ))}
             </form>
             <div className="d-flex justify-content-end align-items-center mt-3">
               <button className="btn btn-secondary mr-2" onClick={handleResetFilters}>
@@ -603,14 +626,17 @@ const PurchaseInvoiceTable = ({
                   <th>Invoice Date</th>
                   <th>Invoice Status</th>
                   <th>Description</th>
-                  <th>Payment Term</th>
-                  <th>Term Of Payment</th>
+                  {/* <th>Payment Term</th>
+                  <th>Term Of Payment</th> */}
                   <th>Due Date</th>
-                  <th>Discount</th>
-                  <th>Total After Discount</th>
-                  <th>Tax Exchange Rate</th>
-                  <th>Total Amount PPN</th>
-                  <th>Total Amount PPH</th>
+                  <th>Create By</th>
+                  <th>Total Amount</th>
+                  <th>Status Workflow</th>
+                  {/* <th>Discount</th> */}
+                  {/* <th>Total After Discount</th> */}
+                  {/* <th>Tax Exchange Rate</th> */}
+                  {/* <th>Total Amount PPN</th>
+                  <th>Total Amount PPH</th> */}
                 </tr>
               </thead>
               <tbody>
@@ -642,14 +668,15 @@ const PurchaseInvoiceTable = ({
                       <td>{item.INVOICE_DATE}</td>
                       <td>{item.INVOICE_STATUS}</td>
                       <td>{item.DESCRIPTION}</td>
-                      <td>{item.PAYMENT_TERM}</td>
-                      <td>{item.TERM_OF_PAYMENT}</td>
                       <td>{item.DUE_DATE}</td>
-                      <td>{item.DISCOUNT}</td>
-                      <td>{item.TOTAL_AFTER_DISCOUNT}</td>
-                      <td>{item.TAX_EXCHANGE_RATE}</td>
-                      <td>{item.TOTAL_AMOUNT_PPN}</td>
-                      <td>{item.TOTAL_AMOUNT_PPH}</td>
+                      <td>{item.CREATE_BY}</td>
+                      <td>{item.TOTAL_AMOUNT}</td>
+                      <td>{item.STATUS}</td>
+                      {/* <td>{item.DISCOUNT}</td> */}
+                      {/* <td>{item.TOTAL_AFTER_DISCOUNT}</td> */}
+                      {/* <td>{item.TAX_EXCHANGE_RATE}</td> */}
+                      {/* <td>{item.TOTAL_AMOUNT_PPN}</td>
+                      <td>{item.TOTAL_AMOUNT_PPH}</td> */}
                     </tr>
                   ))
                 )}

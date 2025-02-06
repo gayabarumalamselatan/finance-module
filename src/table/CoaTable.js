@@ -3,18 +3,22 @@ import { FaAddressBook, FaFilter, FaSyncAlt, FaChevronDown, FaChevronRight } fro
 import FormPagination from "../utils/FormPagination";
 import AddCoaModal from "../modal/AddCoaModal";
 import axios from "axios";
-import { FORM_SERVICE_INSERT_DATA } from "../config/ConfigUrl";
+import { FORM_SERVICE_DELETE_DATA, FORM_SERVICE_INSERT_DATA, FORM_SERVICE_UPDATE_DATA } from "../config/ConfigUrl";
 import Swal from "sweetalert2";
 import { messageAlertSwal } from "../config/Swal";
+import EditCoaModal from "../modal/EditCoaModal";
+import * as XLSX from 'xlsx';
+import getDateTime from "../utils/DateTime";
+import { DisplayFormat } from "../utils/DisplayFormat";
 
 const CoaTable = ({
     formCode,
     dataTable,
-    handleSelect,
     pageSize,
     handlePageSizeChange,
     handleRefresh,
     totalItems,
+    showDynamicSweetAlert,
     currentPage,
     handlePageChange,
     isLoadingTable,
@@ -32,6 +36,9 @@ const CoaTable = ({
     const [expandedRows, setExpandedRows] = useState(new Set());
     const [selectedRows, setSelectedRows] = useState(new Set());
     const [showModal, setShowModal] = useState(false);
+    const [isLoading, setIsLoading] = useState(false);
+    const [showEditModal, setShowEditModal] = useState(false);
+    const [selectedEditCoa, setSelectedEditCoa] = useState(null);
 
     // Toggle row expansion
     const toggleRowExpansion = (itemCode) => {
@@ -47,6 +54,7 @@ const CoaTable = ({
     };
 
     // Handle checkbox selection
+    // Handle checkbox selection
     const handleRowSelect = (itemId) => {
         setSelectedRows(prevSelectedRows => {
             const newSelectedRows = new Set(prevSelectedRows);
@@ -59,6 +67,11 @@ const CoaTable = ({
         });
     };
 
+    const getSelectedData = () => {
+        return dataTable.filter(item => selectedRows.has(item.ID));
+    };
+
+
     // Render tree row
     const renderTreeRow = (item, level = 0, isLast = false) => {
         const children = dataTable.filter(child => child.PARENT_CODE_ID === item.CODE);
@@ -67,7 +80,6 @@ const CoaTable = ({
         return (
             <React.Fragment key={item.ID}>
                 <tr
-                    onClick={() => handleSelect(item)}
                     className={selectedRow === item ? "table-success" : ""}
                 >
                     <td>
@@ -94,10 +106,10 @@ const CoaTable = ({
                     </td>
                     <td style={{ paddingLeft: `${level * 20}px`, paddingBottom: isLastChild ? '20px' : '0' }}>{item.NAME}</td>
                     <td style={{ paddingBottom: isLastChild ? '20px' : '0' }}>{item.TYPE}</td>
-                    <td style={{ paddingBottom: isLastChild ? '20px' : '0' }}>{item.CURRENCY}</td>
+                    <td style={{ paddingBottom: isLastChild ? '20px' : '0' }}>{DisplayFormat(item.NORMAL_BALANCE_POSITION || item.normal_balance_position)}</td>
                     <td style={{ paddingBottom: isLastChild ? '20px' : '0' }}>{item.DESCRIPTION}</td>
                 </tr>
-                {expandedRows.has(item.CODE) && children.map((child, index) => 
+                {expandedRows.has(item.CODE) && children.map((child, index) =>
                     renderTreeRow(child, level + 1, index === children.length - 1)
                 )}
             </React.Fragment>
@@ -135,26 +147,172 @@ const CoaTable = ({
 
     const handleCloseModal = () => {
         setShowModal(false);
-      };
-      const handleSaveCoa = async (newCoa) => {
-            // Replace with the actual token, or fetch it dynamically
-          try {
-              const response = await axios.post(`${FORM_SERVICE_INSERT_DATA}?f=${formCode[0]}&branchId=${branchId}`, newCoa, {
-                  headers: {
-                      Authorization: `Bearer ${authToken}`,
-                  }
-              });
-              console.log('Event saved successfully:', response.data);
-              messageAlertSwal('Success!', 'Event saved successfully', 'success');
-              handleRefresh();
-          } catch (error) {
-              console.error('Error saving event:', error);
-              // Handle error (e.g., show a notification)
-          }
-      };
+    };
+    const handleSaveCoa = async (newCoa) => {
+        // Replace with the actual token, or fetch it dynamically
+        try {
+            const response = await axios.post(`${FORM_SERVICE_INSERT_DATA}?f=${formCode[0]}&branchId=${branchId}`, newCoa, {
+                headers: {
+                    Authorization: `Bearer ${authToken}`,
+                }
+            });
+            console.log('Event saved successfully:', response.data);
+            messageAlertSwal('Success!', 'Event saved successfully', 'success');
+            handleRefresh();
+        } catch (error) {
+            console.error('Error saving event:', error);
+            // Handle error (e.g., show a notification)
+        }
+    };
 
 
 
+    const handleEdit = (editCoa) => {
+        setSelectedEditCoa(editCoa);
+        setShowEditModal(true);
+    };
+
+
+    const handleEditCloseModal = () => {
+        setShowEditModal(false);
+    };
+
+    const handleEditCoa = async (newCoa) => {
+        const { ID, ...newCoaWithoutID } = newCoa;
+        setIsLoading(true);
+        // Replace with the actual token, or fetch it dynamically
+        try {
+            const response = await axios.post(`${FORM_SERVICE_UPDATE_DATA}?f=${formCode[0]}&column=ID&value=${newCoa.ID}&branchId=${branchId}`, newCoaWithoutID, {
+                headers: {
+                    Authorization: `Bearer ${authToken}`,
+                }
+            });
+            setTimeout(() => {
+                messageAlertSwal('Success!', 'Coa Updated successfully', 'success');
+                setSelectedRows(new Set());
+
+                handleRefresh();
+                setIsLoading(false);
+            }, 1000);
+
+        } catch (error) {
+            console.error('Error saving Testimoni:', error);
+            // Handle error (e.g., show a notification)
+        }
+    };
+    const handleDeleteClick = async () => {
+        Swal.fire({
+            title: 'Are you sure?',
+            text: "You won't be able to revert this!",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#3085d6',
+            cancelButtonColor: '#d33',
+            confirmButtonText: 'Yes, delete it!'
+        }).then(async (result) => {
+            if (result.isConfirmed) {
+                await handleDelete();  // Call your delete function if confirmed
+                Swal.fire(
+                    'Deleted!',
+                    'Data has been deleted successfully.',
+                    'success'
+                );
+            }
+        });
+    };
+
+    const handleDelete = async () => {
+        setIsLoading(true);
+
+        try {
+            const selectedData = getSelectedData();
+
+            console.log("Selected data:", selectedData);
+
+            // Loop through each selected data item and send a delete request
+            for (const data of selectedData) {
+                // Make the DELETE request for each selected row
+                await axios.delete(
+                    `${FORM_SERVICE_DELETE_DATA}?f=${formCode[0]}&column=ID&value=${data.ID}`, {
+                    headers: {
+                        Authorization: `Bearer ${authToken}`,
+                    }
+                });
+            }
+
+            // Optional: Delay to simulate processing time or to ensure UI update
+            setTimeout(() => {
+                setSelectedRows(new Set());
+                handleRefresh(); // Trigger callback to refresh data
+            }, 1000);
+
+            // Success notification
+            messageAlertSwal(
+                "Delete Successful!",
+                "Data has been deleted successfully.",
+                "success"
+            );
+        } catch (error) {
+            console.error("Error during deletion:", error);
+            // Error notification
+            messageAlertSwal(
+                "Error!",
+                "There was an issue processing your request. Please try again later.",
+                "error"
+            );
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    const handleExportXls = () => {
+        try {
+            // Get the selected data
+            const selectedData = getSelectedData();
+
+            const filteredData = selectedData.map(({ RWNUM, ...rest }) => rest);
+
+            // Check if there is data to export
+            if (selectedData.length === 0) {
+                showDynamicSweetAlert(
+                    "No Data!",
+                    "No rows selected for export.",
+                    "info"
+                );
+                return;
+            }
+
+            const worksheet = XLSX.utils.json_to_sheet(filteredData);
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, 'SelectedData');
+
+            // Generate a binary string representation of the workbook
+            const excelBuffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
+
+            // Create a Blob from the binary string
+            const data = new Blob([excelBuffer], { type: 'application/octet-stream' });
+
+            // Create a link element and trigger the download
+            const link = document.createElement('a');
+            link.href = window.URL.createObjectURL(data);
+            link.download = `COA-${getDateTime()}.xlsx`
+            link.click();
+            // Notify user of successful export
+            messageAlertSwal(
+                "Export Successful!",
+                "Data has been exported successfully.",
+                "success"
+            );
+        } catch (error) {
+            console.error("Error during export:", error);
+            // Error notification
+            messageAlertSwal(
+                "Error!",
+                "There was an issue processing your request. Please try again later.",
+                "error"
+            );
+        }
+    };
 
     return (
         <div>
@@ -224,7 +382,7 @@ const CoaTable = ({
                                     <option value="CODE">Code</option>
                                     <option value="NAME">Name</option>
                                     <option value="TYPE">Type</option>
-                                    <option value="CURRENCY">Currency</option>
+                                    <option value="NORMAL_BALANCE_POSITION">Normal Balance Position</option>
                                     <option value="DESCRIPTION">Description</option>
                                     <option value="IS_PARENT">Is Parent</option>
                                     <option value="PARENT_CODE_ID">Parent Code ID</option>
@@ -263,6 +421,54 @@ const CoaTable = ({
                     </div>
                 )}
                 <div className="card-body">
+                    <div className="d-flex justify-content-between align-items-center mb-3">
+                        <div></div>
+                        <div>
+                            {/* Tombol Edit */}
+                            <button
+                                className="btn btn-primary btn-sm mr-3"
+
+                                onClick={() => {
+                                    const selectedData = getSelectedData();
+                                    console.log("selectedData", selectedData);
+
+                                    if (selectedData.length > 1) {
+                                        Swal.fire({
+                                            icon: "warning",
+                                            title: "Warning",
+                                            text: "You can only edit one record at a time. Please select only one record.",
+                                        });
+                                    } else if (selectedData.length === 1) {
+                                        console.log("selectedData", selectedData);
+                                        handleEdit(selectedData); // Pass single selected row to handleShowModal
+                                    }
+                                    // Lanjutkan dengan logika yang diinginkan (misalnya, mengedit data yang dipilih)
+                                }}
+                                disabled={selectedRows.size === 0}
+                            >
+                                <i className="fas fa-edit"></i> Edit
+                            </button>
+
+
+                            {/* Tombol Delete */}
+                            <button
+                                className="btn btn-danger btn-sm mr-3"
+                                onClick={() => handleDeleteClick()}
+                                disabled={selectedRows.size === 0}
+                            >
+                                <i className="fas fa-trash"></i> Delete
+                            </button>
+
+                            {/* Tombol Export */}
+                            <button
+                                className="btn btn-secondary btn-sm"
+                                onClick={() => handleExportXls()}
+                                disabled={selectedRows.size === 0}
+                            >
+                                <i className="fas fa-file-export"></i> Export
+                            </button>
+                        </div>
+                    </div>
                     <div className="table-responsive">
                         <table className="table table-bordered">
                             <thead>
@@ -283,7 +489,7 @@ const CoaTable = ({
                                     <th>Code</th>
                                     <th>Name</th>
                                     <th>Type</th>
-                                    <th>Currency</th>
+                                    <th>Normal Balance Position</th>
                                     <th>Description</th>
                                 </tr>
                             </thead>
@@ -305,11 +511,23 @@ const CoaTable = ({
                     {startIndex + 1} - {endIndex} of {totalItems}
                 </div>
             </div>
-            <AddCoaModal 
-                show={showModal} 
-                handleClose={handleCloseModal} 
-                handleSave={handleSaveCoa} 
+            <AddCoaModal
+                show={showModal}
+                handleClose={handleCloseModal}
+                handleSave={handleSaveCoa}
             />
+            <EditCoaModal
+                coaData={selectedEditCoa}
+                show={showEditModal}
+                handleClose={handleEditCloseModal}
+                handleSave={handleEditCoa}
+            />
+
+            {isLoading && (
+                <div className="full-screen-overlay">
+                    <i className="fa-solid fa-spinner fa-spin full-screen-spinner"></i>
+                </div>
+            )}
         </div>
     );
 };

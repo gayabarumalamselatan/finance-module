@@ -282,109 +282,110 @@ const PettyCashTable = ({
   // };
 
   const handleDelete = async (value) => {
-    const dataSelected = getSelectedRowsData(); // Ambil data yang dipilih
-    console.log("dataSelected Delete:", dataSelected);
+    try {
+      const dataSelected = getSelectedRowsData();
+      if (dataSelected.length !== 1) {
+        Swal.fire({
+          icon: "warning",
+          title: "Multiple Rows Selected",
+          text: "Please select exactly one row to delete.",
+          confirmButtonText: "OK",
+        });
+        return;
+      }
 
-    // Cek jika lebih dari satu baris dipilih
-    if (dataSelected.length !== 1) {
+      const userId = sessionStorage.getItem("userId");
+      if (!checker && dataSelected[0].STATUS_REQUEST === "IN_PROCESS" && userId === dataSelected[0].REQUESTOR) {
+        Swal.fire({
+          icon: "warning",
+          title: "Delete Restricted",
+          text: 'You cannot delete this request while it is "IN_PROCESS".',
+          confirmButtonText: "OK",
+        });
+        return;
+      }
+
+      const vcpettyId = dataSelected[0].ID;
+      const voucher_number = dataSelected[0].VOUCHER_NUMBER;
+
       Swal.fire({
+        title: "Are you sure?",
+        text: "Do you really want to delete this request and its details? This process cannot be undone.",
         icon: "warning",
-        title: "Multiple Rows Selected",
-        text: "Please select exactly one row to delete.",
-        confirmButtonText: "OK",
-      });
-      return;
-    }
+        showCancelButton: true,
+        confirmButtonText: "Yes, delete it!",
+        cancelButtonText: "Cancel",
+      }).then(async (result) => {
+        if (result.isConfirmed) {
+          try {
+            const response = await DeleteDataService.postData(`column=id&value=${vcpettyId}`, "VCPETTY", authToken, branchId);
+            if (!response.message === "Delete Data Successfully") {
+              throw new Error("Failed to delete main request");
+            }
 
-    const userId = sessionStorage.getItem("userId");
+            const responseDetail = await LookupService.fetchLookupData(`VOUC_FORMVCPETTYD&filterBy=VOUCHER_NUMBER&filterValue=${voucher_number}&operation=EQUAL`, authToken, branchId);
+            const fetchedItems = responseDetail.data || [];
 
-    // Cek apakah status IN_PROCESS dan userId cocok dengan REQUESTOR
-    if (!checker && dataSelected[0].STATUS_REQUEST === "IN_PROCESS" && userId === dataSelected[0].REQUESTOR) {
-      Swal.fire({
-        icon: "warning",
-        title: "Delete Restricted",
-        text: 'You cannot delete this request while it is "IN_PROCESS".',
-        confirmButtonText: "OK",
-      });
-      return;
-    }
-
-    const vcpettyId = dataSelected[0].ID; // ID dari data utama
-    const voucher_number = dataSelected[0].VOUCHER_NUMBER;
-
-    // Konfirmasi sebelum penghapusan
-    Swal.fire({
-      title: "Are you sure?",
-      text: "Do you really want to delete this request and its details? This process cannot be undone.",
-      icon: "warning",
-      showCancelButton: true,
-      confirmButtonText: "Yes, delete it!",
-      cancelButtonText: "Cancel",
-    }).then(async (result) => {
-      if (result.isConfirmed) {
-        try {
-          // Panggil API untuk menghapus data master (utama)
-          const response = await DeleteDataService.postData(`column=id&value=${vcpettyId}`, "VCPETTY", authToken, branchId);
-
-          if (!response.message === "Delete Data Successfully") {
-            throw new Error("Failed to delete main request");
-          }
-
-          // Jika berhasil hapus master, lanjutkan ke detail berdasarkan VOUCHER_NUMBER
-          const responseDetail = await LookupService.fetchLookupData(`VOUC_FORMVCPETTYD&filterBy=VOUCHER_NUMBER&filterValue=${voucher_number}&operation=EQUAL`, authToken, branchId);
-
-          const fetchedItems = responseDetail.data || [];
-          console.log("Items fetch:", fetchedItems);
-
-          if (fetchedItems.length > 0) {
-            // Hapus setiap detail yang ditemukan
-            for (const item of fetchedItems) {
-              if (item.ID) {
-                try {
-                  const itemResponseDelete = await DeleteDataService.postData(`column=id&value=${item.ID}`, "VCPETTYD", authToken, branchId);
-                  console.log("Item deleted successfully:", itemResponseDelete);
-                } catch (error) {
-                  console.error("Error deleting item:", item, error);
-                  throw new Error("Failed to delete one or more detail items");
+            if (fetchedItems.length === 0) {
+              Swal.fire({
+                icon: "info",
+                title: "No Details Found",
+                text: `No details found for voucher number ${voucher_number}.`,
+                confirmButtonText: "OK",
+              });
+            } else {
+              for (const item of fetchedItems) {
+                if (item.ID) {
+                  try {
+                    const itemResponseDelete = await DeleteDataService.postData(`column=id&value=${item.ID}`, "VCPETTYD", authToken, branchId);
+                    console.log("Item deleted successfully:", itemResponseDelete);
+                  } catch (error) {
+                    console.error("Error deleting item:", item, error);
+                    throw new Error("Failed to delete one or more detail items");
+                  }
+                } else {
+                  console.log("No ID found for this item, skipping delete:", item);
                 }
-              } else {
-                console.log("No ID found for this item, skipping delete:", item);
               }
             }
-          } else {
-            throw new Error("No details found for this VOUCHER_NUMBER");
+
+            Swal.fire({
+              icon: "success",
+              title: "Request Deleted",
+              text: "The request has been successfully deleted.",
+              confirmButtonText: "OK",
+            });
+
+            handleRefresh();
+          } catch (error) {
+            console.error("Error during delete process:", error);
+            Swal.fire({
+              icon: "error",
+              title: "Delete Error",
+              text: "Failed to delete the request or its details. Please try again later.",
+              confirmButtonText: "OK",
+            });
           }
-
+        } else {
           Swal.fire({
-            icon: "success",
-            title: "Request and Details Deleted",
-            text: "Both the request and its details have been successfully deleted.",
-            confirmButtonText: "OK",
-          });
-
-          handleRefresh();
-
-          // Lakukan refresh data atau aksi lain yang diperlukan setelah penghapusan berhasil
-        } catch (error) {
-          console.error("Error during delete process:", error);
-          Swal.fire({
-            icon: "error",
-            title: "Delete Error",
-            text: "Failed to delete the request or its details. Please try again later.",
+            icon: "info",
+            title: "Cancelled",
+            text: "Your request deletion has been cancelled.",
             confirmButtonText: "OK",
           });
         }
-      } else {
-        Swal.fire({
-          icon: "info",
-          title: "Cancelled",
-          text: "Your request deletion has been cancelled.",
-          confirmButtonText: "OK",
-        });
-      }
-    });
+      });
+    } catch (error) {
+      console.error("Error in handleDelete:", error);
+      Swal.fire({
+        icon: "error",
+        title: "Delete Error",
+        text: "An error occurred while deleting the request. Please try again later.",
+        confirmButtonText: "OK",
+      });
+    }
   };
-  
+
   const handleResetFilters = () => {
     setFilterColumn("");
     setFilterValue("");
@@ -474,9 +475,9 @@ const PettyCashTable = ({
                 <button type="button" className="btn btn-default" onClick={handleRefresh}>
                   <FaSyncAlt />
                 </button>
-                <button type="button" className="btn btn-default" onClick={handleNewBond}>
+                {/* <button type="button" className="btn btn-default" onClick={handleNewBond}>
                   <FaAddressBook /> Add New
-                </button>
+                </button> */}
                 {selectedRows.size > 0 && (
                   <>
                     <button type="button" className="btn btn-default" onClick={handleEdit}>
@@ -570,13 +571,15 @@ const PettyCashTable = ({
                   <th>
                     <input type="checkbox" onChange={handleSelectAll} checked={selectedRows.size === dataTable.length && dataTable.length > 0} />
                   </th>
-                 
+
                   <th>Paid To</th>
                   <th>Document Reference</th>
                   <th>Voucher Number</th>
                   <th>Voucher Status</th>
                   <th>Voucher Date</th>
                   <th>Amount</th>
+                  <th>Total Debt</th>
+                  <th>Total Paid</th>
                 </tr>
               </thead>
               <tbody>
@@ -608,7 +611,8 @@ const PettyCashTable = ({
                       <td>{item.STATUS}</td>
                       <td>{item.VOUCHER_DATE}</td>
                       <td>{item.AMOUNT}</td>
-                     
+                      <td>{item.TOTAL_DEBT}</td>
+                      <td>{item.TOTAL_PAID}</td>
                     </tr>
                   ))
                 )}
@@ -630,7 +634,7 @@ const PettyCashTable = ({
             {selectedRowData ? (
               <div>
                 <div className="container">
-                {/* <div className="row mb-3">
+                  {/* <div className="row mb-3">
                     <div className="col-md-4 font-weight-bold">Pay To Source:</div>
                     <div className="col-md-8">{selectedRowData.PAY_TO_SOURCE}</div>
                   </div> */}
@@ -675,7 +679,14 @@ const PettyCashTable = ({
                     <div className="col-md-4 font-weight-bold">Amount:</div>
                     <div className="col-md-8">{selectedRowData.AMOUNT}</div>
                   </div>
-                
+                  <div className="row mb-3">
+                    <div className="col-md-4 font-weight-bold">Total Debt:</div>
+                    <div className="col-md-8">{selectedRowData.TOTAL_DEBT}</div>
+                  </div>
+                  <div className="row mb-3">
+                    <div className="col-md-4 font-weight-bold">Total Paid:</div>
+                    <div className="col-md-8">{selectedRowData.TOTAL_PAID}</div>
+                  </div>
                 </div>
                 {/* Add more fields as needed */}
                 <div className="table-responsive" style={{ overflowX: "auto" }}>
@@ -683,22 +694,29 @@ const PettyCashTable = ({
                     <thead>
                       <tr>
                       <th>Document Reference Number</th>
-                      <th>Code/Account Name</th>
-                      <th>Description</th>
-                      <th>Product</th>
-                      <th>Db/Cr</th>
-                      <th>Type of VAT</th>
-                      <th>PPN</th>
-                      <th>Vendor</th>
-                      <th>Project</th>
-                      <th>Project Contract Number</th>
-                      <th>Customer</th>
-                      <th>Department</th>
-                      <th>Amount</th>
-                      <th>PPh</th>
-                      <th>Amount PPN</th>
-                      <th>Amount PPh</th>
-                      <th>Total To Be Paid</th>
+                              <th>Code/Account Name</th>
+                              <th>Description</th>
+                              <th>Product</th>
+                              <th>Db/Cr</th>
+                              <th>Employee</th>
+                              <th>Vendor</th>
+                              <th>Project</th>
+                              <th>Project Contract Number</th>
+                              <th>Customer</th>
+                              <th>Department</th>
+                              <th>Currency</th>
+                              <th>Quantity</th>
+                              <th>Unit Price</th>
+                              <th>Total Price</th>
+                              <th>Type of VAT</th>
+                              <th>PPN</th>
+                              <th>Tax Ppn Rate</th>
+                              <th>Type of PPh</th>
+                              <th>PPh</th>
+                              <th>Tax PPh Rate </th>
+                              <th>Amount PPN</th>
+                              <th>Amount PPh</th>
+                              <th>Total To Be Paid</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -711,15 +729,22 @@ const PettyCashTable = ({
                             <td>{detail.description}</td>
                             <td>{detail.product}</td>
                             <td>{detail.db_cr}</td>
-                            <td>{detail.type_of_vat}</td>
-                            <td>{detail.tax_ppn}</td>
+                            <td>{detail.employee}</td>
                             <td>{detail.vendor}</td>
                             <td>{detail.project}</td>
                             <td>{detail.project_contract_number}</td>
                             <td>{detail.customer}</td>
                             <td>{detail.department}</td>
-                            <td style={{ textAlign: "right" }}>{DisplayFormat(detail.amount)}</td>
+                            <td>{detail.currency}</td>
+                            <td>{detail.quantity}</td>
+                            <td>{detail.unit_price}</td>
+                            <td>{detail.total_price}</td>
+                            <td>{detail.type_of_vat}</td>
+                            <td>{detail.tax_ppn}</td>
+                            <td>{detail.tax_ppn_rate}</td>
                             <td>{detail.type_of_pph}</td>
+                            <td>{detail.tax_pph}</td>
+                            <td>{detail.tax_pph_rate}</td>
                             <td style={{ textAlign: "right" }}>{DisplayFormat(detail.tax_ppn_amount)}</td>
                             <td style={{ textAlign: "right" }}>{DisplayFormat(detail.tax_pph_amount)}</td>
                             <td style={{ textAlign: "right" }}>{DisplayFormat(detail.amount_paid)}</td>

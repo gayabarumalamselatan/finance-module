@@ -10,6 +10,7 @@
 
 # production
 /build
+/financemodule
 
 # misc
 .DS_Store
@@ -21,3 +22,59 @@
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+financemodule/financeModule.js
+financemodule/961.js.LICENSE.txt
+financemodule/961.js
+financemodule/542.js
+financemodule/540.js.LICENSE.txt
+financemodule/469.js
+financemodule/430.js
+financemodule/172.js
+financemodule/136.js.LICENSE.txt
+financemodule/106.js.LICENSE.txt
+financemodule/106.js
+financemodule/main.js.LICENSE.txt
+financemodule/646.js
+financemodule/643.js
+financemodule/542.js.LICENSE.txt
+financemodule/519.js
+financemodule/501.js.LICENSE.txt
+financemodule/501.js
+financemodule/342.js
+financemodule/230.js
+financemodule/136.js
+financemodule/main.js
+financemodule/81.js
+financemodule/779.js.LICENSE.txt
+financemodule/364.js
+financemodule/index.html
+financemodule/financeModule.js.LICENSE.txt
+financemodule/540.js
+financemodule/779.js
+financemodule/172.js.LICENSE.txt
+financemodule/959.js.LICENSE.txt
+financemodule/842.js
+financemodule/269.js.LICENSE.txt
+financemodule/269.js
+financemodule/194.js.LICENSE.txt
+financemodule/155.js
+financemodule/959.js
+financemodule/411.js
+financemodule/295.js.LICENSE.txt
+financemodule/194.js
+financemodule/411.js.LICENSE.txt
+financemodule/295.js
+financemodule/934.js
+financemodule/717.js
+financemodule/536.js
+financemodule/434.js
+financemodule/385.js.LICENSE.txt
+financemodule/379.js
+financemodule/385.js
+financemodule/379.js.LICENSE.txt
+financemodule/528.js
+financemodule/123.js
+financemodule/241.js.LICENSE.txt
+financemodule/396.js
+financemodule/241.js
+financemodule/

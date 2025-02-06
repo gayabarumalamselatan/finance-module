@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import FormPagination from "../utils/FormPagination";
 import { NumericFormat } from "react-number-format";
-import { FaAddressBook, FaEye, FaFilter, FaSyncAlt } from "react-icons/fa";
+import { FaAddressBook, FaClone, FaEye, FaFilter, FaSyncAlt } from "react-icons/fa";
 import { FaEdit, FaTrash, FaFileExport } from "react-icons/fa"; // Import icons for Edit, Delete, and Export
 import { Button, Modal, Table } from "react-bootstrap";
 import { getBranch, getToken, userLoggin } from "../config/Constant";
@@ -26,6 +26,9 @@ const PurchaseOrderTable = ({
     addingNewPurchaseOrder,
     EditPurchaseOrder,
     selectedData,
+    setDuplicateFlag,
+    duplicateFlag,
+    duplicatePurchaseOrder,
     checker
 }) => {
     const headers = getToken();
@@ -41,6 +44,7 @@ const PurchaseOrderTable = ({
     const [isModalOpen, setIsModalOpen] = useState(false); // For modal visibility
     const [selectedRowData, setSelectedRowData] = useState(null);
     const [selectedRowDataItem, setSelectedRowDataItem] = useState([]); // For storing selected row data
+    const [filters, setFilters] = useState([{ column: "", operation: "LIKE", value: "" }]);
 
     const authToken = headers;
 
@@ -87,6 +91,38 @@ const PurchaseOrderTable = ({
         console.log('selectedRowDataItem:', selectedRowDataItem);
     }, [selectedRowDataItem]);
 
+    // Tambahkan filter baru
+    const handleAddFilter = () => {
+        setFilters([...filters, { column: "", operation: "LIKE", value: "" }]);
+    };
+
+    // Hapus filter
+    const handleRemoveFilter = (index) => {
+        setFilters(filters.filter((_, i) => i !== index));
+    };
+
+    // Perbarui filter tertentu
+    const handleFilterChange = (index, key, value) => {
+        const updatedFilters = filters.map((filter, i) =>
+            i === index ? { ...filter, [key]: value } : filter
+        );
+        setFilters(updatedFilters);
+    };
+
+    // Reset semua filter
+    const handleResetFilters = () => {
+        handleResetFilter([{ column: "", operation: "LIKE", value: "" }]);
+        setFilters([{ column: "", operation: "LIKE", value: "" }]);
+    };
+
+    // Terapkan filter
+    const handleApplyFilters = () => {
+        console.log("Applied Filters:", filters);
+        handleFilterSearch({ filters });
+        // Kirim ke backend atau gunakan logika filtering di sini
+    };
+
+
     const handleModalClose = () => {
         setIsModalOpen(false); // Close the modal
     };
@@ -125,7 +161,7 @@ const PurchaseOrderTable = ({
         const userId = sessionStorage.getItem('userId');
 
         // Check if status_request is 'IN_PROCESS' and userId matches created_by
-        if (!checker && dataSelected[0].STATUS_REQUEST === 'IN_PROCESS' && userId === dataSelected[0].REQUESTOR) {
+        if (!checker && dataSelected[0].STATUS_PO === 'IN_PROCESS' && userId === dataSelected[0].CREATED_BY) {
             Swal.fire({
                 icon: 'warning',
                 title: 'Edit Restricted',
@@ -287,16 +323,16 @@ const PurchaseOrderTable = ({
         return `${day}-${month}-${year}`;
     }
 
-    const handleResetFilters = () => {
-        setFilterColumn('');
-        setFilterValue('');
-        setFilterOperation('');
-        handleResetFilter();
-    };
+    // const handleResetFilters = () => {
+    //     setFilterColumn('');
+    //     setFilterValue('');
+    //     setFilterOperation('');
+    //     handleResetFilter();
+    // };
 
-    const handleApplyFilters = () => {
-        handleFilterSearch({ filterColumn, filterOperation, filterValue });
-    };
+    // const handleApplyFilters = () => {
+    //     handleFilterSearch({ filterColumn, filterOperation, filterValue });
+    // };
 
     const handleLoadDataClick = () => {
         setIsLoading(true);
@@ -354,6 +390,69 @@ const PurchaseOrderTable = ({
         console.log("Export selected rows:", Array.from(selectedRows));
     };
 
+    const handleDuplicatePurchaseOrder = (value) => {
+        const dataSelected = getSelectedRowsData();
+        console.log('dataSelected Edit:', dataSelected);
+
+        if (dataSelected.length > 1) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Multiple Rows Selected',
+                text: 'Please select only one row to edit.',
+                confirmButtonText: 'OK',
+            });
+            return; // Exit the function if multiple rows are selected
+        }
+
+        // Get the current user's userId
+        const userId = sessionStorage.getItem('userId');
+        console.log('checker:', checker);
+
+        // Check if status_request is 'IN_PROCESS' and userId matches created_by
+        if (
+            dataSelected[0].STATUS_REQUEST === 'IN_PROCESS' &&
+            (!checker || userId !== dataSelected[0].REQUESTOR || dataSelected[0].STATUS === 'APPROVED')) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Edit Restricted',
+                text: 'You cannot edit this request while it is "IN_PROCESS".',
+                confirmButtonText: 'OK',
+            });
+            return; // Exit the function if the condition is met
+        }
+
+        setDuplicateFlag(true); // Open the edit form or process
+        duplicatePurchaseOrder(true);
+        selectedData(dataSelected); // Pass the selected data for further processing
+    };
+
+
+    const tableHeaders = [
+        { value: "PO_NUMBER", label: "PO Number" },
+        { value: "CREATED_BY", label: "Created By" },
+        { value: "ORDER_DATE", label: "Order Date" },
+        { value: "REQUEST_DATE", label: "Request Date" },
+        { value: "DESCRIPTION", label: "Notes" },
+        { value: "TOTAL_AMOUNT", label: "Total Amount" },
+        { value: "END_TO_END_ID", label: "End To End Id" },
+        { value: "STATUS_PO", label: "Status PO" },
+        { value: "STATUS_WORKFLOW", label: "Status Workflow" },
+
+        // { value: "DOC_REFF", label: "Doc. Reference" },
+        // { value: "FORM_TO", label: "To" },
+        // { value: "TO_ADDRESS", label: "To Address" },
+        // { value: "SHIP_TO", label: "Ship To" },
+        // { value: "SHIP_TO_ADDRESS", label: "Ship To Address" },
+        // { value: "BILL_TO", label: "Bill To" },
+        // { value: "BILL_TO_ADDRESS", label: "Bill To Address" },
+        // { value: "TERM_CONDITIONS", label: "Terms & Conditions" },
+        // { value: "SUB_TOTAL", label: "Subtotal" },
+        // { value: "DISCOUNT", label: "Discount" },
+        // { value: "SUB_TOTAL_AFTER_DISCOUNT", label: "Subtotal After Discount" },
+        // { value: "TOTAL_PPN", label: "Total PPN" },
+        
+    ];
+
     return (
         <div>
             <div className="card card-default">
@@ -389,6 +488,9 @@ const PurchaseOrderTable = ({
                                 </button> */}
                                 {selectedRows.size > 0 && (
                                     <>
+                                        <button type="button" className="btn btn-default" onClick={handleDuplicatePurchaseOrder}>
+                                            <FaClone /> Duplicate
+                                        </button>
                                         <button type="button" className="btn btn-default" onClick={handleEditPurchaseOrder}>
                                             <FaEdit /> Edit
                                         </button>
@@ -427,62 +529,67 @@ const PurchaseOrderTable = ({
                 </div>
                 {isFilterOpen && (
                     <div className="card-body">
-                        <form className="row">
-                            <div className="col-md-4 mb-3">
-                                <select
-                                    className="form-control"
-                                    value={filterColumn}
-                                    onChange={(e) => setFilterColumn(e.target.value)}
-                                >
-                                    <option value="">Select a column</option>
-                                    <option value="PO_NUMBER">PO Number</option>
-                                    <option value="STATUS_PO">Status PO</option>
-                                    <option value="DOC_REFF">Doc. Refference</option>
-                                    <option value="DOC_REFF_NO">Doc. Refference Number</option>
-                                    <option value="CUSTOMER">Customer</option>
-                                    <option value="REQUESTOR">Requestor</option>
-                                    <option value="DEPARTMENT">Department</option>
-                                    <option value="PROJECT">Project</option>
-                                    <option value="REQUEST_DAE">Request Date</option>
-                                    <option value="VENDOR">Vendor</option>
-                                    <option value="ORDER_DATE">Order Date</option>
-                                    <option value="CREATED_BY">Created By</option>
-                                    <option value="APPROVED_BY">Approved By</option>
-                                    <option value="FORM_TO">To</option>
-                                    <option value="TO_ADDRESS">To Address</option>
-                                    <option value="SHIP_TO">Ship To</option>
-                                    <option value="SHIP_TO_ADDRESS">Ship To Address</option>
-                                    <option value="BILL_TO">Bill To</option>
-                                    <option value="BILL_TO_ADDRESS">Bill To Address</option>
-                                    <option value="TERM_CONDITIONS">Terms and Conditions</option>
-                                    <option value="DESCRIPTION">Notes</option>
-                                    <option value="DISCOUNT">Discount</option>
-                                    <option value="SUB_TOTAL">Sub Total</option>
-                                    <option value="TOTAL_PPN">Total PPN</option>
-                                    <option value="TOTAL_AMOUNT">Total Amount</option>    
-                                </select>
+                        <div className="row">
+                            <div className="col-md-12">
+                                <a className="btn btn-success btn-sm float-right" onClick={handleAddFilter}>
+                                    <i className="fas fa-plus"></i> Add Row
+                                </a>
                             </div>
-                            <div className="col-md-4 mb-3">
-                                <select
-                                    className="form-control"
-                                    value={filterOperation}
-                                    onChange={(e) => setFilterOperation(e.target.value)}
-                                >
-                                    <option value="">Select filter</option>
-                                    <option value="EQUAL">Equal</option>
-                                    <option value="NOTEQUAL">Not Equal</option>
-                                    <option value="LIKE">Contains</option>
-                                </select>
-                            </div>
-                            <div className="col-md-4 mb-3">
-                                <input
-                                    type="text"
-                                    className="form-control"
-                                    placeholder="Enter value"
-                                    value={filterValue}
-                                    onChange={(e) => setFilterValue(e.target.value)}
-                                />
-                            </div>
+                        </div>
+                        <form>
+                            {filters.map((filter, index) => (
+                                <div className="row mb-3" key={index}>
+                                    <div className="col-md-3">
+                                        <select
+                                            className="form-control"
+                                            value={filter.column}
+                                            onChange={(e) =>
+                                                handleFilterChange(index, "column", e.target.value)
+                                            }
+                                        >
+                                            <option value="">Select a column</option>
+                                            {tableHeaders.map(header => (
+                                                <option key={header.value} value={header.value}>
+                                                    {header.label}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                    <div className="col-md-3">
+                                        <select
+                                            className="form-control"
+                                            value={filter.operation}
+                                            onChange={(e) =>
+                                                handleFilterChange(index, "operation", e.target.value)
+                                            }
+                                        >
+                                            <option value="LIKE">Contains</option>
+                                            <option value="EQUAL">Equal</option>
+                                            <option value="NOTEQUAL">Not Equal</option>
+                                        </select>
+                                    </div>
+                                    <div className="col-md-3">
+                                        <input
+                                            type="text"
+                                            className="form-control"
+                                            placeholder="Enter value"
+                                            value={filter.value}
+                                            onChange={(e) =>
+                                                handleFilterChange(index, "value", e.target.value)
+                                            }
+                                        />
+                                    </div>
+                                    <div className="col-md-3 d-flex align-items-center">
+                                        <button
+                                            type="button"
+                                            className="btn btn-danger"
+                                            onClick={() => handleRemoveFilter(index)}
+                                        >
+                                            <i className="fas fa-trash"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            ))}
                         </form>
                         <div className="d-flex justify-content-end align-items-center mt-3">
                             <button className="btn btn-secondary mr-2" onClick={handleResetFilters}>
@@ -506,26 +613,9 @@ const PurchaseOrderTable = ({
                                             checked={selectedRows.size === dataTable.length && dataTable.length > 0}
                                         />
                                     </th>
-                                    <th>End To End Id</th>
-                                    <th>PO Number</th>
-                                    <th>Status PO</th>
-                                    <th>Doc. Refference</th>
-                                    <th>Order Date</th>
-                                    <th>Request Date</th>
-                                    <th>Created By</th>
-                                    <th>To</th>
-                                    <th>To Address</th>
-                                    <th>Ship To</th>
-                                    <th>Ship To Address</th>
-                                    <th>Bill To</th>
-                                    <th>Bill To Address</th>
-                                    <th>Terms & Conditions</th>
-                                    <th>Notes</th>
-                                    <th>Subtotal</th>
-                                    <th>Discount</th>
-                                    <th>Subtotal After Discount</th>
-                                    <th>Total PPN</th>
-                                    <th>Total Amount</th>
+                                   {tableHeaders.map(header => (
+                                    <th>{header.label}</th>
+                                   ))}
                                 </tr>
                             </thead>
                             <tbody>
@@ -556,53 +646,11 @@ const PurchaseOrderTable = ({
                                                     onChange={(e) => handleCheckboxSelect(e, item.ID)}
                                                 />
                                             </td>
-                                            <td>{item.ENDTOENDID}</td>
-                                            <td>{item.PO_NUMBER}</td>
-                                            <td>{item.STATUS_PO}</td>
-                                            <td>{item.DOC_REFF}</td>
+                                            <td>{item.PO_NUMBER}</td>               
+                                            <td>{item.CREATED_BY}</td>              
                                             <td>{dateFormat(item.ORDER_DATE)}</td> 
                                             <td>{dateFormat(item.REQUEST_DATE)}</td> 
-                                            <td>{item.CREATED_BY}</td>
-                                            <td>{item.FORM_TO}</td> 
-                                            <td>{item.TO_ADDRESS}</td> 
-                                            <td>{item.SHIP_TO}</td> 
-                                            <td>{item.SHIP_TO_ADDRESS}</td> 
-                                            <td>{item.BILL_TO}</td> 
-                                            <td>{item.BILL_TO_ADDRESS}</td> 
-                                            <td>{item.TERM_CONDITIONS}</td> 
-                                            <td>{item.DESCRIPTION}</td> 
-                                            <td>
-                                                <NumericFormat
-                                                    value={item.TOTAL_BEFORE_DISCOUNT}
-                                                    displayType="text"
-                                                    thousandSeparator=","
-                                                    prefix="Rp "
-                                                />
-                                            </td>
-                                            <td>
-                                                <NumericFormat
-                                                    value={item.DISCOUNT}
-                                                    displayType="text"
-                                                    thousandSeparator=","
-                                                    prefix="Rp "
-                                                />
-                                            </td>
-                                            <td>
-                                                <NumericFormat
-                                                    value={item.TOTAL_AFTER_DISCOUNT}
-                                                    displayType="text"
-                                                    thousandSeparator=","
-                                                    prefix="Rp "
-                                                />
-                                            </td>
-                                            <td>
-                                                <NumericFormat
-                                                    value={item.TOTAL_AMOUNT_PPN}
-                                                    displayType="text"
-                                                    thousandSeparator=","
-                                                    prefix="Rp "
-                                                />
-                                            </td>
+                                            <td>{item.DESCRIPTION}</td>             
                                             <td>
                                                 <NumericFormat
                                                     value={item.TOTAL_AMOUNT}
@@ -610,7 +658,10 @@ const PurchaseOrderTable = ({
                                                     thousandSeparator=","
                                                     prefix="Rp "
                                                 />
-                                            </td>
+                                            </td>                                 
+                                            <td>{item.ENDTOENDID}</td>
+                                            <td>{item.STATUS_PO}</td>                
+                                            <td>{item.STATUS}</td>
                                         </tr>
                                     ))
                                 )}
@@ -650,6 +701,10 @@ const PurchaseOrderTable = ({
                                         <div className="col-md-8">{selectedRowData.STATUS_PO}</div>
                                     </div>
                                     <div className="row mb-3">
+                                        <div className="col-md-4 font-weight-bold">Status Workflow:</div>
+                                        <div className="col-md-8">{selectedRowData.STATUS}</div>
+                                    </div>
+                                    <div className="row mb-3">
                                         <div className="col-md-4 font-weight-bold">Doc. Reference:</div>
                                         <div className="col-md-8">{selectedRowData.DOC_REFF}</div>
                                     </div>
@@ -664,6 +719,10 @@ const PurchaseOrderTable = ({
                                     <div className="row mb-3">
                                         <div className="col-md-4 font-weight-bold">Created By:</div>
                                         <div className="col-md-8">{selectedRowData.CREATED_BY}</div>
+                                    </div>
+                                    <div className="row mb-3">
+                                        <div className="col-md-4 font-weight-bold">Vendor:</div>
+                                        <div className="col-md-8">{selectedRowData.VENDOR}</div>
                                     </div>
                                     <div className="row mb-3">
                                         <div className="col-md-4 font-weight-bold">To:</div>
@@ -760,7 +819,6 @@ const PurchaseOrderTable = ({
                                             <tr>
                                                <th>Doc Reff Number</th>
                                                <th>Doc Source</th>
-                                               <th>Vendor</th>
                                                <th>Company</th>
                                                <th>Project</th>
                                                <th>Project Contract Number</th>
@@ -787,7 +845,6 @@ const PurchaseOrderTable = ({
                                                     <tr key={detail.ID}>
                                                         <td>{detail.doc_reff_no}</td>
                                                         <td>{detail.doc_source}</td>
-                                                        <td>{detail.vendor}</td>
                                                         <td>{detail.company}</td>
                                                         <td>{detail.project}</td>
                                                         <td>{detail.project_contract_number}</td>
