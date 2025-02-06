@@ -23,6 +23,8 @@ import UpdateStatusService from "../service/UpdateStatusService";
 const AddPurchaseExpanseVoucher = ({ setIsAddingNewPurchaseExpanse, setIsEditingPurchaseExpanse, handleRefresh, index, item, selectedData }) => {
   const headers = getToken();
   const branchId = getBranch();
+  const userId = sessionStorage.getItem("userId");
+  const idUser = sessionStorage.getItem("id");
   const [voucher_number, setVoucherNumber] = useState("");
   const [voucher_date, setVoucherDate] = useState(new Date().toISOString().split("T")[0]);
   const [bank_name, setBankName] = useState("");
@@ -147,6 +149,16 @@ const AddPurchaseExpanseVoucher = ({ setIsAddingNewPurchaseExpanse, setIsEditing
   const [discount, setDiscount] = useState(0);
   const [tax_ppn_royalty_option, setTaxPpnRoyaltyOption] = useState([]);
   const [isSubmited, setIsSubmited] = useState(false);
+  const [taxTypeIncludeOptions, setTaxTypeIncludeOptions] = useState([]);
+  const [taxTypeExcludeOptions, setTaxTypExcludeeOptions] = useState([]);
+  const [taxTypeIncludepphOptions, setTaxTypeIncludePphOptions] = useState([]);
+  const [taxTypeExcludepphOptions, setTaxTypExcludeePphOptions] = useState([]);
+
+  const [bank_id, setBankId] = useState('');
+  const create_by_id = parseInt(idUser);
+  const [paid_to_id, setPaidToId] = useState('');
+  const [currency_id, setCurrencyId] = useState('');
+  
   const authToken = headers;
 
   const [inputWidth, setInputWidth] = useState(100);
@@ -166,8 +178,14 @@ const AddPurchaseExpanseVoucher = ({ setIsAddingNewPurchaseExpanse, setIsEditing
             setVoucherDate(data.voucher_date);
             setPaymentSource(data.payment_source);
             setBankName(data.bank_name);
+            setBankId(data.bank_id);
+            // const selectedBankOption = bankOptions.find((option) => option.id === data.bank_id);
+            // setSelectedBankName(selectedBankOption); // Set the selected paid to 
             // setSelectedBankName(data.bank_name);
             setPayTo(data.paid_to);
+            setPaidToId(data.paid_to_id); // Set the paid to ID
+            // const selectedPaidToOption = paidToOptions.find((option) => option.id === data.paid_to_id);
+            // setSelectedPaidTo(selectedPaidToOption); // Set the selected paid to 
             setAccountBank(data.account_bank);
             // setSelectedPaidTo(data.paid_to);
             setNumberCheckGiro(data.number_check_giro);
@@ -176,20 +194,131 @@ const AddPurchaseExpanseVoucher = ({ setIsAddingNewPurchaseExpanse, setIsEditing
             setDueDate(data.due_date);
             setTaxInvoiceNumber(data.tax_invoice_number);
             setCurrency(data.currency);
+            setCurrencyId(data.currency_id); // Set the currency ID
+            // const selectedCurrencyOption = currencyOptions.find((option) => option.id === data.currency_id);
+            // setSelectedCurrency(selectedCurrencyOption); // Set the selected currency   
             setExchangeRateBank(data.exchange_rate);
             // setSelectedCurrency(data.currency);
             // setProject(data.project);
-            // if (data.payment_term) {
-            //   setPaymentTerm(data.payment_term);
-            // } else {
-            //   console.log("payment_term not found in response data");
-            // }
-
             setDescription(data.description);
             setSelectedTaxType(data.tax_ppn_type); // For PPN Type
             setSelectedTaxPphType(data.tax_pph_type); // For PPh Type
             // setTotalTaxBase(data.total_tax_base);
-            setTaxRate(data.tax_rate);
+            setTaxRate(data.tax_rate);         
+
+            //buat paid_to edit
+            LookupParamService.fetchLookupDataView("VOUC_VIEWVCBANK", authToken, branchId)
+            .then((Data) => {
+              console.log("Paid to lookup data:", Data);
+
+              // Transform and map currency data to options
+              const transformedPaidToData = Data.data.map((item) =>
+                Object.keys(item).reduce((acc, key) => {
+                  acc[key.toUpperCase()] = item[key];
+                  return acc;
+                }, {})
+              );
+
+              const paidToOptions = transformedPaidToData.map((item) => ({
+                id: item.ID,
+                value: item.NAME,
+                label: item.NAME,
+              }));
+
+              setPaidToOptions(paidToOptions); // Set currency options to state
+              if (selectedData) {
+                const selectedPaidTo = paidToOptions.find((option) => option.id === selectedData[0].PAID_TO_ID || "");
+                setSelectedPaidTo(selectedPaidTo || null);
+                setPayTo(selectedPaidTo.value);
+                setPaidToId(selectedPaidTo.id);
+              } else if (!selectedData) {
+                // const defaultPaidTo = PaidToOptions.find((option) => option.id === null);
+                setSelectedPaidTo(selectedPaidTo || null);
+                setPayTo(selectedPaidTo.value);
+                setPaidToId(selectedPaidTo.id);
+              }
+            })
+            .catch((error) => {
+              console.error("Failed to fetch paid_to lookup:", error);
+            });
+
+
+             //buat Bank edit
+             LookupParamService.fetchLookupDataView("MSDT_FORMBNCS", authToken, branchId)
+             .then((BankData) => {
+               console.log("Bank lookup data:", BankData);
+ 
+               // Transform and map currency data to options
+               const transformedBankData = BankData.data.map((item) =>
+                 Object.keys(item).reduce((acc, key) => {
+                   acc[key.toUpperCase()] = item[key];
+                   return acc;
+                 }, {})
+               );
+ 
+               const bankOptions = transformedBankData 
+               .map((item) => ({
+                value: item.BANK_NAME,
+                label: item.BANK_NAME,
+                id: item.ID,
+                bank_account: item.BANK_ACCOUNT,
+               }));
+ 
+               setBankOptions(bankOptions); // Set currency options to state
+               if (selectedData) {
+                 const selectedBankName = bankOptions.find((option) => option.id === selectedData[0].BANK_ID || "");
+                 setSelectedBankName(selectedBankName || null);
+                 setBankName(selectedBankName.value);
+                 setBankId(selectedBankName.id);
+                //  setAccountBank(selectedBankName.value);
+               } else if (!selectedData) {
+                //  const defaultBankTo = bankOptions.find((option) => option.id === null);
+                 setSelectedBankName(selectedBankName || null);
+                 setBankName(selectedBankName.value);
+                 setBankId(selectedBankName.id);
+                //  setAccountBank(selectedBankName.value);
+               }
+             })
+             .catch((error) => {
+               console.error("Failed to fetch bank lookup:", error);
+             });
+
+
+            LookupParamService.fetchLookupDataView("MSDT_FORMCCY", authToken, branchId)
+            .then((currencyData) => {
+              console.log("Currency lookup data:", currencyData);
+
+              // Transform and map currency data to options
+              const transformedCurrencyData = currencyData.data.map((item) =>
+                Object.keys(item).reduce((acc, key) => {
+                  acc[key.toUpperCase()] = item[key];
+                  return acc;
+                }, {})
+              );
+
+              const currencyOptions = transformedCurrencyData.map((item) => ({
+                id: item.ID,
+                value: item.CODE,
+                label: item.CODE,
+              }));
+
+              setCurrencyOptions(currencyOptions); // Set currency options to state
+              if (selectedData) {
+                const selectCurrency = currencyOptions.find((option) => option.id === selectedData[0].CURRENCY_ID || "");
+                setSelectedCurrency(selectCurrency || null);
+                setCurrency(selectCurrency.value);
+                setCurrencyId(selectCurrency.id);
+              } else if (!selectedData) {
+                const defaultCurrency = currencyOptions.find((option) => option.id === 61);
+                setSelectedCurrency(defaultCurrency);
+                setCurrencyId(defaultCurrency.id);
+                setCurrency(defaultCurrency.value);
+              }
+            })
+            .catch((error) => {
+              console.error("Failed to fetch currency lookup:", error);
+            });
+
           } else {
             console.log("No data found");
           }
@@ -235,6 +364,7 @@ const AddPurchaseExpanseVoucher = ({ setIsAddingNewPurchaseExpanse, setIsEditing
               const options = transformedData
                 .filter((item) => item.TAX_TYPE === "PPh")
                 .map((item) => ({
+                  id: item.ID,
                   value: item.NAME,
                   label: item.NAME,
                   RATE: item.RATE,
@@ -244,17 +374,59 @@ const AddPurchaseExpanseVoucher = ({ setIsAddingNewPurchaseExpanse, setIsEditing
               const optionsPpn = transformedData
                 .filter((item) => item.TAX_TYPE === "PPN")
                 .map((item) => ({
+                  id: item.ID,
                   value: item.NAME,
                   label: item.NAME,
                   RATE: item.RATE,
                 }));
               setTaxPpnTypeOption(optionsPpn);
 
-              const optionsPpnRoyalty = transformedData
-                .filter((item) => item.TAX_TYPE === "PPN Royalty")
+              const IncludeOptions = transformedData
+                .filter((item) => item.TAX_TYPE === "PPN" && item.BASE_TAX_FLAG === true && (item.TAX_TYPE_USE === "Purchase" || item.TAX_TYPE_USE === "All") && item.ACTIVE === true)
                 .map((item) => ({
                   value: item.NAME,
                   label: item.NAME,
+                  RATE: item.RATE,
+                  id: item.ID,
+                }));
+              setTaxTypeIncludeOptions(IncludeOptions);
+
+              const ExcludeOptions = transformedData
+                .filter((item) => item.TAX_TYPE === "PPN" && item.BASE_TAX_FLAG === false && (item.TAX_TYPE_USE === "Purchase" || item.TAX_TYPE_USE === "All") && item.ACTIVE === true)
+                .map((item) => ({
+                  value: item.NAME,
+                  label: item.NAME,
+                  RATE: item.RATE,
+                  id: item.ID,
+                }));
+              setTaxTypExcludeeOptions(ExcludeOptions);
+
+              const IncludepphOptions = transformedData
+                .filter((item) => item.TAX_TYPE === "PPh" && item.BASE_TAX_FLAG === true && (item.TAX_TYPE_USE === "Purchase" || item.TAX_TYPE_USE === "All") && item.ACTIVE === true)
+                .map((item) => ({
+                  value: item.NAME,
+                  label: item.NAME,
+                  RATE: item.RATE,
+                  id: item.ID,
+                }));
+              setTaxTypeIncludePphOptions(IncludepphOptions);
+
+              const ExcludepphOptions = transformedData
+                .filter((item) => item.TAX_TYPE === "PPh" && item.BASE_TAX_FLAG === false && (item.TAX_TYPE_USE === "Purchase" || item.TAX_TYPE_USE === "All") && item.ACTIVE === true)
+                .map((item) => ({
+                  value: item.NAME,
+                  label: item.NAME,
+                  RATE: item.RATE,
+                  id: item.ID,
+                }));
+              setTaxTypExcludeePphOptions(ExcludepphOptions);
+
+              const optionsPpnRoyalty = transformedData
+                .filter((item) => item.ROYALTY === true)
+                .map((item) => ({
+                  value: item.NAME,
+                  label: item.NAME,
+                  id: item.ID,
                   RATE: item.RATE,
                 }));
               setTaxPpnRoyaltyOption(optionsPpnRoyalty);
@@ -279,6 +451,7 @@ const AddPurchaseExpanseVoucher = ({ setIsAddingNewPurchaseExpanse, setIsEditing
               const productOptions = transformedProductData.map((item) => ({
                 value: item.NAME,
                 label: item.NAME,
+                id: item.ID,
                 expenseAccount: item.EXPENSE_ACCOUNT,
                 product_account: item.PRODUCT_ACCOUNT,
               }));
@@ -299,9 +472,11 @@ const AddPurchaseExpanseVoucher = ({ setIsAddingNewPurchaseExpanse, setIsEditing
                   //console.log('Transformed data:', transformedData);
 
                   const options = transformedData.map((item) => ({
+                    id: item.ID,
                     value: item.NAME,
                     label: item.NAME,
                     project_contract_number: item.CONTRACT_NUMBER,
+                    customer: item.CUSTOMER,
                   }));
                   setProjectOptions(options);
 
@@ -321,6 +496,7 @@ const AddPurchaseExpanseVoucher = ({ setIsAddingNewPurchaseExpanse, setIsEditing
                       const employeeOptions = transformedEmployeeData.map((item) => ({
                         value: item.NAME,
                         label: item.NAME,
+                        id: item.ID,
                       }));
                       setEmployeeOptions(employeeOptions); // Set product options to state
 
@@ -410,6 +586,7 @@ const AddPurchaseExpanseVoucher = ({ setIsAddingNewPurchaseExpanse, setIsEditing
             .map((item) => ({
               value: item.BANK_NAME,
               label: item.BANK_NAME,
+              id: item.ID,
               bank_account: item.BANK_ACCOUNT,
             }));
           setBankOptions(options);
@@ -446,15 +623,18 @@ const AddPurchaseExpanseVoucher = ({ setIsAddingNewPurchaseExpanse, setIsEditing
             value: item.INVOICE_NUMBER,
             label: item.INVOICE_NUMBER,
             product: item.PRODUCT,
+            product_id: item.PRODUCT,
             currency: item.CURRENCY,
             // quantity: item.QUANTITY,
             unit_price: item.UNIT_PRICE,
             total_price: item.TOTAL_PRICE,
             // product_note: item.PRODUCT_NOTE,
             tax_ppn: item.TAX_PPN,
+            tax_ppn_id: item.TAX_PPN_ID,
             tax_ppn_rate: item.TAX_PPN_RATE,
             tax_ppn_amount: item.TAX_PPN_AMOUNT,
             tax_pph: item.TAX_PPH,
+            tax_pph_id: item.TAX_PPH_ID,
             tax_pph_rate: item.TAX_PPH_RATE,
             tax_pph_amount: item.TAX_PPH_AMOUNT,
             tax_base: item.TAX_BASE,
@@ -463,10 +643,12 @@ const AddPurchaseExpanseVoucher = ({ setIsAddingNewPurchaseExpanse, setIsEditing
             tax_exchange_rate: item.TAX_EXCHANGE_RATE,
             total_price_idr: item.TOTAL_PRICE_IDR,
             project: item.PROJECT,
+            project_id: item.PROJECT_ID,
             project_contract_number: item.PROJECT_CONTRACT_NUMBER,
             customer: item.CUSTOMER,
             vendor: item.VENDOR,
             department: item.DEPARTEMENT,
+            department_id: item.DEPARTEMENT_ID,
             tax_invocie_number: item.TAX_INVOICE_NUMBER,
             cod_cor_skb: item.COD_COR_SKB,
             doc_source: item.DOC_SOURCE,
@@ -498,6 +680,7 @@ const AddPurchaseExpanseVoucher = ({ setIsAddingNewPurchaseExpanse, setIsEditing
           const options = transformedData.map((item) => ({
             value: item.NAME,
             label: item.NAME,
+            id: item.ID,
             expenseAccount: item.EXPENSE_ACCOUNT,
             product_account: item.PRODUCT_ACCOUNT,
           }));
@@ -547,7 +730,9 @@ const AddPurchaseExpanseVoucher = ({ setIsAddingNewPurchaseExpanse, setIsEditing
           const options = transformedData.map((item) => ({
             value: item.NAME,
             label: item.NAME,
+            id: item.ID,
             project_contract_number: item.CONTRACT_NUMBER,
+            customer: item.CUSTOMER,
           }));
           setProjectOptions(options);
         })
@@ -556,28 +741,28 @@ const AddPurchaseExpanseVoucher = ({ setIsAddingNewPurchaseExpanse, setIsEditing
         });
 
       //buat project
-      LookupParamService.fetchLookupData("MSDT_FORMPRJT", authToken, branchId)
-        .then((data) => {
-          console.log("Project lookup data:", data);
+      // LookupParamService.fetchLookupData("MSDT_FORMPRJT", authToken, branchId)
+      //   .then((data) => {
+      //     console.log("Project lookup data:", data);
 
-          // Transform keys to uppercase directly in the received data
-          const transformedData = data.data.map((item) =>
-            Object.keys(item).reduce((acc, key) => {
-              acc[key.toUpperCase()] = item[key];
-              return acc;
-            }, {})
-          );
-          //console.log('Transformed data:', transformedData);
+      //     // Transform keys to uppercase directly in the received data
+      //     const transformedData = data.data.map((item) =>
+      //       Object.keys(item).reduce((acc, key) => {
+      //         acc[key.toUpperCase()] = item[key];
+      //         return acc;
+      //       }, {})
+      //     );
+      //     //console.log('Transformed data:', transformedData);
 
-          const options = transformedData.map((item) => ({
-            value: item.CONTRACT_NUMBER,
-            label: item.CONTRACT_NUMBER,
-          }));
-          setProjectContractOptions(options);
-        })
-        .catch((error) => {
-          console.error("Failed to fetch project number lookup:", error);
-        });
+      //     const options = transformedData.map((item) => ({
+      //       value: item.CONTRACT_NUMBER,
+      //       label: item.CONTRACT_NUMBER,
+      //     }));
+      //     setProjectContractOptions(options);
+      //   })
+      //   .catch((error) => {
+      //     console.error("Failed to fetch project number lookup:", error);
+      //   });
 
       //buat Paid_to
       LookupParamService.fetchLookupDataView("VOUC_VIEWVCBANK", authToken, branchId)
@@ -596,6 +781,8 @@ const AddPurchaseExpanseVoucher = ({ setIsAddingNewPurchaseExpanse, setIsEditing
           const options = transformedData.map((item) => ({
             value: item.NAME,
             label: item.NAME,
+            id: item.ID,
+
           }));
           setPaidToOptions(options);
           if (selectedData?.[0]?.PAID_TO) {
@@ -606,8 +793,7 @@ const AddPurchaseExpanseVoucher = ({ setIsAddingNewPurchaseExpanse, setIsEditing
               setSelectedPaidTo(matchingOption);
               setPayTo(matchingOption.value);
             }
-          }
-          
+          }      
         })
         .catch((error) => {
           console.error("Failed to fetch paid to lookup:", error);
@@ -646,28 +832,28 @@ const AddPurchaseExpanseVoucher = ({ setIsAddingNewPurchaseExpanse, setIsEditing
         });
 
       //buat customer
-      LookupParamService.fetchLookupData("MSDT_FORMPRJT", authToken, branchId)
-        .then((data) => {
-          console.log("Customer lookup data:", data);
+      // LookupParamService.fetchLookupData("MSDT_FORMPRJT", authToken, branchId)
+      //   .then((data) => {
+      //     console.log("Customer lookup data:", data);
 
-          // Transform keys to uppercase directly in the received data
-          const transformedData = data.data.map((item) =>
-            Object.keys(item).reduce((acc, key) => {
-              acc[key.toUpperCase()] = item[key];
-              return acc;
-            }, {})
-          );
-          //console.log('Transformed data:', transformedData);
+      //     // Transform keys to uppercase directly in the received data
+      //     const transformedData = data.data.map((item) =>
+      //       Object.keys(item).reduce((acc, key) => {
+      //         acc[key.toUpperCase()] = item[key];
+      //         return acc;
+      //       }, {})
+      //     );
+      //     //console.log('Transformed data:', transformedData);
 
-          const options = transformedData.map((item) => ({
-            value: item.CUSTOMER,
-            label: item.CUSTOMER,
-          }));
-          setCustomerOptions(options);
-        })
-        .catch((error) => {
-          console.error("Failed to fetch Customer lookup:", error);
-        });
+      //     const options = transformedData.map((item) => ({
+      //       value: item.CUSTOMER,
+      //       label: item.CUSTOMER,
+      //     }));
+      //     setCustomerOptions(options);
+      //   })
+      //   .catch((error) => {
+      //     console.error("Failed to fetch Customer lookup:", error);
+      //   });
 
       //buat Department
       // LookupParamService.fetchLookupData("MSDT_FORMDPRT", authToken, branchId)
@@ -712,33 +898,78 @@ const AddPurchaseExpanseVoucher = ({ setIsAddingNewPurchaseExpanse, setIsEditing
             .map((item) => ({
               value: item.NAME,
               label: item.NAME,
+              id: item.ID,
               RATE: item.RATE,
             }));
           setTax_Pph_Type_Option(options);
-          console.log("Tax_PPh :", options);
-          const selectedTaxPphType = options.find((option) => option.value === selectedData[0].TAX_PPH);
-          setSelectedTaxPphType(selectedTaxPphType || null);
+          // console.log("Tax_PPh :", options);
+          // const selectedTaxPphType = options.find((option) => option.value === selectedData[0].TAX_PPH);
+          // setSelectedTaxPphType(selectedTaxPphType || null);
 
           const optionsPpn = transformedData
             .filter((item) => item.TAX_TYPE === "PPN")
             .map((item) => ({
               value: item.NAME,
               label: item.NAME,
+              id: item.ID,
               RATE: item.RATE,
             }));
           setTaxPpnTypeOption(optionsPpn);
-          console.log("Tax_PPN :", optionsPpn);
-          const selectedPPNOption = optionsPpn.find((option) => option.value === selectedData[0].TAX_PPN);
-          setSelectedTaxType(selectedPPNOption || null);
+          // console.log("Tax_PPN :", optionsPpn);
+          // const selectedPPNOption = optionsPpn.find((option) => option.value === selectedData[0].TAX_PPN);
+          // setSelectedTaxType(selectedPPNOption || null);
+
+          const IncludeOptions = transformedData
+                .filter((item) => item.TAX_TYPE === "PPN" && item.BASE_TAX_FLAG === true && (item.TAX_TYPE_USE === "Purchase" || item.TAX_TYPE_USE === "All") && item.ACTIVE === true)
+                .map((item) => ({
+                  value: item.NAME,
+                  label: item.NAME,
+                  RATE: item.RATE,
+                  id: item.ID,
+                }));
+              setTaxTypeIncludeOptions(IncludeOptions);
+
+              const ExcludeOptions = transformedData
+                .filter((item) => item.TAX_TYPE === "PPN" && item.BASE_TAX_FLAG === false && (item.TAX_TYPE_USE === "Purchase" || item.TAX_TYPE_USE === "All") && item.ACTIVE === true)
+                .map((item) => ({
+                  value: item.NAME,
+                  label: item.NAME,
+                  RATE: item.RATE,
+                  id: item.ID,
+                }));
+              setTaxTypExcludeeOptions(ExcludeOptions);
+
+              const IncludepphOptions = transformedData
+                .filter((item) => item.TAX_TYPE === "PPh" && item.BASE_TAX_FLAG === true && (item.TAX_TYPE_USE === "Purchase" || item.TAX_TYPE_USE === "All") && item.ACTIVE === true)
+                .map((item) => ({
+                  value: item.NAME,
+                  label: item.NAME,
+                  RATE: item.RATE,
+                  id: item.ID,
+                }));
+              setTaxTypeIncludePphOptions(IncludepphOptions);
+
+              const ExcludepphOptions = transformedData
+                .filter((item) => item.TAX_TYPE === "PPh" && item.BASE_TAX_FLAG === false && (item.TAX_TYPE_USE === "Purchase" || item.TAX_TYPE_USE === "All") && item.ACTIVE === true)
+                .map((item) => ({
+                  value: item.NAME,
+                  label: item.NAME,
+                  RATE: item.RATE,
+                  id: item.ID,
+                }));
+              setTaxTypExcludeePphOptions(ExcludepphOptions);
+
 
           const optionsPpnRoyalty = transformedData
-            .filter((item) => item.TAX_TYPE === "PPN Royalty")
+            .filter((item) => item.ROYALTY === true)
             .map((item) => ({
               value: item.NAME,
               label: item.NAME,
+              id: item.ID,
               RATE: item.RATE,
             }));
           setTaxPpnRoyaltyOption(optionsPpnRoyalty);
+          
         })
         .catch((error) => {
           console.error("Failed to fetch tax lookup:", error);
@@ -761,6 +992,7 @@ const AddPurchaseExpanseVoucher = ({ setIsAddingNewPurchaseExpanse, setIsEditing
           const options = transformedData.map((item) => ({
             value: item.CODE,
             label: item.CODE,
+            id: item.ID,
           }));
           setCurrencyOptions(options);
          
@@ -808,8 +1040,10 @@ const AddPurchaseExpanseVoucher = ({ setIsAddingNewPurchaseExpanse, setIsEditing
           //console.log('Transformed data:', transformedData);
 
           const options = transformedData.map((item) => ({
+            id: item.ID,
             value: item.NAME,
             label: item.NAME,
+            
           }));
           setProjectOptions(options);
           const selectedProjectOption = options.find((option) => option.value === selectedData[0].PROJECT);
@@ -860,6 +1094,7 @@ const AddPurchaseExpanseVoucher = ({ setIsAddingNewPurchaseExpanse, setIsEditing
           //console.log('Transformed data:', transformedData);
 
           const options = transformedData.map((item) => ({
+            id: item.ID,
             value: item.NAME,
             label: item.NAME,
           }));
@@ -889,6 +1124,7 @@ const AddPurchaseExpanseVoucher = ({ setIsAddingNewPurchaseExpanse, setIsEditing
           const options = transformedData.map((item) => ({
             value: item.NAME,
             label: item.NAME,
+            id: item.ID,
           }));
           setDepartmentOptions(options);
           console.log("Department :", options);
@@ -900,31 +1136,32 @@ const AddPurchaseExpanseVoucher = ({ setIsAddingNewPurchaseExpanse, setIsEditing
         });
 
       //buat customer
-      LookupParamService.fetchLookupData("MSDT_FORMCUST", authToken, branchId)
-        .then((data) => {
-          console.log("Customer lookup data:", data);
+      // LookupParamService.fetchLookupData("MSDT_FORMCUST", authToken, branchId)
+      //   .then((data) => {
+      //     console.log("Customer lookup data:", data);
 
-          // Transform keys to uppercase directly in the received data
-          const transformedData = data.data.map((item) =>
-            Object.keys(item).reduce((acc, key) => {
-              acc[key.toUpperCase()] = item[key];
-              return acc;
-            }, {})
-          );
-          //console.log('Transformed data:', transformedData);
+      //     // Transform keys to uppercase directly in the received data
+      //     const transformedData = data.data.map((item) =>
+      //       Object.keys(item).reduce((acc, key) => {
+      //         acc[key.toUpperCase()] = item[key];
+      //         return acc;
+      //       }, {})
+      //     );
+      //     //console.log('Transformed data:', transformedData);
 
-          const options = transformedData.map((item) => ({
-            value: item.NAME,
-            label: item.NAME,
-          }));
-          setCustomerOptions(options);
-          console.log("Customer :", customer);
-          const selectedCustomerOption = options.find((option) => option.value === selectedData[0].CUSTOMER);
-          setSelectedCustomer(selectedCustomerOption || null);
-        })
-        .catch((error) => {
-          console.error("Failed to fetch customer lookup:", error);
-        });
+      //     const options = transformedData.map((item) => ({
+      //       id: item.ID,
+      //       value: item.NAME,
+      //       label: item.NAME,
+      //     }));
+      //     setCustomerOptions(options);
+      //     console.log("Customer :", customer);
+      //     const selectedCustomerOption = options.find((option) => option.value === selectedData[0].CUSTOMER);
+      //     setSelectedCustomer(selectedCustomerOption || null);
+      //   })
+      //   .catch((error) => {
+      //     console.error("Failed to fetch customer lookup:", error);
+      //   });
     }
   }, [selectedData]);
 
@@ -1046,6 +1283,7 @@ const AddPurchaseExpanseVoucher = ({ setIsAddingNewPurchaseExpanse, setIsEditing
           .map((item) => ({
             value: item.BANK_NAME,
             label: item.BANK_NAME,
+            id: item.ID,
             bank_account: item.BANK_ACCOUNT,
           }));
         setBankOptions(options);
@@ -1134,6 +1372,7 @@ const AddPurchaseExpanseVoucher = ({ setIsAddingNewPurchaseExpanse, setIsEditing
 
         // const filteredData = transformedData.filter(item => item.STATUS_INVOICE === "IN_PROCESS");
         const options = transformedData.map((item) => ({
+          id: item.ID,
           value: item.INVOICE_NUMBER,
           label: item.INVOICE_NUMBER,
           invoice_status: item.INVOICE_STATUS,
@@ -1190,6 +1429,7 @@ const AddPurchaseExpanseVoucher = ({ setIsAddingNewPurchaseExpanse, setIsEditing
         const options = transformedData.map((item) => ({
           value: item.NAME,
           label: item.NAME,
+          id: item.ID,
           expenseAccount: item.EXPENSE_ACCOUNT,
           product_account: item.PRODUCT_ACCOUNT,
         }));
@@ -1239,7 +1479,9 @@ const AddPurchaseExpanseVoucher = ({ setIsAddingNewPurchaseExpanse, setIsEditing
         const options = transformedData.map((item) => ({
           value: item.NAME,
           label: item.NAME,
+          id: item.ID,
           project_contract_number: item.CONTRACT_NUMBER,
+          customer: item.CUSTOMER,
         }));
         setProjectOptions(options);
       })
@@ -1248,28 +1490,28 @@ const AddPurchaseExpanseVoucher = ({ setIsAddingNewPurchaseExpanse, setIsEditing
       });
 
     //buat project contract number
-    LookupParamService.fetchLookupData("MSDT_FORMPRJT", authToken, branchId)
-      .then((data) => {
-        console.log("Project lookup data:", data);
+    // LookupParamService.fetchLookupData("MSDT_FORMPRJT", authToken, branchId)
+    //   .then((data) => {
+    //     console.log("Project lookup data:", data);
 
-        // Transform keys to uppercase directly in the received data
-        const transformedData = data.data.map((item) =>
-          Object.keys(item).reduce((acc, key) => {
-            acc[key.toUpperCase()] = item[key];
-            return acc;
-          }, {})
-        );
-        //console.log('Transformed data:', transformedData);
+    //     // Transform keys to uppercase directly in the received data
+    //     const transformedData = data.data.map((item) =>
+    //       Object.keys(item).reduce((acc, key) => {
+    //         acc[key.toUpperCase()] = item[key];
+    //         return acc;
+    //       }, {})
+    //     );
+    //     //console.log('Transformed data:', transformedData);
 
-        const options = transformedData.map((item) => ({
-          value: item.CONTRACT_NUMBER,
-          label: item.CONTRACT_NUMBER,
-        }));
-        setProjectContractOptions(options);
-      })
-      .catch((error) => {
-        console.error("Failed to fetch project number lookup:", error);
-      });
+    //     const options = transformedData.map((item) => ({
+    //       value: item.CONTRACT_NUMBER,
+    //       label: item.CONTRACT_NUMBER,
+    //     }));
+    //     setProjectContractOptions(options);
+    //   })
+    //   .catch((error) => {
+    //     console.error("Failed to fetch project number lookup:", error);
+    //   });
 
     //buat Paid_to
     LookupParamService.fetchLookupDataView("VOUC_VIEWVCBANK", authToken, branchId)
@@ -1288,12 +1530,15 @@ const AddPurchaseExpanseVoucher = ({ setIsAddingNewPurchaseExpanse, setIsEditing
         const options = transformedData.map((item) => ({
           value: item.NAME,
           label: item.NAME,
+          id: item.ID,
+
         }));
         setPaidToOptions(options);
       })
       .catch((error) => {
         console.error("Failed to fetch paid to lookup:", error);
       });
+
 
     //buat vendor
     LookupParamService.fetchLookupData("MSDT_FORMCUST", authToken, branchId)
@@ -1328,7 +1573,7 @@ const AddPurchaseExpanseVoucher = ({ setIsAddingNewPurchaseExpanse, setIsEditing
       });
 
     //buat Customer
-    LookupParamService.fetchLookupData("MSDT_FORMPRJT", authToken, branchId)
+    LookupParamService.fetchLookupData("MSDT_FORMCUST", authToken, branchId)
       .then((data) => {
         console.log("Customer lookup data:", data);
 
@@ -1341,9 +1586,12 @@ const AddPurchaseExpanseVoucher = ({ setIsAddingNewPurchaseExpanse, setIsEditing
         );
         //console.log('Transformed data:', transformedData);
 
-        const options = transformedData.map((item) => ({
-          value: item.CUSTOMER,
-          label: item.CUSTOMER,
+        const options = transformedData
+        .filter((item) => item.ENTITY_TYPE === "Customer")
+        .map((item) => ({
+          id: item.ID,
+          value: item.NAME,
+          label: item.NAME,
         }));
         setCustomerOptions(options);
       })
@@ -1368,6 +1616,7 @@ const AddPurchaseExpanseVoucher = ({ setIsAddingNewPurchaseExpanse, setIsEditing
         const options = transformedData.map((item) => ({
           value: item.NAME,
           label: item.NAME,
+          id: item.ID,
         }));
         setDepartmentOptions(options);
       })
@@ -1392,6 +1641,7 @@ const AddPurchaseExpanseVoucher = ({ setIsAddingNewPurchaseExpanse, setIsEditing
         const options = transformedData.map((item) => ({
           value: item.CODE,
           label: item.CODE,
+          id: item.ID,
         }));
         setCurrencyOptions(options);
       })
@@ -1416,6 +1666,7 @@ const AddPurchaseExpanseVoucher = ({ setIsAddingNewPurchaseExpanse, setIsEditing
         const options = transformedData.map((item) => ({
           value: item.NAME,
           label: item.NAME,
+          id: item.ID,
         }));
         setEmployeeOptions(options);
       })
@@ -1447,7 +1698,7 @@ const AddPurchaseExpanseVoucher = ({ setIsAddingNewPurchaseExpanse, setIsEditing
     //   console.error("Failed to fetch project lookup:", error);
     // });
 
-    //tax PPN & tax PPh
+    //lookup tax PPN & tax PPh
     LookupParamService.fetchLookupDataView("MSDT_FORMTAX", authToken, branchId)
       .then((data) => {
         console.log("Currency lookup data:", data);
@@ -1466,6 +1717,7 @@ const AddPurchaseExpanseVoucher = ({ setIsAddingNewPurchaseExpanse, setIsEditing
           .map((item) => ({
             value: item.NAME,
             label: item.NAME,
+            id: item.ID,
             RATE: item.RATE,
           }));
         setTax_Pph_Type_Option(options);
@@ -1475,15 +1727,57 @@ const AddPurchaseExpanseVoucher = ({ setIsAddingNewPurchaseExpanse, setIsEditing
           .map((item) => ({
             value: item.NAME,
             label: item.NAME,
+            id: item.ID,
             RATE: item.RATE,
           }));
         setTaxPpnTypeOption(optionsPpn);
 
+        const IncludeOptions = transformedData
+        .filter((item) => item.TAX_TYPE === "PPN" && item.BASE_TAX_FLAG === true && (item.TAX_TYPE_USE === "Purchase" || item.TAX_TYPE_USE === "All") && item.ACTIVE === true)
+        .map((item) => ({
+          value: item.NAME,
+          label: item.NAME,
+          RATE: item.RATE,
+          id: item.ID,
+        }));
+      setTaxTypeIncludeOptions(IncludeOptions);
+
+      const ExcludeOptions = transformedData
+        .filter((item) => item.TAX_TYPE === "PPN" && item.BASE_TAX_FLAG === false && (item.TAX_TYPE_USE === "Purchase" || item.TAX_TYPE_USE === "All") && item.ACTIVE === true)
+        .map((item) => ({
+          value: item.NAME,
+          label: item.NAME,
+          RATE: item.RATE,
+          id: item.ID,
+        }));
+      setTaxTypExcludeeOptions(ExcludeOptions);
+
+      const IncludepphOptions = transformedData
+        .filter((item) => item.TAX_TYPE === "PPh" && item.BASE_TAX_FLAG === true && (item.TAX_TYPE_USE === "Purchase" || item.TAX_TYPE_USE === "All") && item.ACTIVE === true)
+        .map((item) => ({
+          value: item.NAME,
+          label: item.NAME,
+          RATE: item.RATE,
+          id: item.ID,
+        }));
+      setTaxTypeIncludePphOptions(IncludepphOptions);
+
+      const ExcludepphOptions = transformedData
+        .filter((item) => item.TAX_TYPE === "PPh" && item.BASE_TAX_FLAG === false && (item.TAX_TYPE_USE === "Purchase" || item.TAX_TYPE_USE === "All") && item.ACTIVE === true)
+        .map((item) => ({
+          value: item.NAME,
+          label: item.NAME,
+          RATE: item.RATE,
+          id: item.ID,
+        }));
+      setTaxTypExcludeePphOptions(ExcludepphOptions);
+
         const optionsPpnRoyalty = transformedData
-          .filter((item) => item.TAX_TYPE === "PPN Royalty")
+          .filter((item) => item.ROYALTY === true)
           .map((item) => ({
             value: item.NAME,
             label: item.NAME,
+            id: item.ID,
             RATE: item.RATE,
           }));
         setTaxPpnRoyaltyOption(optionsPpnRoyalty);
@@ -1492,6 +1786,7 @@ const AddPurchaseExpanseVoucher = ({ setIsAddingNewPurchaseExpanse, setIsEditing
         console.error("Failed to fetch currency lookup:", error);
       });
   }, []);
+  
 
   const handlePaymentTermChange = (selectedOption) => {
     setSelectedPaymentTerm(selectedOption);
@@ -1519,6 +1814,7 @@ const AddPurchaseExpanseVoucher = ({ setIsAddingNewPurchaseExpanse, setIsEditing
               );
 
               const productOptions = transformedProductData.map((item) => ({
+                id: item.ID,
                 value: item.NAME,
                 label: item.NAME,
                 expenseAccount: item.EXPENSE_ACCOUNT, // Include expense account field
@@ -1540,6 +1836,7 @@ const AddPurchaseExpanseVoucher = ({ setIsAddingNewPurchaseExpanse, setIsEditing
                   );
 
                   const currencyOptions = transformedCurrencyData.map((item) => ({
+                    id: item.ID,
                     value: item.CODE,
                     label: item.CODE,
                   }));
@@ -1583,6 +1880,7 @@ const AddPurchaseExpanseVoucher = ({ setIsAddingNewPurchaseExpanse, setIsEditing
                           const options = transformedData
                             .filter((item) => item.TAX_TYPE === "PPh")
                             .map((item) => ({
+                              id: item.ID,
                               value: item.NAME,
                               label: item.NAME,
                               RATE: item.RATE,
@@ -1592,6 +1890,7 @@ const AddPurchaseExpanseVoucher = ({ setIsAddingNewPurchaseExpanse, setIsEditing
                           const optionsPpn = transformedData
                             .filter((item) => item.TAX_TYPE === "PPN")
                             .map((item) => ({
+                              id: item.ID,
                               value: item.NAME,
                               label: item.NAME,
                               RATE: item.RATE,
@@ -1599,8 +1898,9 @@ const AddPurchaseExpanseVoucher = ({ setIsAddingNewPurchaseExpanse, setIsEditing
                           setTaxPpnTypeOption(optionsPpn);
 
                           const optionsPpnRoyalty = transformedData
-                            .filter((item) => item.TAX_TYPE === "PPN Royalty")
+                            .filter((item) => item.ROYALTY === true)
                             .map((item) => ({
+                              id: item.ID,
                               value: item.NAME,
                               label: item.NAME,
                               RATE: item.RATE,
@@ -1615,6 +1915,7 @@ const AddPurchaseExpanseVoucher = ({ setIsAddingNewPurchaseExpanse, setIsEditing
 
                       const updatedFetchedItems = fetchedItems.map((item) => {
                         const selectedProductOption = productOptions.find((option) => option.value === item.product);
+                        
                         return {
                           ...item,
                           purchase_invoice_number: item.invoice_number,
@@ -1708,10 +2009,11 @@ const AddPurchaseExpanseVoucher = ({ setIsAddingNewPurchaseExpanse, setIsEditing
   const handlePaidToChange = (selectedOption) => {
     setSelectedPaidTo(selectedOption);
     setPayTo(selectedOption ? selectedOption.value : "");
+    setPaidToId(selectedOption ? selectedOption.id : '');
 
     if (selectedOption) {
       // Fetch data for the selected "paid_to"
-      LookupService.fetchLookupData(`PURC_FORMPUINVC&filterBy=VENDOR&filterValue=${selectedOption.value}&operation=EQUAL&filterBy=INVOICE_STATUS&filterValue=IN_PROCESS&operation=EQUAL`, authToken, branchId)
+      LookupService.fetchLookupData(`PURC_FORMPUINVC&filterBy=VENDOR_ID&filterValue=${selectedOption.id}&operation=EQUAL&filterBy=INVOICE_STATUS&filterValue=IN_PROCESS&operation=EQUAL`, authToken, branchId)
         .then((response) => {
           const fetchedItems = response.data || [];
           console.log("Items fetched for Paid To:", fetchedItems);
@@ -1730,11 +2032,35 @@ const AddPurchaseExpanseVoucher = ({ setIsAddingNewPurchaseExpanse, setIsEditing
               const productOptions = transformedProductData.map((item) => ({
                 value: item.NAME,
                 label: item.NAME,
+                id: item.ID,
                 expenseAccount: item.EXPENSE_ACCOUNT, // Include expense account field
                 product_account: item.PRODUCT_ACCOUNT,
               }));
 
               setProductOptions(productOptions); // Set product options to state
+
+
+              LookupParamService.fetchLookupData("MSDT_FORMPRJT", authToken, branchId)
+            .then((projectData) => {
+              console.log("Product lookup data:", projectData);
+
+              const transformedProjectData = projectData.data.map((item) =>
+                Object.keys(item).reduce((acc, key) => {
+                  acc[key.toUpperCase()] = item[key];
+                  return acc;
+                }, {})
+              );
+
+              const projectOptions = transformedProjectData.map((item) => ({
+                value: item.NAME,
+                label: item.NAME,
+                id: item.ID,
+                project_contract_number: item.CONTRACT_NUMBER,
+                customer: item.CUSTOMER,
+              }));
+
+              setProjectOptions(projectOptions);
+
 
               // Fetch description, total amount, invoice date, and invoice_number_vendor from "PURC_FORMPUINVC"
               LookupParamService.fetchLookupData("PURC_FORMPUINVCD", authToken, branchId)
@@ -1749,19 +2075,23 @@ const AddPurchaseExpanseVoucher = ({ setIsAddingNewPurchaseExpanse, setIsEditing
                   );
 
                   const descriptionOptions = transformedDescriptionData.map((item) => ({
+                    id: item.ID,
                     value: item.INVOICE_NUMBER,
                     label: item.INVOICE_NUMBER,
                     invoice_status: item.INVOICE_STATUS,
                     product: item.PRODUCT,
+                    product_id: item.PRODUCT_ID,
                     currency: item.CURRENCY,
                     // quantity: item.QUANTITY,
                     unit_price: item.UNIT_PRICE,
                     total_price: item.TOTAL_PRICE,
                     // product_note: item.PRODUCT_NOTE,
                     tax_ppn: item.TAX_PPN,
+                    tax_ppn_id: item.TAX_PPN_ID,
                     tax_ppn_rate: item.TAX_PPN_RATE,
                     tax_ppn_amount: item.TAX_PPN_AMOUNT,
                     tax_pph: item.TAX_PPH,
+                    tax_pph_id: item.TAX_PPH_ID,
                     tax_pph_rate: item.TAX_PPH_RATE,
                     tax_pph_amount: item.TAX_PPH_AMOUNT,
                     tax_base: item.TAX_BASE,
@@ -1770,10 +2100,13 @@ const AddPurchaseExpanseVoucher = ({ setIsAddingNewPurchaseExpanse, setIsEditing
                     tax_exchange_rate: item.TAX_EXCHANGE_RATE,
                     total_price_idr: item.TOTAL_PRICE_IDR,
                     project: item.PROJECT,
+                    project_id: item.PROJECT_ID,
                     project_contract_number: item.PROJECT_CONTRACT_NUMBER,
                     customer: item.CUSTOMER,
+                    customer_id: item.CUSTOMER_ID,
                     vendor: item.VENDOR,
                     departement: item.DEPARTEMENT,
+                    department_id: item.DEPARTMENT_ID,
                     tax_invocie_number: item.TAX_INVOICE_NUMBER,
                     cod_cor_skb: item.COD_COR_SKB,
                     doc_source: item.DOC_SOURCE,
@@ -1790,8 +2123,11 @@ const AddPurchaseExpanseVoucher = ({ setIsAddingNewPurchaseExpanse, setIsEditing
 
                   // Map the fetched data to items
                   const updatedItems = fetchedItems.map((item) => {
-                    const productFromDescription = descriptionOptions.find((option) => option.value === item.invoice_number)?.product;
-                    const relatedProduct = productOptions.find((option) => option.value === productFromDescription);
+                    const productFromDescription = descriptionOptions.find((option) => option.value === item.invoice_number)?.product_id;
+                    const relatedProduct = productOptions.find((option) => option.id === productFromDescription);
+
+                    const projectFromDescription = descriptionOptions.find((option) => option.value === item.invoice_number)?.project_id;
+                    const relatedProject = projectOptions.find((option) => option.id === projectFromDescription);
 
                     const description = descriptionOptions.find((desc) => desc.value === item.invoice_number) || {};
                     const taxRate = description.tax_ppn_rate / 100;
@@ -1834,7 +2170,6 @@ const AddPurchaseExpanseVoucher = ({ setIsAddingNewPurchaseExpanse, setIsEditing
                       }
                     }
   
-
                     return {
                       ...item,
                       db_cr: item.db_cr || "Db",
@@ -1845,21 +2180,29 @@ const AddPurchaseExpanseVoucher = ({ setIsAddingNewPurchaseExpanse, setIsEditing
                       // purchase_invoice_date: descriptionOptions.find((desc) => desc.value === item.invoice_number)?.invoice_date || "",
                       // description: descriptionOptions.find((desc) => desc.value === item.invoice_number) ?.description || "",
                       // product: descriptionOptions.find((option) => option.value === item.invoice_number)?.product || "",
-                      product: productFromDescription || "",
+                      // product:  productFromDescription || 0,
+                      product_id: productFromDescription || 0,
+                      // product_id: relatedProduct?.product_id || 0,
+                      coa_id: relatedProduct?.id || 0,
                       tax_invoice_number: descriptionOptions.find((option) => option.value === item.invoice_number)?.tax_invocie_number || "",
-                      project: descriptionOptions.find((option) => option.value === item.invoice_number)?.project || "",
-                      project_contract_number: descriptionOptions.find((option) => option.value === item.invoice_number)?.project_contract_number || "",
-                      customer: descriptionOptions.find((option) => option.value === item.invoice_number)?.customer || "",
+                      project_id: projectFromDescription || 0,
+                      project_contract_number: relatedProject?.project_contract_number || "",
+                      customer: relatedProject?.customer || "",
+                      // customer: descriptionOptions.find((option) => option.value === item.invoice_number)?.customer || "",
+                      // customer_id: descriptionOptions.find((option) => option.value === item.invoice_number)?.customer_id || 0,
                       department: descriptionOptions.find((option) => option.value === item.invoice_number)?.departement || "",
+                      department_id: descriptionOptions.find((option) => option.value === item.invoice_number)?.department_id || 0,
                       exchange_rate: descriptionOptions.find((option) => option.value === item.invoice_number)?.tax_exchange_rate || 1,
                       quantity: descriptionOptions.find((option) => option.value === item.invoice_number)?.quantity || 1,
                       unit_price: descriptionOptions.find((option) => option.value === item.invoice_number)?.unit_price || 0,
-                      total_price: descriptionOptions.find((option) => option.value === item.invoice_number)?.total_price || "",
+                      total_price: descriptionOptions.find((option) => option.value === item.invoice_number)?.total_price || 0,
                       type_of_vat: descriptionOptions.find((option) => option.value === item.invoice_number)?.type_of_vat || "",
                       tax_ppn: descriptionOptions.find((option) => option.value === item.invoice_number)?.tax_ppn || "",
+                      tax_ppn_id: descriptionOptions.find((option) => option.value === item.invoice_number)?.tax_ppn_id || 0,
                       // tax_ppn_amount: descriptionOptions.find((option) => option.value === item.invoice_number)?.tax_ppn_amount || 0,
                       type_of_pph: descriptionOptions.find((option) => option.value === item.invoice_number)?.type_of_pph || "",
                       tax_pph: descriptionOptions.find((option) => option.value === item.invoice_number)?.tax_pph || "",
+                      tax_pph_id: descriptionOptions.find((option) => option.value === item.invoice_number)?.tax_pph_id || 0,
                       // tax_pph_amount: descriptionOptions.find((option) => option.value === item.invoice_number)?.tax_pph_amount || 0,
                       // tax_base: descriptionOptions.find((option) => option.value === item.invoice_number)?.tax_base || 0,
                       // amount: descriptionOptions.find((desc) => desc.value === item.invoice_number)?.totalAmount || 0,
@@ -1871,7 +2214,7 @@ const AddPurchaseExpanseVoucher = ({ setIsAddingNewPurchaseExpanse, setIsEditing
                       tax_ppn_amount: taxPpnAmount,
                       tax_pph_amount: taxPphAmount,
                       amount_paid: amountPaid,
-                      amount_paid: amountPaid,
+                      // amount_paid: amountPaid,
                     };
                   });
 
@@ -1897,6 +2240,12 @@ const AddPurchaseExpanseVoucher = ({ setIsAddingNewPurchaseExpanse, setIsEditing
                 .catch((error) => {
                   console.error("Failed to fetch data for Paid To:", error);
                 });
+
+                 })
+            .catch((error) => {
+              console.error("Failed to fetch data for Paid To:", error);
+            });
+  
             })
             .catch((error) => {
               console.error("Failed to fetch data for Paid To:", error);
@@ -1943,31 +2292,44 @@ const AddPurchaseExpanseVoucher = ({ setIsAddingNewPurchaseExpanse, setIsEditing
         coa: "", // Reset expense_account on reset
         // status_detail: "",
         // product_account: "",
-        exchange_rate: 0,
+        exchange_rate: 1,
         amount_paid: 0,
         project_contract_number: "",
         type_of_pph: "",
+        product_id: 0,
+        coa_id: 0,
+        employee_id: 0,
+        department_id: 0,
+        project_id: 0,
+        tax_ppn_id: 0,
+        tax_pph_id: 0,
       }));
       console.log("items new", newItems);
       setItems(newItems);
     }
   };
 
+  console.log('itemsss', items)
+
   const handleProductChange = (index, selectedProduct) => {
     const newItems = [...items];
     if (selectedProduct) {
-      const selectedProductOption = productOptions.find((option) => option.value === selectedProduct.value);
-
+      const selectedProductOption = productOptions.find((option) => option.id === selectedProduct.id);
+      
       newItems[index] = {
         ...newItems[index],
-        product: selectedProduct.value,
+        product: selectedProduct.id,
+        product_id: selectedProductOption?.product_id || 0,
+        coa_id: selectedProductOption?.id || 0,
         coa: selectedProductOption?.expenseAccount || "",
         product_account: selectedProductOption?.product_account || "",
       };
-    } else {
+    } else {s
       newItems[index] = {
         ...newItems[index],
-        product: "",
+        product: "", 
+        product_id: 0,
+        coa_id: 0,
         coa: "",
         product_account: "",
       };
@@ -1979,18 +2341,22 @@ const AddPurchaseExpanseVoucher = ({ setIsAddingNewPurchaseExpanse, setIsEditing
   const handleProjectChange = (index, selectedProject) => {
     const newItems = [...items];
     if (selectedProject) {
-      const selectedProjectOption = projectOptions.find((option) => option.value === selectedProject.value);
+      const selectedProjectOption = projectOptions.find((option) => option.id === selectedProject.id);
 
       newItems[index] = {
         ...newItems[index],
-        project: selectedProject.value,
+        project: selectedProject.id,
+        project_id: selectedProjectOption?.project_id || 0,
         project_contract_number: selectedProjectOption?.project_contract_number || "",
+        customer: selectedProjectOption?.customer || "",
       };
     } else {
       newItems[index] = {
         ...newItems[index],
         project: "",
+        project_id: 0,
         project_contract_number: "",
+        customer: "",
       };
     }
 
@@ -2006,14 +2372,18 @@ const AddPurchaseExpanseVoucher = ({ setIsAddingNewPurchaseExpanse, setIsEditing
       setSelectedBankName(selectedOption);
       setAccountBank(selectedOption.bank_account || "");
       setBankName(selectedOption ? selectedOption.value : "");
+      setBankId(selectedOption ? selectedOption.id : '');
     } else {
       setSelectedAccountBank(null);
       setSelectedBankName(null);
       setAccountBank(""); // Clear bank account
       setBankName(""); // Clear bank name
+      setBankId('');
     }
   };
 
+    console.log('bankId', bank_id)
+ 
   //payment Source
   // const handlePaymentSourceChange = (selectedOption) => {
   //   setPaymentSource(selectedOption);
@@ -2046,192 +2416,6 @@ const AddPurchaseExpanseVoucher = ({ setIsAddingNewPurchaseExpanse, setIsEditing
     }
   };
 
-  // const handlePiNumberChange = async (selectedOption) => {
-  //   setSelectedPiNumber(selectedOption);
-  //   // setPrNumber(selectedOption ? selectedOption.value : "");
-  //   setInvoieNumber(selectedOption ? selectedOption.value : "");
-  //   console.log("invoice_number", invoice_number);
-
-  //   if (selectedOption) {
-  //     const projectValue = selectedOption.project || selectedOption.INVOICE_NUMBER;
-  //     const vendorValue = selectedOption.vendor || selectedOption.INVOICE_NUMBER;
-  //     const currencyValue = selectedOption.currency || selectedOption.INVOICE_NUMBER;
-
-  //     const matchingVendorOption = allvendoroptions.find((option) => option.value === vendorValue);
-  //     setSelectedVendor(matchingVendorOption ? matchingVendorOption : null);
-  //     setVendor(selectedOption.vendor); // Autofill vendor
-  //     // setSelectedBothVendor(matchingVendorOption); // Autofill vendor when PO number is chosen
-  //     const matchingCurrencyOption = currencyOptions.find((option) => option.value === currencyValue);
-  //     setSelectedCurrency(matchingCurrencyOption ? matchingCurrencyOption : null);
-  //     setCurrencyOptions(selectedOption.currency);
-
-  //     const matchingProjectOption = projectOptions.find((option) => option.value === projectValue);
-  //     setSelectedProject(matchingProjectOption ? matchingProjectOption : null);
-  //     setProject(selectedOption.project);
-  //     setID(selectedOption.id); // Set the selected ID value
-  //     setTotalAmount(selectedOption.totalAmount); // Autofill total amount
-  //     setTitle(selectedOption.title);
-  //     setDescription(selectedOption.description); // Autofill description
-  //     setPaymentTerm(selectedOption.paymentTerm);
-  //     setVendor(selectedOption.vendor);
-  //     // setEndToEnd(selectedOption.ENDTOENDID);
-  //     setInvoiceID(selectedOption.invoice_id);
-
-  //     const selectedPaymentTermOption = paymentTermOptions.find((option) => option.value === selectedOption.paymentTerm);
-  //     if (!selectedPaymentTermOption) {
-  //       console.error("Payment term is required for PR number", selectedOption.value);
-  //       setSelectedPaymentTerm(null); // Clear the payment term selection
-  //       return; // Exit the function to prevent further processing
-  //     }
-  //     setSelectedPaymentTerm(selectedPaymentTermOption);
-
-  //     const paymentTerm = selectedOption.paymentTerm;
-  //     const payload = {
-  //       date: invoice_date,
-  //       count: paymentTerm,
-  //       dateType: paymentTermOptions.find((option) => option.value === paymentTerm).dateType,
-  //     };
-
-  //     try {
-  //       // Hit the API with the required data and Bearer token in the headers
-  //       const response = await axios.post(`${GENERATED_DUE_DATE}`, payload, {
-  //         headers: {
-  //           Authorization:`Bearer ${headers}`,
-  //         },
-  //       });
-
-  //       //Process the response if needed
-  //       console.log("API response:", response.data.dueDate);
-  //       setDueDate(response.data.dueDate);
-  //     } catch (error) {
-  //       // Handle any errors
-  //       console.error("Error calling API:", error);
-  //     }
-
-  //     try {
-  //       const response = await LookupParamService.fetchLookupData(`PURC_FORMPUINVCD&filterBy=INVOICE_NUMBER&filterValue=${selectedOption.value}&operation=EQUAL`, authToken, branchId);
-  //       const fetchedItems = response.data || [];
-  //       console.log("Items fetched:", fetchedItems);
-
-  //       const resetItems = fetchedItems.map((item) => ({
-  //         ...item,
-  //         currency: item.CURRENCY,
-  //         exchange_rate: item.TAX_EXCHANGE_RATE,
-  //         type_of_vat: item.TYPE_OF_VAT,
-  //         tax_ppn_type: item.TAX_PPN,
-  //         tax_ppn_type: item.TAX_PPH,
-  //         tax_base: item.TOTAL_TAX_BASE,
-  //       }));
-  //       // Set fetched items to state
-  //       setItems(resetItems);
-
-  //       //project lookup data
-  //       try {
-  //         const projectData = await LookupParamService.fetchLookupData("PURC_FORMPUINVC", authToken, branchId);
-  //         console.log("Product lookup data:", projectData);
-
-  //         // Transform and map product data to options
-  //         const transformedProjectData = productData.data.map((item) =>
-  //           Object.keys(item).reduce((acc, key) => {
-  //             acc[key.toUpperCase()] = item[key];
-  //             return acc;
-  //           }, {})
-  //         );
-
-  //         const projectOptions = transformedProjectData.map((item) => ({
-  //           value: item.PROJECT,
-  //           label: item.PROJECT,
-  //         }));
-
-  //         setProjectOptions(projectOptions); // Set product options to state
-
-  //         try {
-  //           const vendorData = await LookupParamService.fetchLookupData("PURC_FORMPUINVC", authToken, branchId);
-  //           console.log("Product lookup data:", productData);
-
-  //           // Transform and map product data to options
-  //           const transformedVendorData = vendorData.data.map((item) =>
-  //             Object.keys(item).reduce((acc, key) => {
-  //               acc[key.toUpperCase()] = item[key];
-  //               return acc;
-  //             }, {})
-  //           );
-
-  //           const vendorOptions = transformedVendorData.map((item) => ({
-  //             value: item.VENDOR,
-  //             label: item.VENDOR,
-  //           }));
-
-  //           setVendorOptions(vendorOptions); // Set product options to state
-
-  //         //Fetch currency lookup data
-  //         try {
-  //           const currencyData = await LookupParamService.fetchLookupData("PURC_FORMPUINVCD", authToken, branchId);
-  //           console.log("Currency lookup data:", currencyData);
-
-  //           // Transform and map currency data to options
-  //           const transformedCurrencyData = currencyData.data.map((item) =>
-  //             Object.keys(item).reduce((acc, key) => {
-  //               acc[key.toUpperCase()] = item[key];
-  //               return acc;
-  //             }, {})
-  //           );
-
-  //           const currencyOptions = transformedCurrencyData.map((item) => ({
-  //             value: item.CODE,
-  //             label: item.CODE,
-  //           }));
-
-  //           setCurrencyOptions(currencyOptions); // Set currency options to state
-
-  //           // Update fetched items with selected options
-  //           const updatedItems = fetchedItems.map((item) => {
-  //             const selectedProjectOption = projectOptions.find((option) => option.value === item.project);
-  //             console.log("Selected project option :", selectedProjectOption);
-
-  //             const selectedVendorOption = vendorOptions.find((option) => option.value === item.vendor);
-  //             console.log("Selected Vendor option :", selectedVendorOption);
-
-  //             const selectedCurrencyOption = currencyOptions.find((option) => option.value === item.currency);
-  //             console.log("Selected currency option:", selectedCurrencyOption);
-
-  //             const selectedPaymentTerm = paymentTermOptions.find((option) => option.value === item.paymentTerm);
-  //             console.log("payment term:", selectedPaymentTermOption);
-
-  //             setSelectedCurrency(selectedCurrencyOption);
-  //             setSelectedVendor(selectedVendorOption);
-  //             setSelectedProject(selectedProjectOption);
-  //             setSelectedPaymentTerm(selectedPaymentTermOption);
-  //           });
-
-  //           // Set the updated items with selected product and currency options to state
-  //           setItems(fetchedItems);
-  //         } catch (error) {
-  //           console.error("Failed to fetch currency lookup:", error);
-  //         }
-  //       } catch (error) {
-  //         console.error("Failed to fetch product lookup:", error);
-  //       }
-  //       } catch (error) {
-  //         console.error("Failed to fetch product lookup:", error);
-  //       }
-  //     } catch (error) {
-  //       console.error("Failed to load items:", error);
-  //     }
-  //   } else {
-  //     setSelectedVendor(null);
-  //     setSelectedProject(null);
-  //     setTotalAmount(null); // Clear total amount if no option is selected
-  //     setTitle(null);
-  //     setID(null); // Clear the ID value if no option is selected
-  //     setDescription(null);
-  //     setSelectedPaymentTerm(null);
-  //     // setSelectedBothVendor(null); // Clear selectedBothVendor
-  //     setSelectedVendor(null);
-  //     setItems([]);
-  //   }
-  // };
-
   const handleBankChange = (selectedOption) => {
     setSelectedBankName(selectedOption);
     setBankName(selectedOption ? selectedOption.value : "");
@@ -2246,36 +2430,43 @@ const AddPurchaseExpanseVoucher = ({ setIsAddingNewPurchaseExpanse, setIsEditing
   const handleCurrencyChange = (selectedOption) => {
     setSelectedCurrency(selectedOption);
     setCurrency(selectedOption ? selectedOption.value : "");
+    setCurrencyId(selectedOption ? selectedOption.id : "");
   };
+
+  console.log("currencyId", currency_id);
 
   useEffect(() => {
     if (selectedData && selectedData.length > 0) {
-      const currencyFromData = selectedData[0]?.CURRENCY;
-      const matchingCurrencyOption = currencyOptions.find(
-        (option) => option.value === currencyFromData
-      );
-  
-      if (matchingCurrencyOption) {
-        setSelectedCurrency(matchingCurrencyOption);
-      } else {
-        // Set default to IDR if no valid currency is found
+        const currencyFromData = selectedData[0]?.CURRENCY;
+        const matchingCurrencyOption = currencyOptions.find(
+            (option) => option.value === currencyFromData
+        );
+
+        if (matchingCurrencyOption) {
+            setSelectedCurrency(matchingCurrencyOption);
+            setCurrencyId(matchingCurrencyOption.id); // Set currency_id
+        } else {
+            // Set default to IDR if no valid currency is found
+            const defaultCurrencyOption = currencyOptions.find(
+                (option) => option.value === "IDR"
+            );
+            if (defaultCurrencyOption) {
+                setSelectedCurrency(defaultCurrencyOption);
+                setCurrencyId(defaultCurrencyOption.id); // Set default currency_id
+            }
+        }
+    } else {
+        // Ensure default to IDR when there's no data
         const defaultCurrencyOption = currencyOptions.find(
-          (option) => option.value === "IDR"
+            (option) => option.value === "IDR"
         );
         if (defaultCurrencyOption) {
-          setSelectedCurrency(defaultCurrencyOption);
+            setSelectedCurrency(defaultCurrencyOption);
+            setCurrencyId(defaultCurrencyOption.id); // Set default currency_id
         }
-      }
-    } else {
-      // Ensure default to IDR when there's no data
-      const defaultCurrencyOption = currencyOptions.find(
-        (option) => option.value === "IDR"
-      );
-      if (defaultCurrencyOption) {
-        setSelectedCurrency(defaultCurrencyOption);
-      }
     }
-  }, [selectedData, currencyOptions]);
+}, [selectedData, currencyOptions]);
+
   
   // const handleCurrencyChange = (selectedOption) => {
   //   // Update the selected currency state
@@ -2369,8 +2560,7 @@ const AddPurchaseExpanseVoucher = ({ setIsAddingNewPurchaseExpanse, setIsEditing
         // status_detail: "",
         quantity: 1,
         unit_price: 0,
-        coa: "",
-        product: "",
+        coa_id: 0,
         product_id: 0,
         description: "",
         // amount: 0,
@@ -2379,18 +2569,18 @@ const AddPurchaseExpanseVoucher = ({ setIsAddingNewPurchaseExpanse, setIsEditing
         currency: "IDR",
         exchange_rate: 1,
         // employee: "",
-        department: "",
-        project: "",
+        department_id: 0,
+        project_id: 0,
         tax_invoice_number: "",
         project_contract_number: "",
         tax_base: 0,
         vat: "Select an Option",
         customer: "",
-        tax_ppn: "",
+        tax_ppn_id: 0,
         // tax_ppn_type: "",
         tax_ppn_rate: "",
         tax_ppn_amount: 0,
-        tax_pph: "",
+        tax_pph_id: 0,
         type_of_pph: "",
         tax_pph_rate: "",
         tax_pph_amount: 0,
@@ -2400,10 +2590,14 @@ const AddPurchaseExpanseVoucher = ({ setIsAddingNewPurchaseExpanse, setIsEditing
         // total_amount_pph: 0,
         total_price: 0,
         total_price_idr: 0,
+        paid_to_id: paid_to_id,
+        bank_id: bank_id,
+        currency_id: currency_id,
       },
     ]);
   };
 
+  
   const handleItemChange = (index, field, value) => {
     const newItems = [...items];
     newItems[index][field] = value;
@@ -2443,8 +2637,10 @@ const AddPurchaseExpanseVoucher = ({ setIsAddingNewPurchaseExpanse, setIsEditing
       newItems[index].tax_pph = "";
       newItems[index].type_of_pph = "";
       newItems[index].tax_pph_rate = 0;
-      if (newItems[index].vat_included !== undefined) {
-        newItems[index].vat_included = false;
+      if (newItems[index].vat_included){
+        coa_id: 0,
+
+    newItems[index].vat_included = false;
       }
     }
 
@@ -2524,11 +2720,11 @@ const AddPurchaseExpanseVoucher = ({ setIsAddingNewPurchaseExpanse, setIsEditing
     }
     //calculate amount paid
     if (field === "tax_ppn" || field === "tax_ppn_rate" || field === "type_of_pph" || field === "tax_pph_rate") {
-      if ((newItems[index].type_of_vat === "include" || newItems[index].type_of_vat === "exclude") && newItems[index].type_of_pph === "gross") {
+      if ((newItems[index].type_of_vat === "include" || newItems[index].type_of_vat === "exclude") && (newItems[index].type_of_pph === "gross" || newItems[index].type_of_pph === "")) {
         newItems[index].amount_paid = Math.round(newItems[index].tax_base - newItems[index].tax_pph_amount + newItems[index].tax_ppn_amount);
-      } else if (newItems[index].type_of_vat === "include" && newItems[index].type_of_pph === "nett") {
+      } else if (newItems[index].type_of_vat === "include" && (newItems[index].type_of_pph === "nett" || newItems[index].type_of_pph === "")) {
         newItems[index].amount_paid = Math.round(newItems[index].tax_base / (1 - newItems[index].tax_pph_rate / 100) - newItems[index].tax_pph_amount + newItems[index].tax_ppn_amount);
-      } else if (newItems[index].type_of_vat === "exclude" && newItems[index].type_of_pph === "nett") {
+      } else if (newItems[index].type_of_vat === "exclude" && (newItems[index].type_of_pph === "nett" || newItems[index].type_of_pph === "")) {
         newItems[index].amount_paid = Math.round(newItems[index].unit_price / (1 - newItems[index].tax_pph_rate / 100) - newItems[index].tax_pph_amount + newItems[index].tax_ppn_amount);
       }
     }
@@ -2536,94 +2732,6 @@ const AddPurchaseExpanseVoucher = ({ setIsAddingNewPurchaseExpanse, setIsEditing
     console.log("dbcr", newItems[index].db_cr);
     setItems(newItems);
   };
-
-  //   const calculateAmountPaid = (index, field, value) => {
-  //     const newItems = [...items];
-  //     newItems[index][field] = value;
-
-  //     const subTotal = items.reduce((total, item) => {
-  //       const taxBase = isNaN(item.tax_base) ? 0 : item.tax_base;
-  //       return total + taxBase;
-  //     }, 0);
-
-  //     const taxbasePPH = items.reduce((total, item) => {
-  //       if (item.type_of_vat === "include" && item.type_of_pph === "nett") {
-  //         const taxBase = isNaN(item.tax_base) ? 0 : item.tax_base;
-  //         const taxPphRate = isNaN(item.tax_pph_rate) ? 0 : item.tax_pph_rate;
-  //         return total + taxBase / (1 - taxPphRate / 100);
-  //       } else if (item.type_of_vat === "exclude") {
-  //         return total + item.unit_price / (1 - item.tax_pph_rate / 100);
-  //       } else {
-  //         return total + (isNaN(item.tax_base) ? 0 : item.tax_base);
-  //       }
-  //     }, 0);
-
-  //     const subtotalAfterDiscount = subTotal - discount;
-
-  //     const totalPPNAmount = items.reduce((total, item) => {
-  //       const taxPPNAmount = isNaN(item.tax_ppn_amount) ? 0 : item.tax_ppn_amount;
-  //       return total + taxPPNAmount;
-  //     }, 0);
-
-  //     const totalPPHAmount = items.reduce((total, item) => {
-  //       const taxPPHAmount = isNaN(item.tax_pph_amount) ? 0 : item.tax_pph_amount;
-  //       return total + taxPPHAmount;
-  //     }, 0);
-
-  //     // Initialize total_amount
-  //     let amount_paid = subtotalAfterDiscount;
-
-  //     // Determine if any items qualify for royalty
-  //     const hasRoyalty = items.some((item) => item.type_of_vat === "ppn_royalty");
-
-  //     // Determine if any items are non_ppn
-  //     const hasNonPPN = items.some((item) => item.type_of_vat === "non_ppn");
-
-  //     // Calculate total_amount based on type_of_vat and type_of_pph
-  //     if (hasRoyalty) {
-  //       // If there are royalties, total amount is subtotalAfterDiscount + totalPPNAmount
-  //       amount_paid = subtotalAfterDiscount + totalPPNAmount;
-  //     } else if (hasNonPPN) {
-  //       // If there are non_ppn items, total amount is subtotalAfterDiscount - totalPPHAmount
-  //       amount_paid = subtotalAfterDiscount - totalPPHAmount;
-  //     } else {
-  //       // Calculate total amount based on the cases
-  //       const case1 = items.some((item) => item.type_of_vat === "include" && item.type_of_pph === "gross");
-  //       const case2 = items.some((item) => item.type_of_vat === "include" && item.type_of_pph === "nett");
-  //       const case3 = items.some((item) => item.type_of_vat === "exclude" && item.type_of_pph === "gross");
-  //       const case4 = items.some((item) => item.type_of_vat === "exclude" && item.type_of_pph === "nett");
-
-  //       if (case1 || case3) {
-  //         amount_paid += totalPPNAmount - totalPPHAmount;
-  //       }
-
-  //       if (case2) {
-  //         const taxBasePPNAF = Math.round(taxbasePPH);
-  //         amount_paid = taxBasePPNAF - totalPPHAmount + totalPPNAmount;
-  //       }
-
-  //       if (case4) {
-  //         const taxBase = taxbasePPH;
-  //         amount_paid = taxBase - totalPPNAmount + totalPPHAmount;
-  //       }
-  //     }
-
-  //     // Ensure valid total amount
-  //     const validAmountPaid = isNaN(amount_paid) ? 0 : amount_paid;
-
-  //     setItems(newItems);
-
-  //     console.log("kols", subTotal);
-  //     return {
-  //       subTotal,
-  //       subtotalAfterDiscount,
-  //       taxbasePPH,
-  //       totalPPNAmount,
-  //       totalPPHAmount,
-  //       AmountPaid: validAmountPaid,
-  //     };
-
-  //   };
 
   const handleDeleteItem = (index) => {
     const newItems = items.filter((item, i) => i !== index);
@@ -2652,6 +2760,8 @@ const AddPurchaseExpanseVoucher = ({ setIsAddingNewPurchaseExpanse, setIsEditing
     setItems(newItems);
     setSelectedItems([]);
   };
+
+  console.log('item', items)
 
   // const calculateTotalAmount = () => {
   //   return items.reduce((total, item) => total + item.total_price, 0);
@@ -2705,10 +2815,10 @@ const AddPurchaseExpanseVoucher = ({ setIsAddingNewPurchaseExpanse, setIsEditing
       total_amount = subtotalAfterDiscount - totalPPHAmount;
     } else {
       // Calculate total amount based on the cases
-      const case1 = items.some((item) => item.type_of_vat === "include" && item.type_of_pph === "gross");
-      const case2 = items.some((item) => item.type_of_vat === "include" && item.type_of_pph === "nett");
-      const case3 = items.some((item) => item.type_of_vat === "exclude" && item.type_of_pph === "gross");
-      const case4 = items.some((item) => item.type_of_vat === "exclude" && item.type_of_pph === "nett");
+      const case1 = items.some((item) => item.type_of_vat === "include" && item.type_of_pph === "gross" || item.type_of_pph === "");
+      const case2 = items.some((item) => item.type_of_vat === "include" && item.type_of_pph === "nett" );
+      const case3 = items.some((item) => item.type_of_vat === "exclude" && item.type_of_pph === "gross" || item.type_of_pph === "");
+      const case4 = items.some((item) => item.type_of_vat === "exclude" && item.type_of_pph === "nett" );
 
       if (case1 || case3) {
         total_amount += totalPPNAmount - totalPPHAmount;
@@ -2850,20 +2960,23 @@ const AddPurchaseExpanseVoucher = ({ setIsAddingNewPurchaseExpanse, setIsEditing
           // internalmemo,
           voucher_number,
           voucher_date, // Converts to date format
-          bank_name,
+          // bank_name,
           account_bank,
           exchange_rate,
           // currency,
           status: "IN_PROCESS",
           // total_amount,
           // doc_reff,
-          paid_to,
+          // paid_to,
           payment_source,
           number_check_giro,
           // giro_no,
-          currency,
+          // currency,
           amount_idr: calculateTotalAmount().amount_idr,
           total_paid: calculateTotalAmount().totalAmount,
+          paid_to_id: parseInt(paid_to_id, 10),
+          currency_id:  parseInt(currency_id, 10),
+          bank_id:  parseInt(bank_id, 10),
         };
 
         console.log("Master", generalInfo);
@@ -2942,6 +3055,14 @@ const AddPurchaseExpanseVoucher = ({ setIsAddingNewPurchaseExpanse, setIsEditing
               // tax_pph_amount_2: item.total_amount_pph_2,
             };
             delete updatedItem.ID;
+            delete updatedItem.vendor;
+            delete updatedItem.coa;
+            delete updatedItem.employee;
+            delete updatedItem.department;
+            delete updatedItem.project;
+            delete updatedItem.product;
+            delete updatedItem.tax_ppn;
+            delete updatedItem.tax_pph;
             delete updatedItem.vat_included;
             delete updatedItem.invoice_number;
             delete updatedItem.invoice_date;
@@ -3013,6 +3134,7 @@ const AddPurchaseExpanseVoucher = ({ setIsAddingNewPurchaseExpanse, setIsEditing
             delete updatedItem.currency_id;
             delete updatedItem.journal_id;
             delete updatedItem.vendor_id;
+            delete updatedItem.customer_id;
 
             try {
               const itemResponse = await InsertDataService.postData(updatedItem, "VCBANKD", authToken, branchId);
@@ -3043,6 +3165,14 @@ const AddPurchaseExpanseVoucher = ({ setIsAddingNewPurchaseExpanse, setIsEditing
               // tax_pph_amount_2: item.total_amount_pph_2,
             };
             delete updatedItem.ID;
+            delete updatedItem.vendor;
+            delete updatedItem.coa;
+            delete updatedItem.employee;
+            delete updatedItem.department;
+            delete updatedItem.project;
+            delete updatedItem.product;
+            delete updatedItem.tax_ppn;
+            delete updatedItem.tax_pph;
             delete updatedItem.vat_included;
             delete updatedItem.invoice_number;
             delete updatedItem.invoice_date;
@@ -3114,6 +3244,7 @@ const AddPurchaseExpanseVoucher = ({ setIsAddingNewPurchaseExpanse, setIsEditing
             delete updatedItem.currency_id;
             delete updatedItem.journal_id;
             delete updatedItem.vendor_id;
+            delete updatedItem.customer_id;
 
             const itemResponse = await InsertDataService.postData(updatedItem, "VCBANKD", authToken, branchId);
             console.log("Item posted successfully:", itemResponse);
@@ -3363,20 +3494,23 @@ const AddPurchaseExpanseVoucher = ({ setIsAddingNewPurchaseExpanse, setIsEditing
           // internalmemo,
           voucher_number,
           voucher_date, // Converts to date format
-          bank_name,
+          // bank_name,
           account_bank,
           exchange_rate,
           // currency,
           status: "DRAFT",
           // total_amount,
           // doc_reff,
-          paid_to,
+          // paid_to: paid_to_id,
           payment_source,
           number_check_giro,
           // giro_no,
-          currency,
+          // currency,
           amount_idr: calculateTotalAmount().amount_idr,
           total_paid: calculateTotalAmount().totalAmount,
+          paid_to_id: parseInt(paid_to_id, 10),
+          currency_id:  parseInt(currency_id, 10),
+          bank_id:  parseInt(bank_id, 10),
         };
 
         console.log("Master", generalInfo);
@@ -3455,6 +3589,14 @@ const AddPurchaseExpanseVoucher = ({ setIsAddingNewPurchaseExpanse, setIsEditing
               // tax_pph_amount_2: item.total_amount_pph_2,
             };
             delete updatedItem.ID;
+            delete updatedItem.vendor;
+            delete updatedItem.coa;
+            delete updatedItem.employee;
+            delete updatedItem.department;
+            delete updatedItem.project;
+            delete updatedItem.product;
+            delete updatedItem.tax_ppn;
+            delete updatedItem.tax_pph;
             delete updatedItem.vat_included;
             delete updatedItem.invoice_number;
             delete updatedItem.invoice_date;
@@ -3526,6 +3668,7 @@ const AddPurchaseExpanseVoucher = ({ setIsAddingNewPurchaseExpanse, setIsEditing
             delete updatedItem.currency_id;
             delete updatedItem.journal_id;
             delete updatedItem.vendor_id;
+            delete updatedItem.customer_id;
 
             try {
               const itemResponse = await InsertDataService.postData(updatedItem, "VCBANKD", authToken, branchId);
@@ -3556,6 +3699,14 @@ const AddPurchaseExpanseVoucher = ({ setIsAddingNewPurchaseExpanse, setIsEditing
               // tax_pph_amount_2: item.total_amount_pph_2,
             };
             delete updatedItem.ID;
+            delete updatedItem.vendor;
+            delete updatedItem.coa;
+            delete updatedItem.employee;
+            delete updatedItem.department;
+            delete updatedItem.project;
+            delete updatedItem.product;
+            delete updatedItem.tax_ppn;
+            delete updatedItem.tax_pph;
             delete updatedItem.vat_included;
             delete updatedItem.invoice_number;
             delete updatedItem.invoice_date;
@@ -3627,6 +3778,7 @@ const AddPurchaseExpanseVoucher = ({ setIsAddingNewPurchaseExpanse, setIsEditing
             delete updatedItem.currency_id;
             delete updatedItem.journal_id;
             delete updatedItem.vendor_id;
+            delete updatedItem.customer_id;
 
             const itemResponse = await InsertDataService.postData(updatedItem, "VCBANKD", authToken, branchId);
             console.log("Item posted successfully:", itemResponse);
@@ -3837,7 +3989,11 @@ const AddPurchaseExpanseVoucher = ({ setIsAddingNewPurchaseExpanse, setIsEditing
                           <Form.Label>Bank</Form.Label>
                           <Select 
                             value={selectedBankName}  
-                            onChange={handleBankSelection} 
+                            // onChange={handleBankSelection} 
+                            onChange={(selectedOption) => {
+                              handleBankSelection(selectedOption); // Memanggil handleItemChange untuk memperbarui mata uang per baris
+                              setBankId(selectedOption ? selectedOption.id : "");
+                            }}
                             options={bankOptions} 
                             isClearable 
                             placeholder="Select Bank" />
@@ -3851,7 +4007,11 @@ const AddPurchaseExpanseVoucher = ({ setIsAddingNewPurchaseExpanse, setIsEditing
                           <Form.Label>Cash</Form.Label>
                           <Select 
                             value={selectedBankName} 
-                            onChange={handleBankSelection} 
+                            // onChange={handleBankSelection}
+                            onChange={(selectedOption) => {
+                              handleBankSelection(selectedOption); // Memanggil handleItemChange untuk memperbarui mata uang per baris
+                              setBankId(selectedOption ? selectedOption.id : "");
+                            }} 
                             options={bankOptions} 
                             isClearable 
                             placeholder="Select Cash" />
@@ -3883,7 +4043,16 @@ const AddPurchaseExpanseVoucher = ({ setIsAddingNewPurchaseExpanse, setIsEditing
                     <Col md={6}>
                       <Form.Group controlId="formVendor">
                         <Form.Label>Paid To</Form.Label>
-                        <Select value={selectedPaidTo} onChange={(selectedOption) => handlePaidToChange(selectedOption)} options={paidToOptions} isClearable placeholder="Select..." />
+                        <Select 
+                        value={selectedPaidTo} 
+                        // onChange={(selectedOption) => handlePaidToChange(selectedOption)} 
+                        onChange={(selectedOption) => {
+                          handlePaidToChange(selectedOption); // Memanggil handleItemChange untuk memperbarui mata uang per baris
+                          setPaidToId(selectedOption ? selectedOption.id : "");
+                        }}
+                        options={paidToOptions} 
+                        isClearable 
+                        placeholder="Select..." />
                       </Form.Group>
                     </Col>
 
@@ -3979,6 +4148,7 @@ const AddPurchaseExpanseVoucher = ({ setIsAddingNewPurchaseExpanse, setIsEditing
                           value={selectedCurrency} // Menemukan mata uang yang sesuai
                           onChange={(selectedOption) => {
                             handleCurrencyChange(selectedOption); // Memanggil handleItemChange untuk memperbarui mata uang per baris
+                            setCurrencyId(selectedOption ? selectedOption.id : "");
                           }}
                           options={currencyOptions}
                           isClearable
@@ -4190,13 +4360,23 @@ const AddPurchaseExpanseVoucher = ({ setIsAddingNewPurchaseExpanse, setIsEditing
                                </td> */}
 
                                   <td>
-                                    <Form.Control type="text" value={item.coa} onChange={(e) => handleProductChange(e.target.value)} placeholder="..." readOnly style={detailFormStyle()} />
+                                    <Form.Control 
+                                    type="text" 
+                                    value={
+                                      productOptions.find(option => option.id === items[index].coa_id)?.expenseAccount || ""
+                                    } 
+                                    onChange={(e) => handleProductChange(e.target.value)} 
+                                    placeholder="..." 
+                                    readOnly 
+                                    style={detailFormStyle()} />
                                   </td>
+
                                   <td>
                                     <Select
-                                      value={productOptions.find((option) => option.value === item.product) || null}
+                                      value={productOptions.find((option) => option.id === items[index].product_id)}
                                       onChange={(selectedOption) => {
                                         handleItemChange(index, "product", selectedOption ? selectedOption.value : null);
+                                        handleItemChange(index, "product_id", selectedOption ? selectedOption.id : null);
                                         handleProductChange(index, selectedOption);
                                       }}
                                       // value={productOptions.find(option => option.value === items[index]?.product)}
@@ -4269,9 +4449,10 @@ const AddPurchaseExpanseVoucher = ({ setIsAddingNewPurchaseExpanse, setIsEditing
                                       placeholder="Select Project"
                                   /> */}
                                     <Select
-                                      value={projectOptions.find((option) => option.value === item.project) || null}
+                                      value={projectOptions.find((option) => option.id === items[index].project_id)}
                                       onChange={(selectedOption) => {
                                         handleItemChange(index, "project", selectedOption ? selectedOption.value : null);
+                                        handleItemChange(index, "project_id", selectedOption ? selectedOption.id : null);
                                         handleProjectChange(index, selectedOption);
                                       }}
                                       // value={productOptions.find(option => option.value === items[index]?.product)}
@@ -4304,9 +4485,11 @@ const AddPurchaseExpanseVoucher = ({ setIsAddingNewPurchaseExpanse, setIsEditing
 
                                   <td>
                                     <Select
-                                      value={customerOptions.find((option) => option.value === item.customer) || null}
+                                    value={customerOptions.find((option) => option.value === items[index].customer)}
+                                      // value={customerOptions.find((option) => option.id === items[index].customer_id)}
                                       onChange={(selectedOption) => {
                                         handleItemChange(index, "customer", selectedOption ? selectedOption.value : null);
+                                        handleItemChange(index, "customer_id", selectedOption ? selectedOption.id : null);
                                       }}
                                       options={customerOptions}
                                       isClearable
@@ -4322,9 +4505,10 @@ const AddPurchaseExpanseVoucher = ({ setIsAddingNewPurchaseExpanse, setIsEditing
 
                                   <td>
                                     <Select
-                                      value={departmentOptions.find((option) => option.value === item.department) || null}
+                                      value={departmentOptions.find((option) => option.id === item.department_id) || null}
                                       onChange={(selectedOption) => {
                                         handleItemChange(index, "department", selectedOption ? selectedOption.value : null);
+                                        handleItemChange(index, "department_id", selectedOption ? selectedOption.id : null);
                                       }}
                                       options={departmentOptions}
                                       isClearable
@@ -4478,6 +4662,8 @@ const AddPurchaseExpanseVoucher = ({ setIsAddingNewPurchaseExpanse, setIsEditing
                                       : 0}
                                   </td>
 
+                                  {/* <td className={currency}>{item.total_price.toLocaleString("en-US", { style: "currency", currency: "currency" }) || 0}</td> */}
+
                                   <td hidden>{item.total_price_idr?.toLocaleString("en-US", { style: "currency", currency: "IDR" }) ?? "IDR 0.00"}</td>
 
                                   {/*
@@ -4499,7 +4685,7 @@ const AddPurchaseExpanseVoucher = ({ setIsAddingNewPurchaseExpanse, setIsEditing
                                       <option value="include">Include</option>
                                       <option value="exclude">Exclude</option>
                                       <option value="non_ppn">Non PPN</option>
-                                      <option value="ppn_royalty">PPN Royalty</option>
+                                      {currency !== "IDR" ? <option value="ppn_royalty">PPN Royalty</option> : <></>}
                                     </Form.Control>
                                     {/* ) : null} */}
                                   </td>
@@ -4521,12 +4707,22 @@ const AddPurchaseExpanseVoucher = ({ setIsAddingNewPurchaseExpanse, setIsEditing
                                   <td>
                                     {/* {!item.purchase_invoice_number ? ( */}
                                     <Select
-                                      value={
-                                        items[index].type_of_vat === "ppn_royalty" ? tax_ppn_royalty_option.find((option) => option.value === item.tax_ppn) : taxPpnTypeOption.find((option) => option.value === items[index].tax_ppn) || null
-                                      }
+                                     value={
+                                      items[index].type_of_vat === "PPNRoyalty"
+                                        ? tax_ppn_royalty_option.find((option) => option.id === item.tax_ppn_id)
+                                        : items[index].type_of_vat === "include"
+                                        ? taxTypeIncludeOptions.find((option) => option.id === items[index].tax_ppn_id) || null
+                                        : items[index].type_of_vat === "exclude"
+                                        ? taxTypeExcludeOptions.find((option) => option.id === items[index].tax_ppn_id) || null
+                                        : taxPpnTypeOption.find((option) => option.id === items[index].tax_ppn_id) || null
+                                    }
+                                      // value={
+                                      //   items[index].type_of_vat === "ppn_royalty" ? tax_ppn_royalty_option.find((option) => option.value === item.tax_ppn) : taxPpnTypeOption.find((option) => option.value === items[index].tax_ppn) || null
+                                      // }
                                       onChange={(selectedOption) => {
                                         // Update the tax_ppn for the specific item
                                         handleItemChange(index, "tax_ppn", selectedOption ? selectedOption.value : "");
+                                        handleItemChange(index, "tax_ppn_id", selectedOption ? selectedOption.id : 0);
 
                                         // Update the PpnRate for the specific item
                                         if (selectedOption) {
@@ -4537,8 +4733,16 @@ const AddPurchaseExpanseVoucher = ({ setIsAddingNewPurchaseExpanse, setIsEditing
                                           setPpnRate(null); // Menghapus RATE jika tidak ada selectedOption
                                         }
                                       }}
-                                      options={items[index].type_of_vat === "ppn_royalty" ? tax_ppn_royalty_option : taxPpnTypeOption}
-                                      // options={taxPpnTypeOption}
+                                      // options={items[index].type_of_vat === "ppn_royalty" ? tax_ppn_royalty_option : taxPpnTypeOption}
+                                      options={
+                                        items[index].type_of_vat === "ppn_royalty"
+                                          ? tax_ppn_royalty_option
+                                          : items[index].type_of_vat === "include"
+                                          ? taxTypeIncludeOptions
+                                          : items[index].type_of_vat === "exclude"
+                                          ? taxTypeExcludeOptions
+                                          : taxPpnTypeOption
+                                      }
                                       isClearable
                                       placeholder="Select Tax PPN Type..."
                                       isDisabled={items[index].type_of_vat === "non_ppn"}
@@ -4549,35 +4753,6 @@ const AddPurchaseExpanseVoucher = ({ setIsAddingNewPurchaseExpanse, setIsEditing
                                         }),
                                       }}
                                     />
-                                    {/* ) : null}  */}
-
-                                    {/* <Select
-                                      value={taxPpnTypeOption.find((option) => option.value === item.tax_ppn_type) || null}
-                                      onChange={(selectedOption) => {
-                                        // Update the tax_ppn_type for the specific item
-                                        handleItemChange(index, "tax_ppn_type", selectedOption ? selectedOption.value : "");
-
-                                        // Update the PpnRate for the specific item
-                                        // if (selectedOption) {
-                                        //   handleItemChange(index, "tax_ppn_rate", selectedOption.RATE);
-                                        //   setPpnRate(selectedOption.RATE); // Memperbarui nilai RATE jika ada selectedOption
-                                        // } else {
-                                        //   handleItemChange(index, "tax_ppn_rate", 0);
-                                        //   setPpnRate(null); // Menghapus RATE jika tidak ada selectedOption
-                                        // }
-                                      }}
-                                      options={taxPpnTypeOption}
-                                      isClearable
-                                      placeholder="Select Tax PPN Type..."
-                                    /> */}
-
-                                    {/* <Select 
-                                            value={taxPpnTypeOption.find(option => option.value === item.tax_ppn)}
-                                            onChange={setSelectedTaxType}
-                                            options={taxPpnTypeOption}
-                                            isClearable
-                                            placeholder="Select PPN Type..." 
-                                          /> */}
                                   </td>
 
                                   <td hidden>
@@ -4618,27 +4793,7 @@ const AddPurchaseExpanseVoucher = ({ setIsAddingNewPurchaseExpanse, setIsEditing
                                 />
                               </td> */}
 
-                                  {/* <td>
-                                    <Form.Control type="number" value={item.tax_pph} onChange={(e) => handleItemChange(index, "tax_pph", parseFloat(e.target.value))} />
-                                  </td> */}
-                                  {/* {docRef === "purchaseRequest" || docRef === "purchaseOrder" ? (
-                                    <td>
-                                      <Select
-                                        value={selectedTaxPphType}
-                                        onChange={(selectedOption) => {
-                                          setSelectedTaxPphType(selectedOption);
-                                          handleItemChange(index, "tax_pph_type", selectedOption ? selectedOption.value : null);
-                                        }}
-                                        options={tax_pph_type_option}
-                                        isClearable
-                                        placeholder="Select Tax PPH Type..."
-                                      />
-                                    </td>
-                                  ) : (
-                                    <td>
-                                      <Form.Control type="text" value={item.tax_pph_type} onChange={(e) => handleItemChange(index, "tax_pph_type", e.target.value)} />
-                                    </td>
-                                  )} */}
+                             
 
                                   <td>
                                     {/* {!item.purchase_invoice_number ? ( */}
@@ -4653,10 +4808,18 @@ const AddPurchaseExpanseVoucher = ({ setIsAddingNewPurchaseExpanse, setIsEditing
                                   <td>
                                     {/* {!item.purchase_invoice_number ? ( */}
                                     <Select
-                                      value={tax_pph_type_option.find((option) => option.value === items[index].tax_pph) || null}
+                                     value={
+                                      items[index].type_of_vat === "include"
+                                        ? taxTypeIncludepphOptions.find((option) => option.id === items[index].tax_pph_id) || null
+                                        : items[index].type_of_vat === "exclude"
+                                        ? taxTypeExcludepphOptions.find((option) => option.id === items[index].tax_pph_id) || null
+                                        : tax_pph_type_option.find((option) => option.id === items[index].tax_pph_id) || null
+                                    }
+                                      // value={tax_pph_type_option.find((option) => option.value === items[index].tax_pph) || null}
                                       onChange={(selectedOption) => {
                                         // Update the tax_pph_type for the specific item
                                         handleItemChange(index, "tax_pph", selectedOption ? selectedOption.value : "");
+                                        handleItemChange(index, "tax_pph_id", selectedOption ? selectedOption.id : 0);
 
                                         // Update the PphRate for the specific item
                                         if (selectedOption) {
@@ -4667,7 +4830,14 @@ const AddPurchaseExpanseVoucher = ({ setIsAddingNewPurchaseExpanse, setIsEditing
                                           setPphRate(null); // Menghapus RATE jika tidak ada selectedOption
                                         }
                                       }}
-                                      options={tax_pph_type_option}
+                                      // options={tax_pph_type_option}
+                                      options={
+                                        items[index].type_of_vat === "include"
+                                          ? taxTypeIncludepphOptions
+                                          : items[index].type_of_vat === "exclude"
+                                          ? taxTypeExcludepphOptions
+                                          : tax_pph_type_option
+                                      }
                                       isClearable
                                       placeholder="Select Tax PPH Type..."
                                       styles={{
@@ -4677,33 +4847,6 @@ const AddPurchaseExpanseVoucher = ({ setIsAddingNewPurchaseExpanse, setIsEditing
                                         }),
                                       }}
                                     />
-                                    {/* ) : null} */}
-                                    {/* <Select
-                                      value={item.tax_pph}
-                                      onChange={(selectedOption) => {
-                                        // Update the tax_pph_type for the specific item
-                                        handleItemChange(index, "tax_pph_type", selectedOption ? selectedOption.value : "");
-
-                                        // Update the PphRate for the specific item
-                                        // if (selectedOption) {
-                                        //   handleItemChange(index, "tax_pph_rate", selectedOption.RATE);
-                                        //   setPphRate(selectedOption.RATE); // Memperbarui nilai RATE jika ada selectedOption
-                                        // } else {
-                                        //   handleItemChange(index, "tax_pph_rate", 0);
-                                        //   setPphRate(null); // Menghapus RATE jika tidak ada selectedOption
-                                        // }
-                                      }}
-                                      options={tax_pph_type_option}
-                                      isClearable
-                                      placeholder="Select Tax PPH Type..."
-                                    /> */}
-                                    {/* <Select 
-                                            value={tax_pph_type_option.find(option => option.value === item.tax_pph)}
-                                            onChange={setSelectedTaxPphType}
-                                            options={tax_pph_type_option}
-                                            isClearable
-                                            placeholder="Select PPh Type..." 
-                                          /> */}
                                   </td>
 
                                   <td hidden>
