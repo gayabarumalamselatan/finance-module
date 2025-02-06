@@ -578,7 +578,7 @@ const PettyCashTable = ({
                   <th>Voucher Status</th>
                   <th>Voucher Date</th>
                   <th>Amount</th>
-                  <th>Total Debt</th>
+                  {/* <th>Total Debt</th> */}
                   <th>Total Paid</th>
                 </tr>
               </thead>
@@ -611,7 +611,7 @@ const PettyCashTable = ({
                       <td>{item.STATUS}</td>
                       <td>{item.VOUCHER_DATE}</td>
                       <td>{item.AMOUNT}</td>
-                      <td>{item.TOTAL_DEBT}</td>
+                      {/* <td>{item.TOTAL_DEBT}</td> */}
                       <td>{item.TOTAL_PAID}</td>
                     </tr>
                   ))
@@ -679,10 +679,10 @@ const PettyCashTable = ({
                     <div className="col-md-4 font-weight-bold">Amount:</div>
                     <div className="col-md-8">{selectedRowData.AMOUNT}</div>
                   </div>
-                  <div className="row mb-3">
+                  {/* <div className="row mb-3">
                     <div className="col-md-4 font-weight-bold">Total Debt:</div>
                     <div className="col-md-8">{selectedRowData.TOTAL_DEBT}</div>
-                  </div>
+                  </div> */}
                   <div className="row mb-3">
                     <div className="col-md-4 font-weight-bold">Total Paid:</div>
                     <div className="col-md-8">{selectedRowData.TOTAL_PAID}</div>
@@ -698,24 +698,25 @@ const PettyCashTable = ({
                               <th>Description</th>
                               <th>Product</th>
                               <th>Db/Cr</th>
-                              <th>Employee</th>
+                              {/* <th>Employee</th> */}
                               <th>Vendor</th>
                               <th>Project</th>
                               <th>Project Contract Number</th>
                               <th>Customer</th>
                               <th>Department</th>
-                              <th>Currency</th>
+                              {/* <th>Currency</th> */}
                               <th>Quantity</th>
                               <th>Unit Price</th>
                               <th>Total Price</th>
                               <th>Type of VAT</th>
                               <th>PPN</th>
                               <th>Tax Ppn Rate</th>
+                              <th>Amount PPN</th>
                               <th>Type of PPh</th>
                               <th>PPh</th>
                               <th>Tax PPh Rate </th>
-                              <th>Amount PPN</th>
                               <th>Amount PPh</th>
+                              <th>Tax Base</th>
                               <th>Total To Be Paid</th>
                       </tr>
                     </thead>
@@ -729,24 +730,24 @@ const PettyCashTable = ({
                             <td>{detail.description}</td>
                             <td>{detail.product}</td>
                             <td>{detail.db_cr}</td>
-                            <td>{detail.employee}</td>
+                            {/* <td>{detail.employee}</td> */}
                             <td>{detail.vendor}</td>
                             <td>{detail.project}</td>
                             <td>{detail.project_contract_number}</td>
                             <td>{detail.customer}</td>
                             <td>{detail.department}</td>
-                            <td>{detail.currency}</td>
                             <td>{detail.quantity}</td>
                             <td>{detail.unit_price}</td>
-                            <td>{detail.total_price}</td>
+                            <td>{detail.total_price}</td>                            
                             <td>{detail.type_of_vat}</td>
                             <td>{detail.tax_ppn}</td>
                             <td>{detail.tax_ppn_rate}</td>
+                            <td style={{ textAlign: "right" }}>{DisplayFormat(detail.tax_ppn_amount)}</td>
                             <td>{detail.type_of_pph}</td>
                             <td>{detail.tax_pph}</td>
                             <td>{detail.tax_pph_rate}</td>
-                            <td style={{ textAlign: "right" }}>{DisplayFormat(detail.tax_ppn_amount)}</td>
                             <td style={{ textAlign: "right" }}>{DisplayFormat(detail.tax_pph_amount)}</td>
+                            <td>{detail.tax_base}</td>
                             <td style={{ textAlign: "right" }}>{DisplayFormat(detail.amount_paid)}</td>
                           </tr>
                         ))}

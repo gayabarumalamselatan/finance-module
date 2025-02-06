@@ -2637,8 +2637,10 @@ const AddPurchaseExpanseVoucher = ({ setIsAddingNewPurchaseExpanse, setIsEditing
       newItems[index].tax_pph = "";
       newItems[index].type_of_pph = "";
       newItems[index].tax_pph_rate = 0;
-      if (newItems[index].vat_included !== undefined) {
-        newItems[index].vat_included = false;
+      if (newItems[index].vat_included){
+        coa_id: 0,
+
+    newItems[index].vat_included = false;
       }
     }
 

@@ -2,13 +2,15 @@ import React, { useState, useEffect } from "react";
 import FormPagination from "../utils/FormPagination";
 import { NumericFormat } from "react-number-format";
 import { FaAddressBook, FaClone, FaEye, FaFilter, FaSyncAlt } from "react-icons/fa";
-import { FaEdit, FaTrash, FaFileExport } from "react-icons/fa"; // Import icons for Edit, Delete, and Export
+import { FaEdit, FaTrash, FaFileExport } from "react-icons/fa"; 
 import { Button, Modal, Table } from "react-bootstrap";
 import { getBranch, getToken, userLoggin } from "../config/Constant";
 import LookupService from "../service/LookupService";
 import { DisplayFormat } from "../utils/DisplayFormat";
 import Swal from "sweetalert2";
 import DeleteDataService from "../service/DeleteDataService";
+import UserService from "../service/UserService";
+import LookupParamService from "../service/LookupParamService";
 
 const PurchaseOrderTable = ({
     formCode,
@@ -29,7 +31,7 @@ const PurchaseOrderTable = ({
     setDuplicateFlag,
     duplicateFlag,
     duplicatePurchaseOrder,
-    checker
+    checker,
 }) => {
     const headers = getToken();
     const branchId = getBranch();
@@ -45,8 +47,19 @@ const PurchaseOrderTable = ({
     const [selectedRowData, setSelectedRowData] = useState(null);
     const [selectedRowDataItem, setSelectedRowDataItem] = useState([]); // For storing selected row data
     const [filters, setFilters] = useState([{ column: "", operation: "LIKE", value: "" }]);
+    const [dislayingCreatedBy, setDisplayingCreatedBy] = useState();
+
+    // Lookup
+    const [productOptions, setProductOptions] = useState([])
+    const [contractNumberOption, setContractNumberOptions] =  useState([])
+    const [projectOptions, setProjectOptions] = useState([])
+    const [customerOptions, setCustomerOptions] = useState([])
+    const [departementOptions, setDepartementOptions] = useState([])
+    const [taxOption, setTaxOption] = useState([])
+    const [userLookup, setUserLookup]  = useState([])
 
     const authToken = headers;
+    const isDark = localStorage.getItem('darkmode') === 'true'
 
     useEffect(() => {
         setSelectedRows(new Set());
@@ -64,6 +77,132 @@ const PurchaseOrderTable = ({
         setSelectedRows(newSelectedRows);
     };
 
+    useEffect(()=>{
+        LookupParamService.fetchLookupDataView("MSDT_FORMPRDT", authToken, branchId)
+        .then(data => {
+    
+          // Transform keys to uppercase directly in the received data
+          const transformedData = data.data.map(item =>
+            Object.keys(item).reduce((acc, key) => {
+              acc[key.toUpperCase()] = item[key];
+              return acc;
+            }, {})
+          );
+    
+          const options = transformedData.map(item => ({
+            id: item.ID,
+            value: item.NAME,
+            label: item.NAME
+          }));  
+          setProductOptions(options);
+        }).catch(error => {
+          console.error('Failed to fetch product lookup:', error);
+        });
+
+        LookupParamService.fetchLookupDataView("MSDT_FORMPRJT", authToken, branchId)
+        .then(data => {
+    
+          // Transform keys to uppercase directly in the received data
+          const transformedData = data.data.map(item =>
+            Object.keys(item).reduce((acc, key) => {
+              acc[key.toUpperCase()] = item[key];
+              return acc;
+            }, {})
+          );
+    
+          const options = transformedData.map(item => ({
+            id: item.ID,
+            value: item.NAME,
+            label: item.NAME,
+            customer: item.CUSTOMER,
+            project_contract_number: item.CONTRACT_NUMBER,
+          }));
+    
+          const optionsCustomer = transformedData.map(item => ({
+            id: item.CUSTOMER_ID,
+            value: item.CUSTOMER,
+            label: item.CUSTOMER,
+          }))
+    
+          const contractNumOptions = transformedData.map(item=> ({
+            id: item.ID,
+            value: item.CONTRACT_NUMBER,
+            label: item.CONTRACT_NUMBER,
+            customer: item.CUSTOMER,
+          }));
+    
+          setContractNumberOptions(contractNumOptions);
+          setProjectOptions(options);
+          setCustomerOptions(optionsCustomer);
+        }).catch(error => {
+          console.error('Failed to fetch project lookup:', error);
+        });
+
+        LookupParamService.fetchLookupDataView("MSDT_FORMDPRT", authToken, branchId)
+        .then(data => {
+    
+          // Transform keys to uppercase directly in the received data
+          const transformedData = data.data.map(item =>
+            Object.keys(item).reduce((acc, key) => {
+              acc[key.toUpperCase()] = item[key];
+              return acc;
+            }, {})
+          );
+    
+          const options = transformedData.map(item => ({
+            id: item.ID,
+            value: item.NAME,
+            label: item.NAME
+          }));
+    
+          setDepartementOptions(options);
+    
+        }).catch(error => {
+          console.error('Failed to fetch Department lookup:', error);
+        });
+
+        LookupParamService.fetchLookupDataView("MSDT_FORMTAX", authToken, branchId)
+        .then(data => {
+    
+          // Transform keys to uppercase directly in the received data
+          const transformedData = data.data.map(item =>
+            Object.keys(item).reduce((acc, key) => {
+              acc[key.toUpperCase()] = item[key];
+              return acc;
+            }, {})
+          );
+
+          const Alloptions = transformedData.filter(item => item.TAX_TYPE === 'PPN').map(item => ({
+            value: item.NAME,
+            label: item.NAME,
+            RATE: item.RATE,
+            id: item.ID,
+          }));
+
+          setTaxOption(Alloptions)
+        })
+        .catch(error => {
+          console.error('Failed to fetch Tax Type lookup:', error);
+        });
+
+        UserService.fetchAllUser(authToken).then(response => {
+
+            const transformedData = response.users.map(item =>
+                Object.keys(item).reduce((acc, key) => {
+                  acc[key.toUpperCase()] = item[key];
+                  return acc;
+                }, {})
+            );
+            const option = transformedData.map(item => ({
+                id: item.ID,
+                value: item.USERNAME
+            }))
+            setUserLookup(option)
+        })
+
+    },[])
+
+    
     // Handle row click for modal view
     const handleRowSelect = (itemId) => {
         const rowData = dataTable.find(item => item.ID === itemId); // Find the selected row data
@@ -77,8 +216,28 @@ const PurchaseOrderTable = ({
                 const fetchedItems = response.data || [];
                 console.log('Items fetched from API:', fetchedItems);
 
+                 // Assuming productOptions is already populated with product data
+                const updatedFetchedItems = fetchedItems.map(item => {
+                const product = productOptions.find(product => product.id === item.product_id);
+                const project = projectOptions.find(project => project.id === item.project_id);
+                const customer = customerOptions.find(customer => customer.id === item.customer_id);
+                const departement = departementOptions.find(department => department.id === item.department_id);
+                const tax = taxOption.find(tax => tax.id === item.tax_ppn_id)
+                const requestor = userLookup.find(user => user.id === item.requestor_id)
+                console.log('users', requestor)
+                return {
+                    ...item,
+                    product_name: product ? product.value : '',
+                    project_name: project ? project.value : '',
+                    customer_name: customer ? customer.value: '',
+                    department_name: departement ? departement.value : '',
+                    tax_ppn_name: tax ? tax.value : '',
+                    requestor_name : requestor ? requestor.value : '' 
+                    };
+                });
+
                 // Set fetched items to state
-                setSelectedRowDataItem(fetchedItems);
+                setSelectedRowDataItem(updatedFetchedItems);
             })
             .catch(error => {
                 console.error('Failed to fetch product lookup:', error);
@@ -426,6 +585,11 @@ const PurchaseOrderTable = ({
         selectedData(dataSelected); // Pass the selected data for further processing
     };
 
+    const lookupCreatedBy = (createdbyid) => {
+        UserService.fetchUserData(createdbyid, authToken).then(response => {
+            setDisplayingCreatedBy(response.userName)
+        })
+    }
 
     const tableHeaders = [
         { value: "PO_NUMBER", label: "PO Number" },
@@ -647,7 +811,7 @@ const PurchaseOrderTable = ({
                                                 />
                                             </td>
                                             <td>{item.PO_NUMBER}</td>               
-                                            <td>{item.CREATED_BY}</td>              
+                                            <td>{item.CREATE_BY_NAME}</td>              
                                             <td>{dateFormat(item.ORDER_DATE)}</td> 
                                             <td>{dateFormat(item.REQUEST_DATE)}</td> 
                                             <td>{item.DESCRIPTION}</td>             
@@ -718,15 +882,15 @@ const PurchaseOrderTable = ({
                                     </div>
                                     <div className="row mb-3">
                                         <div className="col-md-4 font-weight-bold">Created By:</div>
-                                        <div className="col-md-8">{selectedRowData.CREATED_BY}</div>
+                                        <div className="col-md-8">{selectedRowData.CREATE_BY_NAME}</div>
                                     </div>
                                     <div className="row mb-3">
                                         <div className="col-md-4 font-weight-bold">Vendor:</div>
-                                        <div className="col-md-8">{selectedRowData.VENDOR}</div>
+                                        <div className="col-md-8">{selectedRowData.VENDOR_NAME}</div>
                                     </div>
                                     <div className="row mb-3">
                                         <div className="col-md-4 font-weight-bold">To:</div>
-                                        <div className="col-md-8">{selectedRowData.FORM_TO}</div>
+                                        <div className="col-md-8">{selectedRowData.FORM_TO_NAME}</div>
                                     </div>
                                     <div className="row mb-3">
                                         <div className="col-md-4 font-weight-bold">To Address:</div>
@@ -757,10 +921,14 @@ const PurchaseOrderTable = ({
                                         <div className="col-md-8">{selectedRowData.DESCRIPTION}</div>
                                     </div>
                                     <div className="row mb-3">
+                                        <div className="col-md-4 font-weight-bold">Currency:</div>
+                                        <div className="col-md-8">{selectedRowData.CURRENCY_NAME}</div>
+                                    </div>
+                                    <div className="row mb-3">
                                         <div className="col-md-4 font-weight-bold">Subtotal:</div>
                                         <div className="col-md-8">
                                             <NumericFormat
-                                                value={selectedRowData.TOTAL_BEFORE_DISCOUNT}
+                                                value={selectedRowData.SUBTOTAL}
                                                 displayType="text"
                                                 thousandSeparator=","
                                                 prefix="Rp "
@@ -768,21 +936,10 @@ const PurchaseOrderTable = ({
                                         </div>
                                     </div>
                                     <div className="row mb-3">
-                                        <div className="col-md-4 font-weight-bold">Discount:</div>
+                                        <div className="col-md-4 font-weight-bold">Total Discount:</div>
                                         <div className="col-md-8">
                                             <NumericFormat
-                                                value={selectedRowData.DISCOUNT}
-                                                displayType="text"
-                                                thousandSeparator=","
-                                                prefix="Rp "
-                                            />
-                                        </div>
-                                    </div>
-                                    <div className="row mb-3">
-                                        <div className="col-md-4 font-weight-bold">Subtotal After Discount:</div>
-                                        <div className="col-md-8">
-                                            <NumericFormat
-                                                value={selectedRowData.TOTAL_AFTER_DISCOUNT}
+                                                value={selectedRowData.TOTAL_DISCOUNT}
                                                 displayType="text"
                                                 thousandSeparator=","
                                                 prefix="Rp "
@@ -828,7 +985,6 @@ const PurchaseOrderTable = ({
                                                <th>Product</th>
                                                <th>Product Description</th>
                                                <th>Quantity</th>
-                                               <th>Currency</th>
                                                <th>Unit Price</th>
                                                <th>Total Price</th>
                                                <th>Type of VAT</th>
@@ -846,19 +1002,18 @@ const PurchaseOrderTable = ({
                                                         <td>{detail.doc_reff_no}</td>
                                                         <td>{detail.doc_source}</td>
                                                         <td>{detail.company}</td>
-                                                        <td>{detail.project}</td>
+                                                        <td>{detail.project_name}</td>
                                                         <td>{detail.project_contract_number}</td>
-                                                        <td>{detail.requestor}</td>
-                                                        <td>{detail.customer}</td>
-                                                        <td>{detail.departement}</td>
-                                                        <td>{detail.product}</td>
+                                                        <td>{detail.requestor_name}</td>
+                                                        <td>{detail.customer_name}</td>
+                                                        <td>{detail.department_name}</td>
+                                                        <td>{detail.product_name}</td>
                                                         <td>{detail.product_note}</td>
                                                         <td>{detail.quantity}</td>
-                                                        <td>{detail.currency}</td>
                                                         <td style={{ textAlign: "right" }}>{DisplayFormat(detail.unit_price)}</td>
                                                         <td style={{ textAlign: "right" }}>{DisplayFormat(detail.total_price)}</td>
                                                         <td>{detail.type_of_vat}</td>
-                                                        <td>{detail.tax_ppn}</td>
+                                                        <td>{detail.tax_ppn_name}</td>
                                                         <td>{detail.tax_ppn_rate}</td>
                                                         <td>{DisplayFormat(detail.tax_ppn_amount)}</td>
                                                         <td>{DisplayFormat(detail.tax_base)}</td>

@@ -27,6 +27,7 @@ import { se } from 'date-fns/locale';
 import moment from 'moment';
 
 const AddPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, selectedData, duplicateFlag, setIsAddingNewDuplicatePurchaseRequest }) => {
+  // console.log('selectedData:', selectedData[0]);
   const headers = getToken();
   const branchId = getBranch();
   const userId = sessionStorage.getItem('userId');
@@ -50,7 +51,7 @@ const AddPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, select
   const [description, setDescription] = useState('');
   const [due_date, setDueDate] = useState('');
   const [endtoendid, setEntoendid] = useState('');
-  const [currency, setCurrency] = useState('IDR');
+  const [currency, setCurrency] = useState('');
   const [selectedItems, setSelectedItems] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [currencyOptions, setCurrencyOptions] = useState([]);
@@ -130,7 +131,7 @@ const AddPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, select
               );
 
               const productOptions = transformedProductData.map(item => ({
-                value: item.NAME,
+                value: item.ID,
                 label: item.NAME
               }));
 
@@ -150,7 +151,7 @@ const AddPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, select
                   );
 
                   const currencyOptions = transformedCurrencyData.map(item => ({
-                    value: item.CODE,
+                    value: item.ID,
                     label: item.CODE
                   }));
 
@@ -202,7 +203,7 @@ const AddPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, select
           //console.log('Transformed data:', transformedData);
 
           const options = transformedData.map(item => ({
-            value: item.CODE,
+            value: item.ID,
             label: item.CODE
           }));
           setCurrencyOptions(options);
@@ -226,7 +227,7 @@ const AddPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, select
           //console.log('Transformed data:', transformedData);
 
           const options = transformedData.map(item => ({
-            value: item.NAME,
+            value: item.ID,
             label: item.NAME
           }));
           setDepartementOptions(options);
@@ -251,14 +252,15 @@ const AddPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, select
           //console.log('Transformed data:', transformedData);
 
           const options = transformedData.map(item => ({
-            value: item.NAME,
+            value: item.ID,
             label: item.NAME,
             project_contract_number: item.CONTRACT_NUMBER,
-            customer: item.CUSTOMER
+            customer: item.CUSTOMER_ID
           }));
           setProjectOptions(options);
           const selectedProjectOption = options.find(option => option.value === selectedData[0].PROJECT);
           setSelectedProject(selectedProjectOption || null);
+
         })
         .catch(error => {
           console.error('Failed to fetch currency lookup:', error);
@@ -278,14 +280,10 @@ const AddPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, select
           //console.log('Transformed data:', transformedData);
 
           const options = transformedData.map(item => ({
-            value: item.NAME,
+            value: item.ID,
             label: item.NAME
           }));
           setProductOptions(options);
-          console.log('Product :', options);
-          const selectedProductOption = options.find(option => option.value === selectedData[0].PRODUCT);
-          console.log('product : ', selectedProductOption);
-          setSelectedProduct(selectedProductOption || null);
         })
         .catch(error => {
           console.error('Failed to fetch currency lookup:', error);
@@ -308,18 +306,10 @@ const AddPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, select
           );
 
           const options = filteredData.map(item => ({
-            value: item.NAME,
+            value: item.ID,
             label: item.NAME
           }));
-
-          console.log('Vendor ops :', options);
-
-
           setVendorOptions(options);
-
-          const selectedVendorOption = options.find(option => option.value === selectedData[0].VENDOR);
-          console.log('Vendor :', selectedVendorOption);
-          setSelectedVendor(selectedVendorOption || null);
         })
         .catch(error => {
           console.error('Failed to fetch currency lookup:', error);
@@ -375,7 +365,7 @@ const AddPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, select
               );
 
               const productOptions = transformedProductData.map(item => ({
-                value: item.NAME,
+                value: item.ID,
                 label: item.NAME
               }));
 
@@ -395,7 +385,7 @@ const AddPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, select
                   );
 
                   const currencyOptions = transformedCurrencyData.map(item => ({
-                    value: item.CODE,
+                    value: item.ID,
                     label: item.CODE
                   }));
 
@@ -447,7 +437,7 @@ const AddPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, select
           //console.log('Transformed data:', transformedData);
 
           const options = transformedData.map(item => ({
-            value: item.CODE,
+            value: item.ID,
             label: item.CODE
           }));
           setCurrencyOptions(options);
@@ -471,12 +461,12 @@ const AddPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, select
           //console.log('Transformed data:', transformedData);
 
           const options = transformedData.map(item => ({
-            value: item.NAME,
+            value: item.ID,
             label: item.NAME
           }));
           setDepartementOptions(options);
-          const selectedDepartementOption = options.find(option => option.value === selectedData[0].DEPARTEMENT);
-          setSelectedDepartement(selectedDepartementOption || null);
+          // const selectedDepartementOption = options.find(option => option.value === selectedData[0].DEPARTEMENT);
+          // setSelectedDepartement(selectedDepartementOption || null);
         })
         .catch(error => {
           console.error('Failed to fetch currency lookup:', error);
@@ -496,10 +486,10 @@ const AddPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, select
           //console.log('Transformed data:', transformedData);
 
           const options = transformedData.map(item => ({
-            value: item.NAME,
+            value: item.ID,
             label: item.NAME,
             project_contract_number: item.CONTRACT_NUMBER,
-            customer: item.CUSTOMER
+            customer: item.CUSTOMER_ID
           }));
           setProjectOptions(options);
           const selectedProjectOption = options.find(option => option.value === selectedData[0].PROJECT);
@@ -553,7 +543,7 @@ const AddPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, select
           );
 
           const options = filteredData.map(item => ({
-            value: item.NAME,
+            value: item.ID,
             label: item.NAME
           }));
 
@@ -587,7 +577,7 @@ const AddPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, select
           //console.log('Transformed data:', transformedData);
 
           const options = transformedData.map(item => ({
-            value: item.CODE,
+            value: item.ID,
             label: item.CODE
           }));
           setCurrencyOptions(options);
@@ -609,7 +599,7 @@ const AddPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, select
           //console.log('Transformed data:', transformedData);
 
           const options = transformedData.map(item => ({
-            value: item.NAME,
+            value: item.ID,
             label: item.NAME
           }));
           setDepartementOptions(options);
@@ -633,10 +623,10 @@ const AddPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, select
           console.log('Transformed data project:', transformedData);
 
           const options = transformedData.map(item => ({
-            value: item.NAME,
+            value: item.ID,
             label: item.NAME,
             project_contract_number: item.CONTRACT_NUMBER,
-            customer: item.CUSTOMER
+            customer: item.CUSTOMER_ID
           }));
           setProjectOptions(options);
         })
@@ -658,7 +648,7 @@ const AddPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, select
           //console.log('Transformed data:', transformedData);
 
           const options = transformedData.map(item => ({
-            value: item.NAME,
+            value: item.ID,
             label: item.NAME
           }));
           setProductOptions(options);
@@ -685,7 +675,7 @@ const AddPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, select
           );
 
           const options = filteredData.map(item => ({
-            value: item.NAME,
+            value: item.ID,
             label: item.NAME
           }));
           setVendorOptions(options);
@@ -703,40 +693,108 @@ const AddPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, select
     // Update the specific item at the provided index
     updatedItems[index] = {
       ...updatedItems[index], // Copy the existing fields
-      departement: selectedOption ? selectedOption.value : '' // Update the department field
+      department_id: selectedOption ? selectedOption.value : '' // Update the department field
+    };
+
+    setItems(updatedItems); // Set the updated items array in state
+  };
+
+  const handleCurrencyChange = (selectedOption, index) => {
+    console.log('Currency:', selectedOption);
+    setSelectedCurrency(selectedOption); // Optional: If you need to use the selected option elsewhere
+    const updatedItems = [...items]; // Copy the current items array
+
+    // Update the specific item at the provided index
+    updatedItems[index] = {
+      ...updatedItems[index], // Copy the existing fields
+      currency_id: selectedOption ? selectedOption.value : '' // Update the department field
+    };
+
+    setItems(updatedItems); // Set the updated items array in state
+  };
+
+  const handleProductChange = (selectedOption, index) => {
+    setSelectedProduct(selectedOption); // Optional: If you need to use the selected option elsewhere
+    const updatedItems = [...items]; // Copy the current items array
+
+    // Update the specific item at the provided index
+    updatedItems[index] = {
+      ...updatedItems[index], // Copy the existing fields
+      product_id: selectedOption ? selectedOption.value : '' // Update the department field
     };
 
     setItems(updatedItems); // Set the updated items array in state
   };
 
 
-
   const handleProjectChange = (selectedOption, index) => {
-    console.log(selectedOption);
+    console.log('handleProjectChange', selectedOption);
 
     // Copy the items array
     const updatedItems = [...items];
 
-    // Update the specific item at the provided index
+    // Update the specific item at the provided index with initial data
     updatedItems[index] = {
-      ...updatedItems[index], // Copy the existing fields
-      project: selectedOption ? selectedOption.value : '', // Set the project
-      project_contract_number: selectedOption ? selectedOption.project_contract_number : '', // Set project contract number
-      customer: selectedOption ? selectedOption.customer : '' // Set the customer
+      ...updatedItems[index],
+      project_id: selectedOption ? selectedOption.value : '',
+      project_contract_number: selectedOption ? selectedOption.project_contract_number : '',
+      customer_id: selectedOption ? selectedOption.customer : '',
+      customer_name: '' // Placeholder for customer_name
     };
 
-    // Update the items array in state
-    setItems(updatedItems);
+    // Fetch customer name from MSDT_FORMCUST filtered by customer ID
+    if (selectedOption && selectedOption.customer) {
+      LookupParamService.fetchLookupData(
+        `MSDT_FORMCUST`,
+        authToken,
+        branchId
+      )
+        .then((customerData) => {
+          console.log('Customer lookup data:', customerData);
 
-    // Optionally, update any other states related to selected project if needed
+          // Transform keys to uppercase for consistency
+          const transformedCustomerData = customerData.data.map((item) =>
+            Object.keys(item).reduce((acc, key) => {
+              acc[key.toUpperCase()] = item[key];
+              return acc;
+            }, {})
+          );
+
+          // Filter the customer data to match the selectedOption.customer
+          const matchingCustomer = transformedCustomerData.find(
+            (customer) => customer.ID === selectedOption.customer
+          );
+
+          // Extract the customer name if available
+          const customerName = matchingCustomer?.NAME || 'Unknown';
+
+          // Update the items array with the customer_name
+          updatedItems[index] = {
+            ...updatedItems[index],
+            customer_name: customerName
+          };
+
+          // Update state with the updated items
+          setItems(updatedItems);
+        })
+        .catch((error) => {
+          console.error('Failed to fetch customer data:', error);
+        });
+    } else {
+      // If no customer is selected, update state immediately
+      setItems(updatedItems);
+    }
+
+    // Optionally, update other states related to selected project if needed
     setSelectedProject(selectedOption);
   };
+
 
   const handleVendorChange = (selectedOption, index) => {
     const updatedItems = [...items]; // Copy the items array
     updatedItems[index] = {
       ...updatedItems[index], // Copy the existing item fields
-      vendor: selectedOption ? selectedOption.value : '' // Update the vendor field
+      vendor_id: selectedOption ? selectedOption.value : '' // Update the vendor field
     };
     setItems(updatedItems); // Set the new state
     setSelectedVendor(selectedOption); // Optionally update this if you need it elsewhere
@@ -788,7 +846,7 @@ const AddPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, select
 
 
   const handleAddItem = () => {
-    setItems([...items, { doc_reff_no: '', doc_source: '', vendor: '', project: '', project_contract_number: '', customer: '', departement: '', product: '', product_note: '', quantity: '', unit_price: 0, total_price: 0, id_upload: '' }]);
+    setItems([...items, { doc_reff_no: '', currency_id: '', doc_source: '', vendor_id: '', project_id: '', project_contract_number: '', customer_id: '', department_id: '', product_id: '', product_note: '', quantity: '', unit_price: 0, total_price: 0, id_upload: '' }]);
   };
 
   const handleItemChange = async (index, field, value) => {
@@ -849,13 +907,10 @@ const AddPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, select
       newItems[index].quantity = newItems[index].quantity || 1; // Default quantity to 1 if empty or 0
       newItems[index].total_price = newItems[index].quantity * newItems[index].unit_price;
     }
-    
+
     // Update the items state for all changes
     setItems(newItems);
   };
-
-
-
 
 
   const handleDeleteItem = (index) => {
@@ -885,9 +940,9 @@ const AddPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, select
     setSelectedItems([]);
   };
 
-  const calculateTotalAmount = () => {
-    return items.reduce((total, item) => total + item.total_price, 0);
-  };
+  
+  
+  
 
   const handleOnDragEnd = (result) => {
     if (!result.destination) return;
@@ -944,7 +999,6 @@ const AddPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, select
           status_request: 'DRAFT',
           due_date,
           endtoendid,
-          currency
         };
 
         // Check if pr_number exists in API
@@ -1001,7 +1055,7 @@ const AddPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, select
           console.log('Data posted successfully:', response);
 
           if (response.message === "insert Data Successfully") {
-            await handleItemsInsert(pr_number,duplicateFlag);
+            await handleItemsInsert(pr_number, duplicateFlag);
             messageAlertSwal('Success', response.message, 'success');
             // resetForm();
           }
@@ -1067,7 +1121,7 @@ const AddPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, select
       // Insert updated items with newPrNumber if provided, otherwise use pr_number
       const updatedPrNumber = newPrNumber || pr_number;
       for (const item of items) {
-        const { rwnum, ID, status, id_trx, ...rest } = item;
+        const { rwnum, ID, status, id_trx, customer_name, ...rest } = item;
         const updatedItem = { ...rest, pr_number: updatedPrNumber };
         await InsertDataService.postData(updatedItem, "PUREQD", authToken, branchId);
         console.log('Item inserted successfully:', updatedItem);
@@ -1084,27 +1138,33 @@ const AddPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, select
       let updatedItem;
 
       if (duplicateFlag) {
-        // Hanya menyertakan properti tertentu
+        // Only include specific properties and exclude customer_name
         updatedItem = {
           doc_reff_no: item.doc_reff_no,
           doc_source: item.doc_source,
-          vendor: item.vendor,
-          project: item.project,
+          vendor_id: item.vendor,
+          project_id: item.project,
           project_contract_number: item.project_contract_number,
-          customer: item.customer,
-          departement: item.departement,
-          product: item.product,
+          customer_id: item.customer,
+          department_id: item.departement,
+          product_id: item.product,
           product_note: item.product_note,
           quantity: item.quantity,
           unit_price: item.unit_price,
           total_price: item.total_price,
           id_upload: item.id_upload,
-          pr_number: pr_number, // Tambahkan pr_number
+          pr_number: pr_number, // Add pr_number
         };
       } else {
-        // Kirim seluruh item jika duplicateFlag false
-        updatedItem = { ...item, pr_number };
+        // Send the entire item, excluding customer_name
+        const { customer_name, ...itemWithoutCustomerName } = item; // Exclude customer_name
+        updatedItem = { ...itemWithoutCustomerName, pr_number };
       }
+
+      // You can now use updatedItem for further processing, e.g., API call
+      console.log(updatedItem);
+      // Example of making an API call:
+      // await someApiCall(updatedItem);
 
       await InsertDataService.postData(updatedItem, "PUREQD", authToken, branchId);
 
@@ -1173,8 +1233,7 @@ const AddPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, select
             total_amount,
             status_request: 'IN_PROCESS',
             due_date,
-            endtoendid,
-            currency
+            endtoendid
           };
 
           const response = await UpdateDataService.postData(generalInfo, `PUREQ&column=id&value=${id}`, authToken, branchId);
@@ -1214,8 +1273,7 @@ const AddPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, select
             total_amount,
             status_request: 'IN_PROCESS',
             due_date,
-            endtoendid,
-            currency
+            endtoendid
           };
 
           const response = await InsertDataService.postData(generalInfo, "PUREQ", authToken, branchId);
@@ -1441,7 +1499,7 @@ const AddPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, select
         if (pr_number.slice(0, 2) !== 'PR') {
           pr_number = await generatePrNumber('PR');
         } else {
-          pr_number 
+          pr_number
         }
 
         const total_amount = calculateTotalAmount();
@@ -1554,6 +1612,27 @@ const AddPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, select
     setScheduleDate(date);
   };
 
+  const detailFormStyle = () => {
+    return {
+      border: 'none',
+      background: 'transparent',
+      color: 'black'
+
+    }
+  }
+
+  const hasMultipleCurrencies = () => {
+    const uniqueCurrencies = new Set(items.map(item => item.currency_id).filter(Boolean));
+    return uniqueCurrencies.size > 1;
+  };
+
+  const calculateTotalAmount = () => {
+    if (hasMultipleCurrencies()) {
+      console.warn("Total amount not calculated: Multiple currencies detected.");
+      return 0; // Tidak menghitung jika ada lebih dari satu mata uang
+    }
+    return items.reduce((sum, item) => sum + item.total_price, 0);
+  };
 
   return (
     <Fragment>
@@ -1650,7 +1729,7 @@ const AddPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, select
                     </Col>
 
 
-                    <Col md={6}>
+                    {/* <Col md={6}>
                       <Form.Group controlId="formDocNo">
                         <Form.Label>Doc. No</Form.Label>
                         <Form.Control
@@ -1661,7 +1740,7 @@ const AddPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, select
                           disabled
                         />
                       </Form.Group>
-                    </Col>
+                    </Col> */}
 
                     <Col md={6}>
                       <Form.Group controlId="formRequestor">
@@ -1715,17 +1794,7 @@ const AddPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, select
                         </div>
                       </Form.Group>
                     </Col>
-                    <Col md={6}>
-                      <Form.Group controlId="formCurrency">
-                        <Form.Label>Currency</Form.Label>
-                        <Select
-                          value={currencyOptions.find(option => option.value === currency)}
-                          onChange={(selectedOption) => setCurrency(selectedOption ? selectedOption.value : selectedOption)}
-                          options={currencyOptions}
-                          placeholder="Select currency"
-                        />
-                      </Form.Group>
-                    </Col>
+
                   </Row>
                 </Form>
               </Card.Body>
@@ -1763,203 +1832,291 @@ const AddPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, select
                 <DragDropContext onDragEnd={handleOnDragEnd}>
                   <Droppable droppableId="items">
                     {(provided) => (
-                      <div
-                        className="table-responsive"
-                        {...provided.droppableProps}
-                        ref={provided.innerRef}
-                      >
-                        <table className="table table-bordered">
-                          <thead>
-                            <tr>
-                              <th>
-                                <input
-                                  type="checkbox"
-                                  onChange={handleSelectAll}
-                                  checked={selectedItems.length === items.length && items.length > 0}
-                                />
-                              </th>
-                              <th>Document Reference Number</th>
-                              <th>Document Reference Source</th>
-                              <th>Vendor</th>
-                              <th>Project</th>
-                              <th>Project Contract Number</th>
-                              <th>Customer</th>
-                              <th>Departement</th>
-                              <th>Product</th>
-                              <th>Product Description</th>
-                              <th>Quantity</th>
-                              <th>Unit Price</th>
-                              <th>Total Price</th>
-                              <th>Actions</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {items.length === 0 ? (
+                      <>
+                        <div
+                          className="table-responsive"
+                          {...provided.droppableProps}
+                          ref={provided.innerRef}
+                        >
+                          <table className="table table-bordered">
+                            <thead>
                               <tr>
-                                <td colSpan="14" className="text-center">No data available</td>
+                                <th>
+                                  <input
+                                    type="checkbox"
+                                    onChange={handleSelectAll}
+                                    checked={selectedItems.length === items.length && items.length > 0}
+                                  />
+                                </th>
+                                <th>Document Reference Number</th>
+                                <th>Document Reference Source</th>
+                                <th>Vendor</th>
+                                <th>Project</th>
+                                <th>Project Contract Number</th>
+                                <th>Customer</th>
+                                <th>Department</th>
+                                <th>Product</th>
+                                <th>Product Description</th>
+                                <th>Currency</th>
+                                <th>Quantity</th>
+                                <th>Unit Price</th>
+                                <th>Total Price</th>
+                                <th>Actions</th>
                               </tr>
-                            ) : (
-                              items.map((item, index) => (
-                                <tr key={index} className={selectedItems.includes(index) ? 'table-active' : ''}>
-                                  <td>
-                                    <input
-                                      type="checkbox"
-                                      checked={selectedItems.includes(index)}
-                                      onChange={() => handleSelectItem(index)}
-                                    />
-                                  </td>
-                                  <td>
-                                    <Form.Control
-                                      type="text"
-                                      placeholder="Enter Document Reference"
-                                      value={item.doc_reff_no}
-                                      onChange={(e) => handleItemChange(index, 'doc_reff_no', e.target.value)}
-                                    />
-                                  </td>
-                                  <td>
-                                    {setIsEditingPurchaseRequest ? (
-                                      <>
-                                        {/* Display the document link and edit button when editing */}
-                                        <a href={item.doc_source} target="_blank" rel="noopener noreferrer">
-                                          {item.doc_source}
-                                        </a>
-                                        {/* <button
+                            </thead>
+                            <tbody>
+                              {items.length === 0 ? (
+                                <tr>
+                                  <td colSpan="14" className="text-center">No data available</td>
+                                </tr>
+                              ) : (
+                                items.map((item, index) => (
+                                  <tr key={index} className={selectedItems.includes(index) ? 'table-active' : ''}>
+                                    <td>
+                                      <input
+                                        type="checkbox"
+                                        checked={selectedItems.includes(index)}
+                                        onChange={() => handleSelectItem(index)}
+                                      />
+                                    </td>
+                                    <td>
+                                      <Form.Control
+                                        type="text"
+                                        placeholder="Enter Document Reference"
+                                        value={item.doc_reff_no}
+                                        onChange={(e) => handleItemChange(index, 'doc_reff_no', e.target.value)}
+                                        style={detailFormStyle()}
+                                      />
+                                    </td>
+                                    <td>
+                                      {setIsEditingPurchaseRequest ? (
+                                        <>
+                                          {/* Display the document link and edit button when editing */}
+                                          <a href={item.doc_source} target="_blank" rel="noopener noreferrer">
+                                            {item.doc_source}
+                                          </a>
+                                          {/* <button
                                           type="button"
                                           onClick={() => handleEditClick(index)}
                                           style={{ marginLeft: '10px', border: 'none', background: 'transparent' }}
                                         >
                                           <i className="fa fa-edit" aria-hidden="true"></i>
                                         </button> */}
-                                      </>
-                                    ) : (
-                                      // Display file input when not editing
-                                      <Form.Control
-                                        type="file"
-                                        onChange={(e) => handleItemChange(index, 'file', e)}
+                                        </>
+                                      ) : (
+                                        // Display file input when not editing
+                                        <Form.Control
+                                          type="file"
+                                          onChange={(e) => handleItemChange(index, 'file', e)}
+                                        />
+                                      )}
+                                    </td>
+                                    <td>
+                                      <Select
+                                        id={`vendor-${index}`} // unique id for each row
+                                        value={vendorOptions.find(option => option.value === item.vendor_id) || null}// Set the selected value
+                                        onChange={(selectedOption) => handleVendorChange(selectedOption, index)} // Pass the index to the handler
+                                        options={vendorOptions}
+                                        isClearable
+                                        placeholder="Select..."
+                                        styles={{
+                                          control: (provided) => ({
+                                            ...provided,
+                                            ...detailFormStyle()
+                                          }), placeholder: (provided) => ({
+                                            ...provided,
+                                            color: 'black', // Sets placeholder text color to black
+                                          }),
+                                        }}
+                                        required
                                       />
-                                    )}
-                                  </td>
-                                  <td>
-                                    <Select
-                                      id={`vendor-${index}`} // unique id for each row
-                                      value={vendorOptions.find(option => option.value === item.vendor)} // Set the selected value
-                                      onChange={(selectedOption) => handleVendorChange(selectedOption, index)} // Pass the index to the handler
-                                      options={vendorOptions}
-                                      isClearable
-                                      placeholder="Select..."
-                                      required
-                                    />
-                                  </td>
-                                  <td>
-                                    <Select
-                                      id={`project-${index}`} // Unique id for each project select
-                                      value={projectOptions.find(option => option.value === item.project)} // Set selected value for project
-                                      onChange={(selectedOption) => handleProjectChange(selectedOption, index)} // Pass the index to handler
-                                      options={projectOptions}
-                                      isClearable
-                                      placeholder="Select a project..."
-                                      required
-                                    />
-                                  </td>
-                                  <td>
-                                    <Form.Control
-                                      type="text"
-                                      placeholder="Enter Project Contract Number"
-                                      value={item.project_contract_number} // Bind to the specific item's field
-                                      onChange={(e) => handleItemChange(index, 'project_contract_number', e.target.value)} // Update the project contract number
-                                      disabled // Keep it disabled if you don't want it to be editable
-                                    />
-                                  </td>
-                                  <td>
-                                    <Form.Control
-                                      type="text"
-                                      value={item.customer} // Bind to the specific item's field
-                                      onChange={(e) => handleItemChange(index, 'customer', e.target.value)} // Update the customer
-                                      disabled // Keep it disabled if it should not be editable
-                                    />
-                                  </td>
-                                  <td>
-                                    <Select
-                                      id={`departement-${index}`} // Unique id for each department select
-                                      value={departementOptions.find(option => option.value === item.departement)} // Set the selected value for department
-                                      onChange={(selectedOption) => handleDepartementChange(selectedOption, index)} // Pass the index to the handler
-                                      options={departementOptions}
-                                      isClearable
-                                      placeholder="Select a department..."
-                                      required
-                                    />
-                                  </td>
+                                    </td>
+                                    <td>
+                                      <Select
+                                        id={`project-${index}`} // Unique id for each project select
+                                        value={projectOptions.find(option => option.value === item.project_id)} // Set selected value for project
+                                        onChange={(selectedOption) => handleProjectChange(selectedOption, index)} // Pass the index to handler
+                                        options={projectOptions}
+                                        isClearable
+                                        placeholder="Select a project..."
+                                        styles={{
+                                          control: (provided) => ({
+                                            ...provided,
+                                            ...detailFormStyle()
+                                          }), placeholder: (provided) => ({
+                                            ...provided,
+                                            color: 'black', // Sets placeholder text color to black
+                                          }),
+                                        }}
+                                        required
+                                      />
+                                    </td>
+                                    <td>
+                                      <Form.Control
+                                        type="text"
+                                        placeholder="Enter Project Contract Number"
+                                        value={item.project_contract_number} // Bind to the specific item's field
+                                        onChange={(e) => handleItemChange(index, 'project_contract_number', e.target.value)} // Update the project contract number
+                                        style={detailFormStyle()}
+                                        disabled // Keep it disabled if you don't want it to be editable
+                                      />
+                                    </td>
+                                    <td>
+                                      <Form.Control
+                                        type="text"
+                                        value={item.customer_name} // Bind to the specific item's field
+                                        onChange={(e) => handleItemChange(index, 'customer_id', e.target.value)} // Update the customer
+                                        style={detailFormStyle()}
+                                        disabled // Keep it disabled if it should not be editable
+                                      />
+                                    </td>
+                                    <td>
+                                      <Select
+                                        id={`departement-${index}`} // Unique id for each department select
+                                        value={departementOptions.find(option => option.value === item.department_id)} // Set the selected value for department
+                                        onChange={(selectedOption) => handleDepartementChange(selectedOption, index)} // Pass the index to the handler
+                                        options={departementOptions}
+                                        isClearable
+                                        placeholder="Select a department..."
+                                        styles={{
+                                          control: (provided) => ({
+                                            ...provided,
+                                            ...detailFormStyle()
+                                          }),
+                                          placeholder: (provided) => ({
+                                            ...provided,
+                                            color: 'black', // Sets placeholder text color to black
+                                          }),
 
-                                  <td>
-                                    <Select
-                                      value={productOptions.find(option => option.value === item.product)}
-                                      onChange={(selectedOption) => handleItemChange(index, 'product', selectedOption)}
-                                      options={productOptions}
-                                      isClearable
-                                      placeholder="Select product"
-                                    />
-                                  </td>
-                                  <td>
-                                    <Form.Control
-                                      type="text"
-                                      value={item.product_note}
-                                      onChange={(e) => handleItemChange(index, 'product_note', e.target.value)}
-                                    />
-                                  </td>
-                                  <td>
-                                    <Form.Control
-                                      type="number"
-                                      value={item.quantity}
-                                      onChange={(e) => handleItemChange(index, 'quantity', parseFloat(e.target.value))}
-                                      style={{ width: '80px' }}
-                                    />
-                                  </td>
-                                  <td>
-                                    {/* <Form.Control
-                                      type="number"
-                                      value={item.unit_price}
-                                      onChange={(e) => handleItemChange(index, 'unit_price', parseFloat(e.target.value) || 0)}
-                                    /> */}
-                                    <CurrencyInput
-                                      id={`currency-input-${index}`}
-                                      name="unit_price"
-                                      className="form-control"
-                                      value={item.unit_price || ''} // Empty string if undefined
-                                      decimalsLimit={4} // IDR: No decimals, Others: 2 decimals
-                                      onValueChange={(value) => {
-                                        const numericValue = parseFloat(value) || 0; // Ensure numeric value
-                                        handleItemChange(index, 'unit_price', numericValue);
-                                      }}
-                                      onFocus={() => {
-                                        handleItemChange(index, 'unit_price', ''); // Kosongkan nilai saat fokus
-                                      }} // Optional: Highlight text on focus
-                                      style={{ width: '100%', textAlign: 'right' }}
-                                    />
-                                  </td>
-                                  <td className="text-end">{item.total_price.toLocaleString('en-US', { currency: currency, minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
-                                  <td>
-                                    <Button
-                                      variant="danger"
-                                      size="sm"
-                                      onClick={() => handleDeleteItem(index)}
-                                    >
-                                      <i className="fas fa-trash"></i>
-                                    </Button>
-                                  </td>
-                                </tr>
-                              ))
-                            )}
-                          </tbody>
-                          <tfoot>
-                            <tr>
-                              <td colSpan="12" className="text-right">Total Amount:</td>
-                              <td className="text-end"><strong>{calculateTotalAmount().toLocaleString('en-US', { currency: 'IDR', minimumFractionDigits: 2, maximumFractionDigits: 2 })} </strong></td>
-                              <td></td>
-                            </tr>
-                          </tfoot>
-                        </table>
-                        {provided.placeholder}
-                      </div>
+                                        }}
+                                        required
+                                      />
+
+                                    </td>
+
+                                    <td>
+                                      <Select
+                                        id={`product-${index}`} // Unique id for each department select
+                                        value={productOptions.find(option => option.value === item.product_id)} // Set the selected value for department
+                                        onChange={(selectedOption) => handleProductChange(selectedOption, index)} // Pass the index to the handler
+                                        options={productOptions}
+                                        isClearable
+                                        placeholder="Select a Product..."
+                                        styles={{
+                                          control: (provided) => ({
+                                            ...provided,
+                                            ...detailFormStyle()
+                                          }),
+                                          placeholder: (provided) => ({
+                                            ...provided,
+                                            color: 'black', // Sets placeholder text color to black
+                                          }),
+
+                                        }}
+                                        required
+                                      />
+                                    </td>
+                                    <td>
+                                      <Form.Control
+                                        type="text"
+                                        value={item.product_note}
+                                        onChange={(e) => handleItemChange(index, 'product_note', e.target.value)}
+                                        style={detailFormStyle()}
+                                      />
+                                    </td>
+                                    <td>
+                                      <Select
+                                        id={`currency-${index}`} // Unique id for each department select
+                                        value={currencyOptions.find(option => option.value === item.currency_id)} // Set the selected value for department
+                                        onChange={(selectedOption) => handleCurrencyChange(selectedOption, index)} // Pass the index to the handler
+                                        options={currencyOptions}
+                                        isClearable
+                                        placeholder="Select a Currency..."
+                                        styles={{
+                                          control: (provided) => ({
+                                            ...provided,
+                                            ...detailFormStyle()
+                                          }),
+                                          placeholder: (provided) => ({
+                                            ...provided,
+                                            color: 'black', // Sets placeholder text color to black
+                                          }),
+
+                                        }}
+                                        required
+                                      />
+                                    </td>
+
+                                    <td>
+                                      <Form.Control
+                                        type="number"
+                                        value={item.quantity}
+                                        onChange={(e) => handleItemChange(index, 'quantity', parseFloat(e.target.value))}
+
+                                        style={{
+                                          // width: `${inputWidth[index] || 75}px`,
+                                          ...detailFormStyle(),
+                                          width: '75px',
+                                        }}
+                                      />
+                                    </td>
+                                    <td>
+                                      <CurrencyInput
+                                        id={`currency-input-${index}`}
+                                        name="unit_price"
+                                        className="form-control"
+                                        value={item.unit_price || ''} // Empty string if undefined
+                                        decimalsLimit={4} // IDR: No decimals, Others: 2 decimals
+                                        onValueChange={(value) => {
+                                          const numericValue = parseFloat(value) || 0; // Ensure numeric value
+                                          handleItemChange(index, 'unit_price', numericValue);
+                                        }}
+                                        onFocus={() => {
+                                          handleItemChange(index, 'unit_price', ''); // Kosongkan nilai saat fokus
+                                        }} // Optional: Highlight text on focus
+                                        style={{ ...detailFormStyle(), width: '100%', textAlign: 'right' }}
+                                      />
+                                    </td>
+                                    <td className="text-end">{item.total_price.toLocaleString('en-US', { currency: 'IDR', minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                                    <td>
+                                      <Button
+                                        variant="danger"
+                                        size="sm"
+                                        onClick={() => handleDeleteItem(index)}
+                                      >
+                                        <i className="fas fa-trash"></i>
+                                      </Button>
+                                    </td>
+                                  </tr>
+                                ))
+                              )}
+                            </tbody>
+
+                          </table>
+
+                          {provided.placeholder}
+                        </div>
+                        {!hasMultipleCurrencies() && (
+                          <table className="table table-bordered">
+                            <tbody>
+                              <tr>
+                                <td colSpan="16" className="text-right">Total Amount:</td>
+                                <td className="text-end">
+                                  <strong>
+                                    {calculateTotalAmount().toLocaleString('en-US', {
+                                      style: 'currency',
+                                      currency: 'IDR',
+                                      minimumFractionDigits: 2,
+                                      maximumFractionDigits: 2,
+                                    })}
+                                  </strong>
+                                </td>
+                              </tr>
+                            </tbody>
+                          </table>
+                        )}
+
+                      </>
                     )}
                   </Droppable>
                 </DragDropContext>
@@ -1993,24 +2150,24 @@ const AddPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, select
 
         <Row className="mt-5">
           <Col md={12} className="d-flex justify-content-end">
-          {(setIsEditingPurchaseRequest || setIsAddingNewDuplicatePurchaseRequest) && (
-                    <>
-                      <Button
-                        variant="secondary"
-                        className="mr-2"
-                        onClick={() => {
-                          handleRefresh();
-                          if (setIsEditingPurchaseRequest) {
-                            setIsEditingPurchaseRequest(false);
-                          } else if (setIsAddingNewDuplicatePurchaseRequest) {
-                            setIsAddingNewDuplicatePurchaseRequest(false);
-                          }
-                        }}
-                      >
-                        <i className="fas fa-arrow-left"></i> Go Back
-                      </Button>
-                    </>
-                  )}
+            {(setIsEditingPurchaseRequest || setIsAddingNewDuplicatePurchaseRequest) && (
+              <>
+                <Button
+                  variant="secondary"
+                  className="mr-2"
+                  onClick={() => {
+                    handleRefresh();
+                    if (setIsEditingPurchaseRequest) {
+                      setIsEditingPurchaseRequest(false);
+                    } else if (setIsAddingNewDuplicatePurchaseRequest) {
+                      setIsAddingNewDuplicatePurchaseRequest(false);
+                    }
+                  }}
+                >
+                  <i className="fas fa-arrow-left"></i> Go Back
+                </Button>
+              </>
+            )}
 
             {!isSubmitted ? (
               <>
