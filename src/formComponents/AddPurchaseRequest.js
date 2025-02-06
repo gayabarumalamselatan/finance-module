@@ -36,7 +36,7 @@ const AddPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, select
   const [request_date, setRequestDate] = useState('');
   const [customer, setCustomer] = useState('');
   const [schedule_date, setScheduleDate] = useState('');
-  const [doc_no, setDocNo] = useState('FRM.PTAP.PRC.21a-01');
+  // const [doc_no, setDocNo] = useState('FRM.PTAP.PRC.21a-01');
   const [doc_reff, setDocReff] = useState('');
   const [doc_reff_no, setDocReffNo] = useState('');
   const [requestor, setRequestor] = useState(userId);
@@ -940,9 +940,9 @@ const AddPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, select
     setSelectedItems([]);
   };
 
-  
-  
-  
+
+
+
 
   const handleOnDragEnd = (result) => {
     if (!result.destination) return;
@@ -989,16 +989,20 @@ const AddPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, select
           pr_number,
           request_date: moment().format('YYYY-MM-DD'),
           schedule_date,
-          doc_no,
+          // doc_no,
           doc_reff,
-          requestor,
+          // requestor,
           payment_term,
           description,
-          company,
+          // company,
           total_amount,
           status_request: 'DRAFT',
           due_date,
           endtoendid,
+          requestor_id: parseInt(idUser, 10),
+          create_by_id: parseInt(idUser, 10),
+          payment_term_id: 7
+
         };
 
         // Check if pr_number exists in API
@@ -1224,7 +1228,7 @@ const AddPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, select
             pr_number: newPrNumber,
             request_date: moment().format('YYYY-MM-DD'),
             schedule_date,
-            doc_no,
+            // doc_no,
             doc_reff,
             requestor,
             payment_term,
@@ -1264,7 +1268,7 @@ const AddPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, select
             pr_number: newPrNumber,
             request_date: moment().format('YYYY-MM-DD'),
             schedule_date,
-            doc_no,
+            // doc_no,
             doc_reff,
             requestor,
             payment_term,
@@ -1392,7 +1396,7 @@ const AddPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, select
           pr_number,
           request_date: moment().format('YYYY-MM-DD'),
           schedule_date, // Converts to date format
-          doc_no,
+          // doc_no,
           doc_reff,
           requestor,
           payment_term,
@@ -1510,7 +1514,7 @@ const AddPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, select
           pr_number,
           request_date: moment().format('YYYY-MM-DD'),
           schedule_date, // Converts to date format
-          doc_no,
+          // doc_no,
           doc_reff,
           requestor,
           payment_term,
@@ -1810,6 +1814,7 @@ const AddPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, select
                   <Card.Title>Item List</Card.Title>
                   <div>
                     <Button
+                      className='rounded-3'
                       variant="success"
                       size="sm"
                       onClick={handleAddItem}
@@ -1819,7 +1824,7 @@ const AddPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, select
                     <Button
                       variant="danger"
                       size="sm"
-                      className="ml-2"
+                      className="ml-2 rounded-3"
                       onClick={handleDeleteSelected}
                       disabled={selectedItems.length === 0}
                     >
@@ -1848,19 +1853,20 @@ const AddPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, select
                                     checked={selectedItems.length === items.length && items.length > 0}
                                   />
                                 </th>
-                                <th>Document Reference Number</th>
-                                <th>Document Reference Source</th>
+                                <th>Product</th>
+                                <th>Product Description</th>
+                                <th>Currency</th>
+                                <th>Unit Price</th>
+                                <th>Quantity</th>
+                                <th>Total Price</th>
                                 <th>Vendor</th>
                                 <th>Project</th>
                                 <th>Project Contract Number</th>
                                 <th>Customer</th>
                                 <th>Department</th>
-                                <th>Product</th>
-                                <th>Product Description</th>
-                                <th>Currency</th>
-                                <th>Quantity</th>
-                                <th>Unit Price</th>
-                                <th>Total Price</th>
+                                <th>Document Reference Number</th>
+                                <th>Document Reference Source</th>
+
                                 <th>Actions</th>
                               </tr>
                             </thead>
@@ -1879,38 +1885,91 @@ const AddPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, select
                                         onChange={() => handleSelectItem(index)}
                                       />
                                     </td>
+
+                                    <td>
+                                      <Select
+                                        id={`product-${index}`} // Unique id for each department select
+                                        value={productOptions.find(option => option.value === item.product_id)} // Set the selected value for department
+                                        onChange={(selectedOption) => handleProductChange(selectedOption, index)} // Pass the index to the handler
+                                        options={productOptions}
+                                        isClearable
+                                        placeholder="Select a Product..."
+                                        styles={{
+                                          control: (provided) => ({
+                                            ...provided,
+                                            ...detailFormStyle()
+                                          }),
+                                          placeholder: (provided) => ({
+                                            ...provided,
+                                            color: 'black', // Sets placeholder text color to black
+                                          }),
+
+                                        }}
+                                        required
+                                      />
+                                    </td>
                                     <td>
                                       <Form.Control
                                         type="text"
-                                        placeholder="Enter Document Reference"
-                                        value={item.doc_reff_no}
-                                        onChange={(e) => handleItemChange(index, 'doc_reff_no', e.target.value)}
+                                        value={item.product_note}
+                                        onChange={(e) => handleItemChange(index, 'product_note', e.target.value)}
                                         style={detailFormStyle()}
                                       />
                                     </td>
                                     <td>
-                                      {setIsEditingPurchaseRequest ? (
-                                        <>
-                                          {/* Display the document link and edit button when editing */}
-                                          <a href={item.doc_source} target="_blank" rel="noopener noreferrer">
-                                            {item.doc_source}
-                                          </a>
-                                          {/* <button
-                                          type="button"
-                                          onClick={() => handleEditClick(index)}
-                                          style={{ marginLeft: '10px', border: 'none', background: 'transparent' }}
-                                        >
-                                          <i className="fa fa-edit" aria-hidden="true"></i>
-                                        </button> */}
-                                        </>
-                                      ) : (
-                                        // Display file input when not editing
-                                        <Form.Control
-                                          type="file"
-                                          onChange={(e) => handleItemChange(index, 'file', e)}
-                                        />
-                                      )}
+                                      <Select
+                                        id={`currency-${index}`} // Unique id for each department select
+                                        value={currencyOptions.find(option => option.value === item.currency_id)} // Set the selected value for department
+                                        onChange={(selectedOption) => handleCurrencyChange(selectedOption, index)} // Pass the index to the handler
+                                        options={currencyOptions}
+                                        isClearable
+                                        placeholder="Select a Currency..."
+                                        styles={{
+                                          control: (provided) => ({
+                                            ...provided,
+                                            ...detailFormStyle()
+                                          }),
+                                          placeholder: (provided) => ({
+                                            ...provided,
+                                            color: 'black', // Sets placeholder text color to black
+                                          }),
+
+                                        }}
+                                        required
+                                      />
                                     </td>
+                                    <td>
+                                      <CurrencyInput
+                                        id={`currency-input-${index}`}
+                                        name="unit_price"
+                                        className="form-control"
+                                        value={item.unit_price || ''} // Empty string if undefined
+                                        decimalsLimit={4} // IDR: No decimals, Others: 2 decimals
+                                        onValueChange={(value) => {
+                                          const numericValue = parseFloat(value) || 0; // Ensure numeric value
+                                          handleItemChange(index, 'unit_price', numericValue);
+                                        }}
+                                        onFocus={() => {
+                                          handleItemChange(index, 'unit_price', ''); // Kosongkan nilai saat fokus
+                                        }} // Optional: Highlight text on focus
+                                        style={{ ...detailFormStyle(), width: '100%', textAlign: 'right' }}
+                                      />
+                                    </td>
+                                    <td>
+                                      <Form.Control
+                                        type="number"
+                                        value={item.quantity}
+                                        onChange={(e) => handleItemChange(index, 'quantity', parseFloat(e.target.value))}
+
+                                        style={{
+                                          // width: `${inputWidth[index] || 75}px`,
+                                          ...detailFormStyle(),
+                                          width: '75px',
+                                        }}
+                                      />
+                                    </td>
+
+                                    <td className="text-end">{item.total_price.toLocaleString('en-US', { currency: 'IDR', minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                                     <td>
                                       <Select
                                         id={`vendor-${index}`} // unique id for each row
@@ -1993,91 +2052,40 @@ const AddPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, select
                                       />
 
                                     </td>
-
-                                    <td>
-                                      <Select
-                                        id={`product-${index}`} // Unique id for each department select
-                                        value={productOptions.find(option => option.value === item.product_id)} // Set the selected value for department
-                                        onChange={(selectedOption) => handleProductChange(selectedOption, index)} // Pass the index to the handler
-                                        options={productOptions}
-                                        isClearable
-                                        placeholder="Select a Product..."
-                                        styles={{
-                                          control: (provided) => ({
-                                            ...provided,
-                                            ...detailFormStyle()
-                                          }),
-                                          placeholder: (provided) => ({
-                                            ...provided,
-                                            color: 'black', // Sets placeholder text color to black
-                                          }),
-
-                                        }}
-                                        required
-                                      />
-                                    </td>
                                     <td>
                                       <Form.Control
                                         type="text"
-                                        value={item.product_note}
-                                        onChange={(e) => handleItemChange(index, 'product_note', e.target.value)}
+                                        placeholder="Enter Document Reference"
+                                        value={item.doc_reff_no}
+                                        onChange={(e) => handleItemChange(index, 'doc_reff_no', e.target.value)}
                                         style={detailFormStyle()}
                                       />
                                     </td>
                                     <td>
-                                      <Select
-                                        id={`currency-${index}`} // Unique id for each department select
-                                        value={currencyOptions.find(option => option.value === item.currency_id)} // Set the selected value for department
-                                        onChange={(selectedOption) => handleCurrencyChange(selectedOption, index)} // Pass the index to the handler
-                                        options={currencyOptions}
-                                        isClearable
-                                        placeholder="Select a Currency..."
-                                        styles={{
-                                          control: (provided) => ({
-                                            ...provided,
-                                            ...detailFormStyle()
-                                          }),
-                                          placeholder: (provided) => ({
-                                            ...provided,
-                                            color: 'black', // Sets placeholder text color to black
-                                          }),
-
-                                        }}
-                                        required
-                                      />
+                                      {setIsEditingPurchaseRequest ? (
+                                        <>
+                                          {/* Display the document link and edit button when editing */}
+                                          <a href={item.doc_source} target="_blank" rel="noopener noreferrer">
+                                            {item.doc_source}
+                                          </a>
+                                          {/* <button
+                                          type="button"
+                                          onClick={() => handleEditClick(index)}
+                                          style={{ marginLeft: '10px', border: 'none', background: 'transparent' }}
+                                        >
+                                          <i className="fa fa-edit" aria-hidden="true"></i>
+                                        </button> */}
+                                        </>
+                                      ) : (
+                                        // Display file input when not editing
+                                        <Form.Control
+                                          type="file"
+                                          onChange={(e) => handleItemChange(index, 'file', e)}
+                                        />
+                                      )}
                                     </td>
-
-                                    <td>
-                                      <Form.Control
-                                        type="number"
-                                        value={item.quantity}
-                                        onChange={(e) => handleItemChange(index, 'quantity', parseFloat(e.target.value))}
-
-                                        style={{
-                                          // width: `${inputWidth[index] || 75}px`,
-                                          ...detailFormStyle(),
-                                          width: '75px',
-                                        }}
-                                      />
-                                    </td>
-                                    <td>
-                                      <CurrencyInput
-                                        id={`currency-input-${index}`}
-                                        name="unit_price"
-                                        className="form-control"
-                                        value={item.unit_price || ''} // Empty string if undefined
-                                        decimalsLimit={4} // IDR: No decimals, Others: 2 decimals
-                                        onValueChange={(value) => {
-                                          const numericValue = parseFloat(value) || 0; // Ensure numeric value
-                                          handleItemChange(index, 'unit_price', numericValue);
-                                        }}
-                                        onFocus={() => {
-                                          handleItemChange(index, 'unit_price', ''); // Kosongkan nilai saat fokus
-                                        }} // Optional: Highlight text on focus
-                                        style={{ ...detailFormStyle(), width: '100%', textAlign: 'right' }}
-                                      />
-                                    </td>
-                                    <td className="text-end">{item.total_price.toLocaleString('en-US', { currency: 'IDR', minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+                                    
+                                    
                                     <td>
                                       <Button
                                         variant="danger"
@@ -2093,6 +2101,25 @@ const AddPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, select
                             </tbody>
 
                           </table>
+                          <div className='pb-4'>
+                            <Button
+                              className='rounded-3'
+                              variant="success"
+                              size="sm"
+                              onClick={handleAddItem}
+                            >
+                              <i className="fas fa-plus"></i> New Item
+                            </Button>
+                            <Button
+                              variant="danger"
+                              size="sm"
+                              className="ml-2 rounded-3"
+                              onClick={handleDeleteSelected}
+                              disabled={items.length === 0}
+                            >
+                              <i className="fas fa-trash"></i> Delete
+                            </Button>
+                          </div>
 
                           {provided.placeholder}
                         </div>
