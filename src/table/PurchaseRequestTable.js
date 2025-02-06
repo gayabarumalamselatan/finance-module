@@ -647,7 +647,7 @@ const PurchaseRequestTable = ({
                                             </td>
 
                                             <td>{item.PR_NUMBER}</td>
-                                            <td>{item.REQUESTOR}</td>
+                                            <td>{item.CREATE_BY_NAME}</td>
                                             <td>{dateFormat(item.REQUEST_DATE)}</td>
                                             <td>{dateFormat(item.SCHEDULE_DATE)}</td>
                                             <td>{item.DESCRIPTION}</td>
@@ -688,12 +688,12 @@ const PurchaseRequestTable = ({
                                     </div>
                                     <div className="row mb-3">
                                         <div className="col-md-4 font-weight-bold">Requestor:</div>
-                                        <div className="col-md-8">{selectedRowData.REQUESTOR}</div>
+                                        <div className="col-md-8">{selectedRowData.CREATE_BY_NAME}</div>
                                     </div>
-                                    <div className="row mb-3">
+                                    {/* <div className="row mb-3">
                                         <div className="col-md-4 font-weight-bold">Company:</div>
                                         <div className="col-md-8">{selectedRowData.COMPANY}</div>
-                                    </div>
+                                    </div> */}
                                     <div className="row mb-3">
                                         <div className="col-md-4 font-weight-bold">Request Date:</div>
                                         <div className="col-md-8">
@@ -732,20 +732,19 @@ const PurchaseRequestTable = ({
                                     <Table striped bordered hover>
                                         <thead>
                                             <tr>
-                                                <th>Document Reff. No.</th>
-                                                <th>Document Reff. Source</th>
+                                                <th>Product</th>
+                                                <th>Product Description</th>
+                                                <th>Currency</th>
+                                                <th>Unit Price</th>
+                                                <th>Quantity</th>
+                                                <th>Total Price</th>
                                                 <th>vendor</th>
                                                 <th>Project</th>
                                                 <th>Project Contact No.</th>
                                                 <th>Customer</th>
                                                 <th>Departement</th>
-                                                <th>Product</th>
-                                                <th>Product Description</th>
-                                                <th>Currency</th>
-                                                <th>Quantity</th>
-                                                <th>Unit Price</th>
-                                                <th>Total Price</th>
-
+                                                <th>Document Reff. No.</th>
+                                                <th>Document Reff. Source</th>
                                             </tr>
                                         </thead>
                                         <tbody>
@@ -753,19 +752,20 @@ const PurchaseRequestTable = ({
                                                 .sort((a, b) => a.ID - b.ID) // Sort by ID in ascending order
                                                 .map((detail) => (
                                                     <tr key={detail.ID}>
-                                                        <td>{detail.doc_reff_no}</td>
-                                                        <td>{detail.doc_source}</td>
-                                                        <td>{detail.vendor_name}</td>
-                                                        <td>{detail.project}</td>
-                                                        <td>{detail.project_contact_number}</td>
-                                                        <td>{detail.customer}</td>
-                                                        <td>{detail.department}</td>
-                                                        <td>{detail.product}</td>
+                                                        <td>{detail.product_name}</td>
                                                         <td>{detail.product_note}</td>
                                                         <td>{detail.currency}</td>
-                                                        <td>{detail.quantity}</td>
                                                         <td style={{ textAlign: "right" }}>{DisplayFormat(detail.unit_price)}</td>
+                                                        <td>{detail.quantity}</td>
                                                         <td style={{ textAlign: "right" }}>{DisplayFormat(detail.total_price)}</td>
+                                                        <td>{detail.vendor_name}</td>
+                                                        <td>{detail.project}</td>
+                                                        <td>{detail.project_contract_number}</td>
+                                                        <td>{detail.customer}</td>
+                                                        <td>{detail.department}</td>
+                                                        <td>{detail.doc_reff_no}</td>
+                                                        <td>{detail.doc_source}</td>
+                                                        
                                                     </tr>
                                                 ))}
                                         </tbody>

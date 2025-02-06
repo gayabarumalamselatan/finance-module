@@ -1230,14 +1230,17 @@ const AddPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, select
             schedule_date,
             // doc_no,
             doc_reff,
-            requestor,
+            // requestor,
             payment_term,
             description,
-            company,
+            // company,
             total_amount,
             status_request: 'IN_PROCESS',
             due_date,
-            endtoendid
+            endtoendid,
+            requestor_id: parseInt(idUser, 10),
+            create_by_id: parseInt(idUser, 10),
+            payment_term_id: 7
           };
 
           const response = await UpdateDataService.postData(generalInfo, `PUREQ&column=id&value=${id}`, authToken, branchId);
@@ -1270,14 +1273,17 @@ const AddPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, select
             schedule_date,
             // doc_no,
             doc_reff,
-            requestor,
+            // requestor,
             payment_term,
             description,
-            company,
+            // company,
             total_amount,
             status_request: 'IN_PROCESS',
             due_date,
-            endtoendid
+            endtoendid,
+            requestor_id: parseInt(idUser, 10),
+            create_by_id: parseInt(idUser, 10),
+            payment_term_id: 7
           };
 
           const response = await InsertDataService.postData(generalInfo, "PUREQ", authToken, branchId);
@@ -2084,8 +2090,6 @@ const AddPurchaseRequest = ({ setIsEditingPurchaseRequest, handleRefresh, select
                                         />
                                       )}
                                     </td>
-                                    
-                                    
                                     <td>
                                       <Button
                                         variant="danger"

@@ -8,6 +8,7 @@ import FormService from "../service/FormService";
 import PurchaseRequestTable from "../table/PurchaseRequestTable";
 import AddPurchaseRequest from "../formComponents/AddPurchaseRequest";
 import EditPurchaseRequest from "../formComponents/EditPurchaseRequest";
+import UserService from "../service/UserService";
 
 const PurchaseRequest = () => {
     const headers = getToken();
@@ -43,7 +44,7 @@ const PurchaseRequest = () => {
     // Parse the JSON string into a JavaScript object
     const permissions = JSON.parse(permissionsString);
 
-    
+
 
     const handleAddNewPurchaseRequest = (value) => {
         setIsAddingNewPurchaseRequest(value);
@@ -100,13 +101,73 @@ const PurchaseRequest = () => {
         }
     }, [idForm]);
 
+    const ChangLookup = async (fata) => {
+        setIsLoadingTable(true)
+        try {
+            // Fetch users and vendor lookup data concurrently
+            const [userResponse, vendorResponse, currencyResponse] = await Promise.all([
+                UserService.fetchAllUser(authToken),
+                LookupParamService.fetchLookupData("MSDT_FORMCUST", authToken, branchId),
+                LookupParamService.fetchLookupData('MSDT_FORMCCY', authToken, branchId)
+            ]);
+
+            const transformedDataVendor = vendorResponse.data.map(item =>
+                Object.keys(item).reduce((acc, key) => {
+                    acc[key.toUpperCase()] = item[key];
+                    return acc;
+                }, {})
+            );
+
+            const fetchedVendor = transformedDataVendor.filter(item => item.ENTITY_TYPE === 'BOTH' || item.ENTITY_TYPE === 'Vendor').map(item => ({
+                id: item.ID,
+                value: item.NAME,
+                label: item.NAME,
+            }));
+
+            const transformedDataCurrency = currencyResponse.data.map(item =>
+                Object.keys(item).reduce((acc, key) => {
+                    acc[key.toUpperCase()] = item[key];
+                    return acc;
+                }, {})
+            );
+            const fetchedCurrency = transformedDataCurrency.map(item => ({
+                id: item.ID,
+                value: item.CODE,
+            }))
+
+
+            // Wait for the state updates to complete
+            // Note: State updates are asynchronous, so we need to use the latest values
+            const updatedTable = fata.map(item => {
+                const user = userResponse.users.find(user => user.id === item.CREATE_BY_ID);
+                const vendor = fetchedVendor.find(vendor => vendor.id === item.VENDOR_ID);
+                const currency = fetchedCurrency.find(currency => currency.id === item.CURRENCY_ID)
+                console.log('vendorr', currency)
+                return {
+                    ...item,
+                    CREATE_BY_NAME: user ? user.userName : '', // Set userName or empty string if not found
+                    VENDOR_NAME: vendor ? vendor.value : '',
+                    FORM_TO_NAME: vendor ? vendor.value : '',
+                    CURRENCY_NAME: currency ? currency.value : ''
+                };
+            });
+
+            setDataTable(updatedTable); // Update the original dataTable with the new field
+            setIsLoadingTable(false)
+            console.log('Updated dataTable:', updatedTable);
+        } catch (error) {
+            console.error('Error in ChangLookup:', error);
+        }
+    };
+
+
     useEffect(() => {
         if (formCode.length > 0) {
             let formMmtData = [];
-    
+
             // Menggabungkan filter dari URL, permissions, dan input pengguna
             let dynamicFilters = [...filters]; // Menggunakan filters yang sudah ada
-    
+
             // Check if URL parameter `status` is set
             const statusParam = new URLSearchParams(window.location.search).get('status');
             if (statusParam) {
@@ -122,10 +183,10 @@ const PurchaseRequest = () => {
                     });
                 }
             }
-    
+
             console.log("permissions", permissions.Purchase?.["List Purchase Request"].verify);
             const checker = permissions.Purchase?.["List Purchase Request"].verify;
-    
+
             if (!checker && userId) {
                 // Mengecek apakah filter requestor sudah ada
                 const isRequestorFilterExists = dynamicFilters.some(
@@ -139,7 +200,7 @@ const PurchaseRequest = () => {
                     });
                 }
             }
-    
+
             // Fetch data using multiple filters
             const fetchFormMmtData = FormService.fetchData(
                 "",
@@ -162,15 +223,16 @@ const PurchaseRequest = () => {
                 .catch((error) => {
                     console.error("Failed to fetch form Purchase Request lookup:", error);
                 });
-    
+
             fetchFormMmtData.then(() => {
                 console.log('MMT DATA', formMmtData);
                 setDataTable(formMmtData);
+                ChangLookup(formMmtData)
                 setIsLoadingTable(false);
             });
         }
     }, [formCode, pageSize, currentPage, refreshTable, isFilterSet, filters]);  // Add filters to dependency array
-    
+
 
     const handlePageSizeChange = (event) => {
         setPageSize(parseInt(event.target.value, 10));
@@ -188,69 +250,69 @@ const PurchaseRequest = () => {
     };
 
     // Handle pencarian filter
-const handleFilterSearch = ({ filters }) => {
-    console.log('filter Purchase Request list:', filters);
+    const handleFilterSearch = ({ filters }) => {
+        console.log('filter Purchase Request list:', filters);
 
-    // Periksa filter yang sudah ada sebelum menambahkannya
-    let updatedFilters = [...filters]; // Salin filter yang ada
+        // Periksa filter yang sudah ada sebelum menambahkannya
+        let updatedFilters = [...filters]; // Salin filter yang ada
 
-    // Cek apakah filter baru sudah ada di filters
-    if (filterColumn && filterOperation && filterValue) {
-        const isFilterExists = updatedFilters.some(
-            (filter) =>
-                filter.column === filterColumn &&
-                filter.operation === filterOperation &&
-                filter.value === filterValue
-        );
+        // Cek apakah filter baru sudah ada di filters
+        if (filterColumn && filterOperation && filterValue) {
+            const isFilterExists = updatedFilters.some(
+                (filter) =>
+                    filter.column === filterColumn &&
+                    filter.operation === filterOperation &&
+                    filter.value === filterValue
+            );
 
-        // Jika filter belum ada, tambahkan filter baru
-        if (!isFilterExists) {
-            updatedFilters.push({
-                column: filterColumn,
-                operation: filterOperation,
-                value: filterValue,
-            });
+            // Jika filter belum ada, tambahkan filter baru
+            if (!isFilterExists) {
+                updatedFilters.push({
+                    column: filterColumn,
+                    operation: filterOperation,
+                    value: filterValue,
+                });
+            }
         }
-    }
 
-    // Set filters yang baru untuk pencarian
-    setFilters(updatedFilters); // Update state filters
-    setIsFilterSet(!isFilterSet);
-    setIsLoadingTable(true);
-};
+        // Set filters yang baru untuk pencarian
+        setFilters(updatedFilters); // Update state filters
+        setIsFilterSet(!isFilterSet);
+        setIsLoadingTable(true);
+    };
 
-// Reset filters
-const handleResetFilters = () => {
-    setFilters([]); // Reset ke array kosong jika reset
-    setIsFilterSet(!isFilterSet);
-    setIsLoadingTable(true);
-};
-    
+    // Reset filters
+    const handleResetFilters = () => {
+        setFilters([]); // Reset ke array kosong jika reset
+        setIsFilterSet(!isFilterSet);
+        setIsLoadingTable(true);
+    };
+
 
 
     return (
         <Fragment>
             {!isEditingPurchaseRequest && (
-            <section className="content-header">
-                <div className="container-fluid">
-                    <div className="row mb-2">
-                        <div className="col-sm-6">
-                            <h1>Purchase Request</h1>
-                        </div>
-                        <div className="col-sm-6">
-                            <ol className="breadcrumb float-sm-right">
-                                <li className="breadcrumb-item">
-                                    <a href="/">Home</a>
-                                </li>
-                                <li className="breadcrumb-item active">
-                                    Purchase Request
-                                </li>
-                            </ol>
+                <section className="content-header">
+                    <div className="container-fluid">
+                        <div className="row mb-2">
+                            <div className="col-sm-6">
+                                <h1>Purchase Request</h1>
+                            </div>
+                            <div className="col-sm-6">
+                                <ol className="breadcrumb float-sm-right">
+                                    <li className="breadcrumb-item">
+                                        <a href="/">Home</a>
+                                    </li>
+                                    <li className="breadcrumb-item active">
+                                        Purchase Request
+                                    </li>
+                                </ol>
+                            </div>
                         </div>
                     </div>
-                </div>
-            </section>
-             )}
+                </section>
+            )}
             <section className="content">
                 {isAddingNewPurchaseRequest ? (
                     <div>

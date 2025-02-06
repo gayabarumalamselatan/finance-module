@@ -9,7 +9,7 @@ const LookupParamService = {
     fetchLookupData: async (lookupTable, headers, branchId) => {
         try {
             const response = await axios.get(
-                `${FORM_SERVICE_LOAD_DATA}?t=${lookupTable}&branchId=${branchId}&page=1&size=500&viewOnly=YES`,
+                `${FORM_SERVICE_LOAD_DATA}?t=${lookupTable}&branchId=${branchId}&page=1&size=5000&viewOnly=YES`,
                 {
                     headers: {
                         Authorization: `Bearer ${headers}`, // Tambahkan token otorisasi di sini
