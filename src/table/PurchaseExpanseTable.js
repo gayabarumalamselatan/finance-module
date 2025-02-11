@@ -9,6 +9,8 @@ import LookupService from "../service/LookupService";
 import { DisplayFormat } from "../utils/DisplayFormat";
 import Swal from "sweetalert2";
 import DeleteDataService from "../service/DeleteDataService";
+import UserService from "../service/UserService";
+import LookupParamService from "../service/LookupParamService";
 
 const PurchaseExpanseTable = ({
   formCode,
@@ -42,11 +44,258 @@ const PurchaseExpanseTable = ({
   const [isModalOpen, setIsModalOpen] = useState(false); // For modal visibility
   const [selectedRowData, setSelectedRowData] = useState(null);
   const [selectedRowDataItem, setSelectedRowDataItem] = useState([]); // For storing selected row data
+  const [core_user_options, setCoreUserOptions] = useState([]);
+  const [paidToOptions, setPaidToOptions] = useState([]);
+  const [bankOptions, setBankOptions] = useState([]);
+  const [currencyOptions, setCurrencyOptions] = useState([]);
+  const [productOptions, setProductOptions] = useState([]);
+  const [productsOptions, setProductsOptions] = useState([]);
+  const [projectOptions, setProjectOptions] = useState([]);
+  const [departmentOptions, setDepartmentOptions] = useState([]);
+  const [pphOptions, setTax_Pph_Type_Option] = useState([]);
+  const [optionsPpn, setTaxPpnTypeOption] = useState([]);
 
   const authToken = headers;
 
   useEffect(() => {
     setSelectedRows(new Set());
+
+    UserService.fetchAllUser(authToken)
+    .then((data) => {
+      console.log("User  lookup response:", JSON.stringify(data, null, 2)); // Log the entire response
+
+      // Check if the users array is defined
+      if (data && Array.isArray(data.users)) {
+        const transformedData = data.users.map((item) =>
+          Object.keys(item).reduce((acc, key) => {
+            acc[key.toUpperCase()] = item[key];
+            return acc;
+          }, {})
+        );
+
+        const options = transformedData.map((item) => ({
+          id: item.ID,
+          value: item.USERNAME,
+          label: item.USERNAME,
+        }));
+
+        // Create a Map for quick lookup
+        const userMap = new Map(
+          options.map((option) => [option.id, option.label])
+        );
+        setCoreUserOptions(userMap); // Store the Map instead of an array
+
+      } else {
+        console.error("Unexpected response format:", data);
+      }
+    })
+    .catch((error) => {
+      console.error("Failed to fetch user lookup:", error);
+    });
+
+    //buat paid to
+    LookupParamService.fetchLookupDataView("VOUC_VIEWVCBANK", authToken, branchId)
+            .then((Data) => {
+              console.log("Paid to lookup data:", Data);
+
+              // Transform and map currency data to options
+              const transformedPaidToData = Data.data.map((item) =>
+                Object.keys(item).reduce((acc, key) => {
+                  acc[key.toUpperCase()] = item[key];
+                  return acc;
+                }, {})
+              );
+
+              const paidToOptions = transformedPaidToData.map((item) => ({
+                id: item.ID,
+                value: item.NAME,
+                label: item.NAME,
+              }));
+
+              setPaidToOptions(paidToOptions); // Set currency options to state
+             
+            })
+            .catch((error) => {
+              console.error("Failed to fetch paid_to lookup:", error);
+            });
+
+            //buat Bank
+            LookupParamService.fetchLookupDataView("MSDT_FORMBNCS", authToken, branchId)
+            .then((BankData) => {
+              console.log("Bank lookup data:", BankData);
+
+              // Transform and map currency data to options
+              const transformedBankData = BankData.data.map((item) =>
+                Object.keys(item).reduce((acc, key) => {
+                  acc[key.toUpperCase()] = item[key];
+                  return acc;
+                }, {})
+              );
+
+              const bankOptions = transformedBankData 
+              .map((item) => ({
+               value: item.BANK_NAME,
+               label: item.BANK_NAME,
+               id: item.ID,
+               bank_account: item.BANK_ACCOUNT,
+              }));
+
+              setBankOptions(bankOptions); // Set currency options to state
+            })
+            .catch((error) => {
+              console.error("Failed to fetch bank lookup:", error);
+            });
+
+            //buat Currency
+            LookupParamService.fetchLookupData("MSDT_FORMCCY", authToken, branchId)
+            .then((data) => {
+              console.log("Currency lookup data:", data);
+
+              // Transform keys to uppercase directly in the received data
+              const transformedData = data.data.map((item) =>
+                Object.keys(item).reduce((acc, key) => {
+                  acc[key.toUpperCase()] = item[key];
+                  return acc;
+                }, {})
+              );
+              //console.log('Transformed data:', transformedData);
+
+              const currencyOptions = transformedData.map((item) => ({
+                value: item.CODE,
+                label: item.CODE,
+                id: item.ID,
+              }));
+              setCurrencyOptions(currencyOptions);
+            
+            })
+            .catch((error) => {
+              console.error("Failed to fetch Currency lookup:", error);
+            });
+
+            //buat product
+            LookupParamService.fetchLookupData("MSDT_FORMPRDT", authToken, branchId)
+            .then((data) => {
+              console.log("product lookup data:", data);
+    
+              // Transform keys to uppercase directly in the received data
+              const transformedData = data.data.map((item) =>
+                Object.keys(item).reduce((acc, key) => {
+                  acc[key.toUpperCase()] = item[key];
+                  return acc;
+                }, {})
+              );
+              //console.log('Transformed data:', transformedData);
+    
+              const productOptions = transformedData.map((item) => ({
+                id: item.ID,
+                value: item.NAME,
+                label: item.NAME,
+                expenseAccount: item.EXPENSE_ACCOUNT,
+              }));
+              setProductOptions(productOptions);
+
+              const productsOptions = transformedData.map((item) => ({
+                id: item.ID,
+                value: item.EXPENSE_ACCOUNT,
+                label: item.EXPENSE_ACCOUNT,
+              }));
+              setProductsOptions(productsOptions);
+
+            })
+            .catch((error) => {
+              console.error("Failed to fetch product lookup:", error);
+            });
+
+            //buat project
+            LookupParamService.fetchLookupData("MSDT_FORMPRJT", authToken, branchId)
+            .then((data) => {
+              console.log("Project lookup data:", data);
+      
+              // Transform keys to uppercase directly in the received data
+              const transformedData = data.data.map((item) =>
+                Object.keys(item).reduce((acc, key) => {
+                  acc[key.toUpperCase()] = item[key];
+                  return acc;
+                }, {})
+              );
+              //console.log('Transformed data:', transformedData);
+      
+              const projectOptions = transformedData.map((item) => ({
+                value: item.NAME,
+                label: item.NAME,
+                id: item.ID,
+                project_contract_number: item.CONTRACT_NUMBER,
+                customer: item.CUSTOMER,
+              }));
+              setProjectOptions(projectOptions);
+            })
+            .catch((error) => {
+              console.error("Failed to fetch project number lookup:", error);
+            });
+
+            //buat Department
+            LookupParamService.fetchLookupData("MSDT_FORMDPRT", authToken, branchId)
+            .then((data) => {
+              console.log("Department lookup data:", data);
+      
+              // Transform keys to uppercase directly in the received data
+              const transformedData = data.data.map((item) =>
+                Object.keys(item).reduce((acc, key) => {
+                  acc[key.toUpperCase()] = item[key];
+                  return acc;
+                }, {})
+              );
+              //console.log('Transformed data:', transformedData);
+      
+              const departmentOptions = transformedData.map((item) => ({
+                value: item.NAME,
+                label: item.NAME,
+                id: item.ID,
+              }));
+              setDepartmentOptions(departmentOptions);
+            })
+            .catch((error) => {
+              console.error("Failed to fetch Department lookup:", error);
+            });
+
+            LookupParamService.fetchLookupDataView("MSDT_FORMTAX", authToken, branchId)
+            .then((data) => {
+              console.log("tax lookup data:", data);
+
+              // Transform keys to uppercase directly in the received data
+              const transformedData = data.data.map((item) =>
+                Object.keys(item).reduce((acc, key) => {
+                  acc[key.toUpperCase()] = item[key];
+                  return acc;
+                }, {})
+              );
+              //console.log('Transformed data:', transformedData);
+
+              const pphOptions = transformedData
+                .filter((item) => item.TAX_TYPE === "PPh")
+                .map((item) => ({
+                  id: item.ID,
+                  value: item.NAME,
+                  label: item.NAME,
+                  RATE: item.RATE,
+                }));
+              setTax_Pph_Type_Option(pphOptions);
+
+              const optionsPpn = transformedData
+                .filter((item) => item.TAX_TYPE === "PPN")
+                .map((item) => ({
+                  id: item.ID,
+                  value: item.NAME,
+                  label: item.NAME,
+                  RATE: item.RATE,
+                }));
+              setTaxPpnTypeOption(optionsPpn);
+
+            })
+            .catch((error) => {
+              console.error("Failed to fetch tax lookup:", error);
+            });
+
   }, [dataTable]);
 
   // Handle checkbox click separately
@@ -452,6 +701,31 @@ const PurchaseExpanseTable = ({
     console.log("Export selected rows:", Array.from(selectedRows));
   };
 
+  const getTaxNameById = (id, taxOptions = []) => {
+    if (!Array.isArray(taxOptions)) {
+      console.error("taxOptions should be an array");
+      return id; // Return the id if taxOptions is not an array
+    }
+
+    const taxOption = taxOptions.find((option) => option.id === id);
+    return taxOption ? taxOption.label : id; // Return the label if found, otherwise return the id
+  };
+
+  const getUserNameById = (id, userMap) => {
+    if (!(userMap instanceof Map)) {
+      console.error("userMap should be a Map");
+      return id; // Return the id if userMap is not a Map
+    }
+
+    console.log("User  Map contents:", Array.from(userMap.entries())); // Log the entire map
+    console.log("id user to display:", id); // Debugging statement
+
+    const userLabel = userMap.get(id); // Get the label from the map using the id
+    console.log("User  found:", userLabel); // Debugging statement
+    return userLabel ? userLabel : id; // Return the label if found, otherwise return the id
+  };
+
+
   return (
     <div>
       <div className="card card-default">
@@ -617,12 +891,21 @@ const PurchaseExpanseTable = ({
                       <td>{item.VOUCHER_NUMBER}</td>
                       <td>{item.VOUCHER_DATE}</td>
                       <td>{item.PAYMENT_SOURCE}</td>
-                      <td>{item.BANK_NAME}</td>
+                      {/* <td>{item.BANK_ID}</td> */}
+                      <td>
+                        {getTaxNameById(item.BANK_ID, bankOptions)}
+                      </td>
                       <td>{item.ACCOUNT_BANK}</td>
                       <td>{item.NUMBER_CHECK_GIRO}</td>
-                      <td>{item.PAID_TO}</td>
+                      {/* <td>{item.PAID_TO_ID}</td> */}
+                      <td>
+                        {getTaxNameById(item.PAID_TO_ID, paidToOptions)}
+                      </td>
                       <td>{item.EXCHANGE_RATE}</td>
-                      <td>{item.CURRENCY}</td>
+                      {/* <td>{item.CURRENCY_ID}</td> */}
+                      <td>
+                        {getTaxNameById(item.CURRENCY_ID, currencyOptions)}
+                      </td>
                       <td>{item.AMOUNT_IDR}</td>
                       <td>{item.TOTAL_PAID}</td>
                       <td>{item.STATUS}</td>
@@ -678,7 +961,7 @@ const PurchaseExpanseTable = ({
                   </div>
                   <div className="row mb-3">
                     <div className="col-md-4 font-weight-bold">Bank/Cash:</div>
-                    <div className="col-md-8">{selectedRowData.BANK_NAME}</div>
+                    <div className="col-md-8">{getTaxNameById(selectedRowData.BANK_ID, bankOptions)}</div>
                   </div>
                   <div className="row mb-3">
                     <div className="col-md-4 font-weight-bold">Bank Account Number:</div>
@@ -690,7 +973,7 @@ const PurchaseExpanseTable = ({
                   </div>
                   <div className="row mb-3">
                     <div className="col-md-4 font-weight-bold">Paid To:</div>
-                    <div className="col-md-8">{selectedRowData.PAID_TO}</div>
+                    <div className="col-md-8">{getTaxNameById(selectedRowData.PAID_TO_ID, paidToOptions)}</div>
                   </div>
                   <div className="row mb-3">
                     <div className="col-md-4 font-weight-bold">Exchange Rate:</div>
@@ -707,7 +990,7 @@ const PurchaseExpanseTable = ({
 
                   <div className="row mb-3">
                     <div className="col-md-4 font-weight-bold">Currency:</div>
-                    <div className="col-md-8">{selectedRowData.CURRENCY}</div>
+                    <div className="col-md-8">{getTaxNameById(selectedRowData.CURRENCY_ID, currencyOptions)}</div>
                   </div>
                   
                   <div className="row mb-3">
@@ -798,7 +1081,7 @@ const PurchaseExpanseTable = ({
                               <th>Department</th>
                               {/* <th>Employee</th> */}
                               {/* <th>Amount</th> */}
-                              <th>Currency</th>
+                              {/* <th>Currency</th> */}
                               <th>Exchange Rate</th> 
                               <th>Quantity</th>
                               <th>Unit Price</th>                      
@@ -836,30 +1119,30 @@ const PurchaseExpanseTable = ({
                             <td>{detail.purchase_invoice_number}</td>
                             <td>{detail.purchase_invoice_date}</td>
                             {/* <td>{detail.status_detail}</td> */}
-                            <td>{detail.coa}</td>
-                            <td>{detail.product}</td>
+                            <td>{getTaxNameById(detail.coa_id, productsOptions)}</td>
+                            <td>{getTaxNameById(detail.product_id, productOptions)}</td>
                             {/* <td>{detail.product_account}</td> */}
                             <td>{detail.description}</td>
                             <td>{detail.tax_invoice_number}</td>
                             <td>{detail.db_cr}</td>
                             {/* <td>{detail.vendor}</td> */}
-                            <td>{detail.project}</td>
+                            <td>{getTaxNameById(detail.project_id, projectOptions)}</td>
                             <td>{detail.project_contract_number}</td>
                             <td>{detail.customer}</td>
                             {/* <td style={{ textAlign: "right" }}>{DisplayFormat(detail.kurs_deal)}</td>
                             <td style={{ textAlign: "right" }}>{DisplayFormat(detail.amount_in_idr)}</td> */}
-                            <td>{detail.department}</td>
+                            <td>{getTaxNameById(detail.department_id, departmentOptions)}</td>
                             {/* <td>{detail.employee}</td> */}
                             {/* <td style={{ textAlign: "right" }}>{DisplayFormat(detail.amount)}</td> */}
-                            <td>{detail.currency}</td>
+                            {/* <td>{detail.currency}</td> */}
                             <td style={{ textAlign: "right" }}>{DisplayFormat(detail.exchange_rate)}</td>
                             <td>{detail.quantity}</td>
                             <td>{detail.unit_price}</td>
                             <td>{detail.type_of_vat}</td>
-                            <td>{detail.tax_ppn}</td>
+                            <td>{getTaxNameById(detail.tax_ppn_id, optionsPpn)}</td>
                             <td style={{ textAlign: "right" }}>{DisplayFormat(detail.tax_ppn_amount)}</td>
                             <td>{detail.type_of_pph}</td>
-                            <td>{detail.tax_pph}</td>
+                            <td>{getTaxNameById(detail.tax_pph_id, pphOptions)}</td>
                             <td style={{ textAlign: "right" }}>{DisplayFormat(detail.tax_pph_amount)}</td>
                             {/* <td>{detail.tax_pph_rate}</td> */}
                            

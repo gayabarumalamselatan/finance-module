@@ -2433,13 +2433,13 @@ const AddPurchaseExpanseVoucher = ({ setIsAddingNewPurchaseExpanse, setIsEditing
     setCurrencyId(selectedOption ? selectedOption.id : "");
   };
 
-  console.log("currencyId", currency_id);
+  // console.log("currencyId", currency_id);
 
   useEffect(() => {
     if (selectedData && selectedData.length > 0) {
         const currencyFromData = selectedData[0]?.CURRENCY;
         const matchingCurrencyOption = currencyOptions.find(
-            (option) => option.value === currencyFromData
+            (option) => option.id === currencyFromData
         );
 
         if (matchingCurrencyOption) {
@@ -2448,7 +2448,7 @@ const AddPurchaseExpanseVoucher = ({ setIsAddingNewPurchaseExpanse, setIsEditing
         } else {
             // Set default to IDR if no valid currency is found
             const defaultCurrencyOption = currencyOptions.find(
-                (option) => option.value === "IDR"
+                (option) => option.id === "61"
             );
             if (defaultCurrencyOption) {
                 setSelectedCurrency(defaultCurrencyOption);
@@ -2737,6 +2737,12 @@ const AddPurchaseExpanseVoucher = ({ setIsAddingNewPurchaseExpanse, setIsEditing
     const newItems = items.filter((item, i) => i !== index);
     setItems(newItems);
     setSelectedItems(selectedItems.filter((i) => i !== index));
+  };
+
+  const handleDeleteLast = () => {
+    const newItems = items.slice(0, items.length - 1); // Create a new array excluding the last item
+    setItems(newItems);
+    setSelectedItems([]);
   };
 
   const handleSelectItem = (index) => {
@@ -4373,7 +4379,7 @@ const AddPurchaseExpanseVoucher = ({ setIsAddingNewPurchaseExpanse, setIsEditing
 
                                   <td>
                                     <Select
-                                      value={productOptions.find((option) => option.id === items[index].product_id)}
+                                      value={productOptions.find((option) => option.id === items[index].product_id) || null}
                                       onChange={(selectedOption) => {
                                         handleItemChange(index, "product", selectedOption ? selectedOption.value : null);
                                         handleItemChange(index, "product_id", selectedOption ? selectedOption.id : null);
@@ -4449,7 +4455,7 @@ const AddPurchaseExpanseVoucher = ({ setIsAddingNewPurchaseExpanse, setIsEditing
                                       placeholder="Select Project"
                                   /> */}
                                     <Select
-                                      value={projectOptions.find((option) => option.id === items[index].project_id)}
+                                      value={projectOptions.find((option) => option.id === items[index].project_id) || null}
                                       onChange={(selectedOption) => {
                                         handleItemChange(index, "project", selectedOption ? selectedOption.value : null);
                                         handleItemChange(index, "project_id", selectedOption ? selectedOption.id : null);
@@ -4485,7 +4491,7 @@ const AddPurchaseExpanseVoucher = ({ setIsAddingNewPurchaseExpanse, setIsEditing
 
                                   <td>
                                     <Select
-                                    value={customerOptions.find((option) => option.value === items[index].customer)}
+                                    value={customerOptions.find((option) => option.value === items[index].customer) || null}
                                       // value={customerOptions.find((option) => option.id === items[index].customer_id)}
                                       onChange={(selectedOption) => {
                                         handleItemChange(index, "customer", selectedOption ? selectedOption.value : null);
@@ -4968,6 +4974,9 @@ const AddPurchaseExpanseVoucher = ({ setIsAddingNewPurchaseExpanse, setIsEditing
                                 <Button variant="success" size="sm" onClick={handleAddItem}>
                                   <i className="fas fa-plus"></i> New Item
                                 </Button>
+                                 <Button variant="danger" size="sm" className="ml-2 rounded-3" onClick={handleDeleteLast} disabled={items.length === 0}>
+                                   <i className="fas fa-trash"></i> Delete
+                                 </Button>
                               </div>
                             </td>
                           </tr>
